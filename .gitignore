@@ -32,3 +32,4 @@ yarn-error.log
 sonar-project.properties
 /docker/sonarqube/sonarqube
 /owasp-zap
+/.scannerwork
