@@ -1,0 +1,6 @@
+projectKey=ProyectoGPIS
+serverUrl=http://localhost:9000
+serverVersion=25.9.0.112764
+dashboardUrl=http://localhost:9000/dashboard?id=ProyectoGPIS
+ceTaskId=18af5e80-3870-468f-9dcf-9b1b6f5b4af7
+ceTaskUrl=http://localhost:9000/api/ce/task?id=18af5e80-3870-468f-9dcf-9b1b6f5b4af7
