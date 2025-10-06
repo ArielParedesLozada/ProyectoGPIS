@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ExampleController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -13,6 +14,8 @@ Route::get('/home', function () {
         'data' => 'ok'
     ]);
 });
+
+Route::get('/test', [ExampleController::class, 'index'])->name('test');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
