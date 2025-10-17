@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AuthLayout from '@/layouts/auth-layout';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function Register() {
     return (
@@ -26,17 +27,18 @@ export default function Register() {
                 {({ processing, errors }) => (
                     <>
                         <div className="grid gap-6">
+                            {/* Nombre */}
                             <div className="grid gap-2">
-                                <Label htmlFor="name">Name</Label>
+                                <Label htmlFor="name">Nombre</Label>
                                 <Input
                                     id="name"
                                     type="text"
                                     required
                                     autoFocus
                                     tabIndex={1}
-                                    autoComplete="name"
+                                    autoComplete="given-name"
                                     name="name"
-                                    placeholder="Full name"
+                                    placeholder="Tu nombre"
                                 />
                                 <InputError
                                     message={errors.name}
@@ -44,6 +46,79 @@ export default function Register() {
                                 />
                             </div>
 
+                            {/* Apellido */}
+                            <div className="grid gap-2">
+                                <Label htmlFor="surname">Apellido</Label>
+                                <Input
+                                    id="surname"
+                                    type="text"
+                                    required
+                                    tabIndex={2}
+                                    autoComplete="family-name"
+                                    name="surname"
+                                    placeholder="Tu apellido"
+                                />
+                                <InputError
+                                    message={errors.surname}
+                                    className="mt-2"
+                                />
+                            </div>
+
+                            {/* Teléfono */}
+                            <div className="grid gap-2">
+                                <Label htmlFor="phone">Teléfono</Label>
+                                <Input
+                                    id="phone"
+                                    type="tel"
+                                    required
+                                    tabIndex={3}
+                                    autoComplete="tel"
+                                    name="phone"
+                                    placeholder="+34 123 456 789"
+                                />
+                                <InputError
+                                    message={errors.phone}
+                                    className="mt-2"
+                                />
+                            </div>
+
+                            {/* Dirección */}
+                            <div className="grid gap-2">
+                                <Label htmlFor="address">Dirección</Label>
+                                <Input
+                                    id="address"
+                                    type="text"
+                                    required
+                                    tabIndex={4}
+                                    autoComplete="street-address"
+                                    name="address"
+                                    placeholder="Tu dirección completa"
+                                />
+                                <InputError
+                                    message={errors.address}
+                                    className="mt-2"
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="gender">Género</Label>
+                                <Select
+                                    required
+                                    name="gender"
+                                >
+                                    <SelectTrigger tabIndex={5}>
+                                        <SelectValue placeholder="Selecciona tu género" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="hombre">Hombre</SelectItem>
+                                        <SelectItem value="mujer">Mujer</SelectItem>
+                                        <SelectItem value="otro">Otro</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <InputError
+                                    message={errors.gender}
+                                    className="mt-2"
+                                />
+                            </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="email">Email address</Label>
                                 <Input
