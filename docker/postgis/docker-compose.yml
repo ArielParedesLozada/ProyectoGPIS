@@ -1,0 +1,31 @@
+services:
+  postgis:
+    container_name: postgis
+    image: postgis/postgis:17-master
+    restart: unless-stopped
+    shm_size: 128mb
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: clave_piola
+    volumes:
+      - ~/.docker/postgis:/var/lib/postgresql
+    networks:
+      - postgis_network
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin_postgis
+    restart: unless-stopped
+    ports:
+      - "8433:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: grupophpasw@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: Sihaya123
+    depends_on:
+      - postgis
+    networks:
+      - postgis_network
+
+networks:
+  postgis_network:
