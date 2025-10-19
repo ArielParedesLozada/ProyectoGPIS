@@ -24,7 +24,8 @@ export default function CustomError({ message, className = "", show = true }: Cu
         'The password confirmation field is required',
         'The email must be a valid email address',
         'The password must be at least 8 characters',
-        'The password confirmation does not match'
+        'The password confirmation does not match',
+        'A reset link will be sent if the account exists.'
     ];
     
     // Si el mensaje está en inglés, no mostrarlo
@@ -126,6 +127,7 @@ export const errorMessages = {
     'account.password_reset_sent': 'Se ha enviado un enlace de recuperación a tu email.',
     'account.password_reset_failed': 'Error al enviar el enlace de recuperación.',
     'account.password_reset_invalid': 'El enlace de recuperación no es válido o ha expirado.',
+    'A reset link will be sent if the account exists.': 'Se enviará un enlace de recuperación si la cuenta existe.',
 };
 
 // Función para obtener el mensaje de error en español
