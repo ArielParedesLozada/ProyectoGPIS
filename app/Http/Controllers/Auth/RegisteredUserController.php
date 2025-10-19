@@ -57,12 +57,6 @@ class RegisteredUserController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        try {
-            $token = JWTAuth::fromUser($user);
-        } catch (JWTException $e) {
-            return response()->json(['error' => 'Could not create token'], 500);
-        }
-
         event(new Registered($user));
         Auth::login($user);
         return redirect()->intended(route('dashboard', absolute: false));
