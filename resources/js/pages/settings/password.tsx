@@ -1,5 +1,5 @@
 import PasswordController from '@/actions/App/Http/Controllers/Settings/PasswordController';
-import InputError from '@/components/input-error';
+import CustomError, { getErrorMessage } from '@/components/custom-error';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { type BreadcrumbItem } from '@/types';
@@ -74,8 +74,8 @@ export default function Password() {
                                         placeholder="Current password"
                                     />
 
-                                    <InputError
-                                        message={errors.current_password}
+                                    <CustomError
+                                        message={getErrorMessage('validation.password.current', errors.current_password)}
                                     />
                                 </div>
 
@@ -94,7 +94,7 @@ export default function Password() {
                                         placeholder="New password"
                                     />
 
-                                    <InputError message={errors.password} />
+                                    <CustomError message={getErrorMessage('validation.password.required', errors.password)} />
                                 </div>
 
                                 <div className="grid gap-2">
@@ -111,8 +111,8 @@ export default function Password() {
                                         placeholder="Confirm password"
                                     />
 
-                                    <InputError
-                                        message={errors.password_confirmation}
+                                    <CustomError
+                                        message={getErrorMessage('validation.password.confirmed', errors.password_confirmation)}
                                     />
                                 </div>
 
