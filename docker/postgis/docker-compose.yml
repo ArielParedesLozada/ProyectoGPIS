@@ -9,6 +9,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: clave_piola
+      POSTGRES_DB: proyecto_gpis
     volumes:
       - ~/.docker/postgis:/var/lib/postgresql
     networks:
