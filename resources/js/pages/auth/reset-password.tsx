@@ -2,7 +2,7 @@ import NewPasswordController from '@/actions/App/Http/Controllers/Auth/NewPasswo
 import { Form, Head } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
 
-import InputError from '@/components/input-error';
+import CustomError, { getErrorMessage } from '@/components/custom-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -56,7 +56,7 @@ export default function ResetPassword({ token, email }: ResetPasswordProps) {
                                 autoFocus
                                 placeholder="Password"
                             />
-                            <InputError message={errors.password} />
+                                    <CustomError message={getErrorMessage('validation.password.required', errors.password)} />
                         </div>
 
                         <div className="grid gap-2">
@@ -72,7 +72,7 @@ export default function ResetPassword({ token, email }: ResetPasswordProps) {
                                 placeholder="Confirm password"
                             />
                             <InputError
-                                message={errors.password_confirmation}
+                                message={getErrorMessage('validation.password.confirmed', errors.password_confirmation)}
                                 className="mt-2"
                             />
                         </div>

@@ -6,7 +6,7 @@ import { Form, Head, Link, usePage } from '@inertiajs/react';
 
 import DeleteUser from '@/components/delete-user';
 import HeadingSmall from '@/components/heading-small';
-import InputError from '@/components/input-error';
+import CustomError, { getErrorMessage } from '@/components/custom-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -58,14 +58,13 @@ export default function Profile({
                                         className="mt-1 block w-full"
                                         defaultValue={auth.user.name}
                                         name="name"
-                                        required
                                         autoComplete="name"
                                         placeholder="Full name"
                                     />
 
-                                    <InputError
+                                    <CustomError
                                         className="mt-2"
-                                        message={errors.name}
+                                        message={getErrorMessage('validation.name.required', errors.name)}
                                     />
                                 </div>
 
@@ -78,14 +77,13 @@ export default function Profile({
                                         className="mt-1 block w-full"
                                         defaultValue={auth.user.email}
                                         name="email"
-                                        required
                                         autoComplete="username"
                                         placeholder="Email address"
                                     />
 
-                                    <InputError
+                                    <CustomError
                                         className="mt-2"
-                                        message={errors.email}
+                                        message={getErrorMessage('validation.email.required', errors.email)}
                                     />
                                 </div>
 

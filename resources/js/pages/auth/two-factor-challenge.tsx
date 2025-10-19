@@ -1,4 +1,4 @@
-import InputError from '@/components/input-error';
+import CustomError, { getErrorMessage } from '@/components/custom-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -68,11 +68,8 @@ export default function TwoFactorChallenge() {
                                         type="text"
                                         placeholder="Enter recovery code"
                                         autoFocus={showRecoveryInput}
-                                        required
                                     />
-                                    <InputError
-                                        message={errors.recovery_code}
-                                    />
+                                    <CustomError message={getErrorMessage('validation.required', errors.recovery_code)} />
                                 </>
                             ) : (
                                 <div className="flex flex-col items-center justify-center space-y-3 text-center">
@@ -98,7 +95,7 @@ export default function TwoFactorChallenge() {
                                             </InputOTPGroup>
                                         </InputOTP>
                                     </div>
-                                    <InputError message={errors.code} />
+                                    <CustomError message={getErrorMessage('validation.required', errors.code)} />
                                 </div>
                             )}
 

@@ -1,6 +1,6 @@
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import HeadingSmall from '@/components/heading-small';
-import InputError from '@/components/input-error';
+import CustomError, { getErrorMessage } from '@/components/custom-error';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -81,7 +81,7 @@ export default function DeleteUser() {
                                             autoComplete="current-password"
                                         />
 
-                                        <InputError message={errors.password} />
+                                        <CustomError message={getErrorMessage('validation.password.required', errors.password)} />
                                     </div>
 
                                     <DialogFooter className="gap-2">
