@@ -1,5 +1,5 @@
 import AuthenticatedSessionController from '@/actions/App/Http/Controllers/Auth/AuthenticatedSessionController';
-import InputError from '@/components/input-error';
+import CustomError, { getErrorMessage } from '@/components/custom-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,6 +10,8 @@ import AuthTabs from '@/components/auth-tabs';
 import { request } from '@/routes/password';
 import { Form, Head, Link } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
+import { useFieldValidation } from '@/hooks/use-field-validation';
+import { useState } from 'react';
 
 interface LoginProps {
     status?: string;
@@ -17,6 +19,9 @@ interface LoginProps {
 }
 
 export default function Login({ status, canResetPassword }: LoginProps) {
+    const { markFieldAsTouched, shouldShowError, getErrorMessage } = useFieldValidation();
+    const [fieldValues, setFieldValues] = useState({ email: '', password: '' });
+
     return (
         <MarketplaceAuthLayout>
             <Head title="Iniciar Sesión" />
@@ -47,6 +52,13 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                 >
                     {({ processing, errors }) => (
                         <>
+                            {/* Error general del formulario */}
+                            {(errors.email || errors.password) && (
+                                <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                                    <p className="text-red-600 text-sm">Las credenciales no coinciden con nuestros registros.</p>
+                                </div>
+                            )}
+                            
                             <div className="space-y-4">
                                 <div>
                                     <Label htmlFor="email" className="text-xs sm:text-sm font-medium text-gray-700 mb-2 block">
@@ -56,14 +68,19 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                                         id="email"
                                         type="email"
                                         name="email"
-                                        required
                                         autoFocus
                                         tabIndex={1}
                                         autoComplete="email"
                                         placeholder="tu@email.com"
                                         className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
+                                        value={fieldValues.email}
+                                        onChange={(e) => setFieldValues(prev => ({ ...prev, email: e.target.value }))}
+                                        onBlur={(e) => markFieldAsTouched('email', e.target.value)}
                                     />
-                                    <InputError message={errors.email} />
+                                    <CustomError 
+                                        message={getErrorMessage('email', errors.email, fieldValues.email)} 
+                                        show={shouldShowError('email', errors.email, fieldValues.email)}
+                                    />
                                 </div>
 
                                 <div>
@@ -73,12 +90,17 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                                     <PasswordInput
                                         id="password"
                                         name="password"
-                                        required
                                         tabIndex={2}
                                         autoComplete="current-password"
                                         className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
+                                        value={fieldValues.password}
+                                        onChange={(e) => setFieldValues(prev => ({ ...prev, password: e.target.value }))}
+                                        onBlur={(e) => markFieldAsTouched('password', e.target.value)}
                                     />
-                                    <InputError message={errors.password} />
+                                    <CustomError 
+                                        message={getErrorMessage('password', errors.password, fieldValues.password)} 
+                                        show={shouldShowError('password', errors.password, fieldValues.password)}
+                                    />
                                 </div>
 
                                 {canResetPassword && (

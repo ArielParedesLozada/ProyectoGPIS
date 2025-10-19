@@ -3,7 +3,7 @@ import { login } from '@/routes';
 import { Form, Head } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
 
-import InputError from '@/components/input-error';
+import CustomError, { getErrorMessage } from '@/components/custom-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,8 +12,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import MarketplaceAuthLayout from '@/layouts/auth/marketplace-auth-layout';
 import MarketplaceLogo from '@/components/marketplace-logo';
 import AuthTabs from '@/components/auth-tabs';
+import { useFieldValidation } from '@/hooks/use-field-validation';
+import { useState } from 'react';
 
 export default function Register() {
+    const { markFieldAsTouched, markSelectAsTouched, shouldShowError, getErrorMessage } = useFieldValidation();
+    const [fieldValues, setFieldValues] = useState({ 
+        name: '', 
+        surname: '', 
+        phone: '', 
+        address: '', 
+        gender: '', 
+        role: '', 
+        email: '', 
+        password: '', 
+        password_confirmation: '' 
+    });
+
     return (
         <MarketplaceAuthLayout>
             <Head title="Registrarse" />
@@ -56,15 +71,20 @@ export default function Register() {
                                         <Input
                                             id="name"
                                             type="text"
-                                            required
                                             autoFocus
                                             tabIndex={1}
                                             autoComplete="given-name"
                                             name="name"
                                             placeholder="Juan"
                                             className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
+                                            value={fieldValues.name}
+                                            onChange={(e) => setFieldValues(prev => ({ ...prev, name: e.target.value }))}
+                                            onBlur={(e) => markFieldAsTouched('name', e.target.value)}
                                         />
-                                        <InputError message={errors.name} />
+                                        <CustomError 
+                                            message={getErrorMessage('name', errors.name, fieldValues.name)} 
+                                            show={shouldShowError('name', errors.name, fieldValues.name)}
+                                        />
                                     </div>
 
                                     {/* Apellido */}
@@ -75,14 +95,19 @@ export default function Register() {
                                         <Input
                                             id="surname"
                                             type="text"
-                                            required
                                             tabIndex={2}
                                             autoComplete="family-name"
                                             name="surname"
                                             placeholder="Pérez"
                                             className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
+                                            value={fieldValues.surname}
+                                            onChange={(e) => setFieldValues(prev => ({ ...prev, surname: e.target.value }))}
+                                            onBlur={(e) => markFieldAsTouched('surname', e.target.value)}
                                         />
-                                        <InputError message={errors.surname} />
+                                        <CustomError 
+                                            message={getErrorMessage('surname', errors.surname, fieldValues.surname)} 
+                                            show={shouldShowError('surname', errors.surname, fieldValues.surname)}
+                                        />
                                     </div>
                                 </div>
 
@@ -94,14 +119,19 @@ export default function Register() {
                                     <Input
                                         id="phone"
                                         type="tel"
-                                        required
                                         tabIndex={3}
                                         autoComplete="tel"
                                         name="phone"
-                                        placeholder="+34 123 456 789"
+                                        placeholder="0900112266"
                                         className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
+                                        value={fieldValues.phone}
+                                        onChange={(e) => setFieldValues(prev => ({ ...prev, phone: e.target.value }))}
+                                        onBlur={(e) => markFieldAsTouched('phone', e.target.value)}
                                     />
-                                    <InputError message={errors.phone} />
+                                    <CustomError 
+                                        message={getErrorMessage('phone', errors.phone, fieldValues.phone)} 
+                                        show={shouldShowError('phone', errors.phone, fieldValues.phone)}
+                                    />
                                 </div>
 
                                 {/* Dirección */}
@@ -112,14 +142,19 @@ export default function Register() {
                                     <Input
                                         id="address"
                                         type="text"
-                                        required
                                         tabIndex={4}
                                         autoComplete="street-address"
                                         name="address"
                                         placeholder="Calle Principal 123, Ciudad"
                                         className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
+                                        value={fieldValues.address}
+                                        onChange={(e) => setFieldValues(prev => ({ ...prev, address: e.target.value }))}
+                                        onBlur={(e) => markFieldAsTouched('address', e.target.value)}
                                     />
-                                    <InputError message={errors.address} />
+                                    <CustomError 
+                                        message={getErrorMessage('address', errors.address, fieldValues.address)} 
+                                        show={shouldShowError('address', errors.address, fieldValues.address)}
+                                    />
                                 </div>
 
                                 {/* Grid para selectores en pantallas grandes */}
@@ -129,17 +164,30 @@ export default function Register() {
                                         <Label htmlFor="gender" className="text-xs sm:text-sm font-medium text-gray-700 mb-2 block">
                                             Género
                                         </Label>
-                                        <Select name="gender" required>
-                                            <SelectTrigger tabIndex={5} className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                        <Select 
+                                            name="gender"
+                                            value={fieldValues.gender}
+                                            onValueChange={(value) => {
+                                                setFieldValues(prev => ({ ...prev, gender: value }));
+                                                markSelectAsTouched('gender', value);
+                                            }}
+                                        >
+                                            <SelectTrigger 
+                                                tabIndex={5} 
+                                                className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
+                                                onBlur={() => markSelectAsTouched('gender', fieldValues.gender)}
+                                            >
                                                 <SelectValue placeholder="Selecciona tu género" />
                                             </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="hombre">Hombre</SelectItem>
-                                                <SelectItem value="mujer">Mujer</SelectItem>
-                                                <SelectItem value="otro">Otro</SelectItem>
+                                            <SelectContent className="bg-white border border-gray-300 rounded-lg shadow-lg">
+                                                <SelectItem value="hombre" className="text-gray-900 hover:bg-gray-100">Hombre</SelectItem>
+                                                <SelectItem value="mujer" className="text-gray-900 hover:bg-gray-100">Mujer</SelectItem>
                                             </SelectContent>
                                         </Select>
-                                        <InputError message={errors.gender} />
+                                        <CustomError 
+                                            message={getErrorMessage('gender', errors.gender, fieldValues.gender)} 
+                                            show={shouldShowError('gender', errors.gender, fieldValues.gender)}
+                                        />
                                     </div>
 
                                     {/* Rol */}
@@ -147,17 +195,32 @@ export default function Register() {
                                         <Label htmlFor="role" className="text-xs sm:text-sm font-medium text-gray-700 mb-2 block">
                                             Rol
                                         </Label>
-                                        <Select name="role" required>
-                                            <SelectTrigger tabIndex={6} className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                        <Select 
+                                            name="role"
+                                            value={fieldValues.role}
+                                            onValueChange={(value) => {
+                                                setFieldValues(prev => ({ ...prev, role: value }));
+                                                markSelectAsTouched('role', value);
+                                            }}
+                                        >
+                                            <SelectTrigger 
+                                                tabIndex={6} 
+                                                className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
+                                                onBlur={() => markSelectAsTouched('role', fieldValues.role)}
+                                            >
                                                 <SelectValue placeholder="Selecciona tu rol" />
                                             </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="user">Usuario</SelectItem>
-                                                <SelectItem value="admin">Administrador</SelectItem>
-                                                <SelectItem value="seller">Vendedor</SelectItem>
+                                            <SelectContent className="bg-white border border-gray-300 rounded-lg shadow-lg">
+                                                <SelectItem value="buyer" className="text-gray-900 hover:bg-gray-100">Comprador/Visualizador</SelectItem>
+                                                <SelectItem value="seller" className="text-gray-900 hover:bg-gray-100">Vendedor</SelectItem>
+                                                <SelectItem value="moderator" className="text-gray-900 hover:bg-gray-100">Moderador</SelectItem>
+                                                <SelectItem value="admin" className="text-gray-900 hover:bg-gray-100">Administrador</SelectItem>
                                             </SelectContent>
                                         </Select>
-                                        <InputError message={errors.role} />
+                                        <CustomError 
+                                            message={getErrorMessage('role', errors.role, fieldValues.role)} 
+                                            show={shouldShowError('role', errors.role, fieldValues.role)}
+                                        />
                                     </div>
                                 </div>
 
@@ -169,14 +232,19 @@ export default function Register() {
                                     <Input
                                         id="email"
                                         type="email"
-                                        required
                                         tabIndex={7}
                                         autoComplete="email"
                                         name="email"
                                         placeholder="tu@email.com"
                                         className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
+                                        value={fieldValues.email}
+                                        onChange={(e) => setFieldValues(prev => ({ ...prev, email: e.target.value }))}
+                                        onBlur={(e) => markFieldAsTouched('email', e.target.value)}
                                     />
-                                    <InputError message={errors.email} />
+                                    <CustomError 
+                                        message={getErrorMessage('email', errors.email, fieldValues.email)} 
+                                        show={shouldShowError('email', errors.email, fieldValues.email)}
+                                    />
                                 </div>
 
                                 {/* Grid para contraseñas en pantallas grandes */}
@@ -188,13 +256,18 @@ export default function Register() {
                                         </Label>
                                         <PasswordInput
                                             id="password"
-                                            required
                                             tabIndex={8}
                                             autoComplete="new-password"
                                             name="password"
                                             className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
+                                            value={fieldValues.password}
+                                            onChange={(e) => setFieldValues(prev => ({ ...prev, password: e.target.value }))}
+                                            onBlur={(e) => markFieldAsTouched('password', e.target.value)}
                                         />
-                                        <InputError message={errors.password} />
+                                        <CustomError 
+                                            message={getErrorMessage('password', errors.password, fieldValues.password)} 
+                                            show={shouldShowError('password', errors.password, fieldValues.password)}
+                                        />
                                     </div>
 
                                     {/* Confirmar Contraseña */}
@@ -204,13 +277,18 @@ export default function Register() {
                                         </Label>
                                         <PasswordInput
                                             id="password_confirmation"
-                                            required
                                             tabIndex={9}
                                             autoComplete="new-password"
                                             name="password_confirmation"
                                             className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
+                                            value={fieldValues.password_confirmation}
+                                            onChange={(e) => setFieldValues(prev => ({ ...prev, password_confirmation: e.target.value }))}
+                                            onBlur={(e) => markFieldAsTouched('password_confirmation', e.target.value)}
                                         />
-                                        <InputError message={errors.password_confirmation} />
+                                        <CustomError 
+                                            message={getErrorMessage('password_confirmation', errors.password_confirmation, fieldValues.password_confirmation, fieldValues)} 
+                                            show={shouldShowError('password_confirmation', errors.password_confirmation, fieldValues.password_confirmation)}
+                                        />
                                     </div>
                                 </div>
 
