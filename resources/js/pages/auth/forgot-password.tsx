@@ -1,7 +1,6 @@
 import PasswordResetLinkController from '@/actions/App/Http/Controllers/Auth/PasswordResetLinkController';
 import { login } from '@/routes';
-import { Link } from '@inertiajs/react';
-import { Form, Head } from '@inertiajs/react';
+import { Link, Form, Head } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
 import { useState } from 'react';
 
@@ -14,91 +13,81 @@ import MarketplaceLogo from '@/components/marketplace-logo';
 import { useFieldValidation } from '@/hooks/use-field-validation';
 
 export default function ForgotPassword({ status }: { status?: string }) {
-    const { markFieldAsTouched, shouldShowError, getErrorMessage } = useFieldValidation();
-    const [fieldValues, setFieldValues] = useState({ email: '' });
+  const { markFieldAsTouched, shouldShowError, getErrorMessage: getMsg } = useFieldValidation();
+  const [fieldValues, setFieldValues] = useState({ email: '' });
 
-    // Función para traducir el mensaje de status
-    const translateStatusMessage = (statusMessage: string): string => {
-        return errorMessages[statusMessage as keyof typeof errorMessages] || statusMessage;
-    };
+  const translateStatusMessage = (statusMessage: string): string =>
+    errorMessages[statusMessage as keyof typeof errorMessages] || statusMessage;
 
-    return (
-        <MarketplaceAuthLayout>
-            <Head title="Recuperar Contraseña" />
-            
-            {/* Logo */}
-            <MarketplaceLogo />
-            
-            {/* Welcome message */}
-            <div className="text-center mb-6 sm:mb-8">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Recuperar Contraseña</h1>
-                <p className="text-sm sm:text-base text-gray-600">Ingresa tu email para recibir un enlace de recuperación</p>
-            </div>
-            
-            {/* Forgot password form card */}
-            <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 lg:p-8">
-                <div className="mb-4 sm:mb-6">
-                    <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">¿Olvidaste tu contraseña?</h2>
-                    <p className="text-gray-600 text-xs sm:text-sm">No te preocupes, te enviaremos un enlace para restablecerla</p>
+  return (
+    <MarketplaceAuthLayout>
+      <Head title="Recuperar Contraseña" />
+      <MarketplaceLogo />
+
+      <div className="text-center mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Recuperar Contraseña</h1>
+        <p className="text-sm sm:text-base text-gray-600">Ingresa tu email para recibir un enlace de recuperación</p>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 lg:p-8">
+        <div className="mb-4 sm:mb-6">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">¿Olvidaste tu contraseña?</h2>
+          <p className="text-gray-600 text-xs sm:text-sm">No te preocupes, te enviaremos un enlace para restablecerla</p>
+        </div>
+
+        {status && (
+          <div className="mb-4 text-center text-sm font-medium text-green-600">
+            {translateStatusMessage(status)}
+          </div>
+        )}
+
+        <Form {...PasswordResetLinkController.store.form()}>
+          {({ processing, errors }) => (
+            <>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="email" className="text-xs sm:text-sm font-medium text-gray-700 mb-2 block">
+                    Email
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    name="email"
+                    autoComplete="off"
+                    autoFocus
+                    placeholder="tu@email.com"
+                    className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
+                    value={fieldValues.email}
+                    onChange={(e) => setFieldValues(prev => ({ ...prev, email: e.target.value }))}
+                    onBlur={(e) => markFieldAsTouched('email', e.target.value)}
+                  />
+                  <CustomError
+                    message={getMsg('email', errors.email, fieldValues.email)}
+                    show={shouldShowError('email', errors.email, fieldValues.email)}
+                  />
                 </div>
 
-                {status && (
-                    <div className="mb-4 text-center text-sm font-medium text-green-600">
-                        {translateStatusMessage(status)}
-                    </div>
-                )}
+                <Button
+                  type="submit"
+                  className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-all duration-200"
+                  disabled={processing}
+                  data-test="email-password-reset-link-button"
+                >
+                  {processing && <LoaderCircle className="h-4 w-4 animate-spin mr-2" />}
+                  Enviar Enlace de Recuperación
+                </Button>
+              </div>
+            </>
+          )}
+        </Form>
 
-                <Form {...PasswordResetLinkController.store.form()}>
-                    {({ processing, errors }) => (
-                        <>
-                            <div className="space-y-4">
-                                <div>
-                                    <Label htmlFor="email" className="text-xs sm:text-sm font-medium text-gray-700 mb-2 block">
-                                        Email
-                                    </Label>
-                                    <Input
-                                        id="email"
-                                        type="email"
-                                        name="email"
-                                        autoComplete="off"
-                                        autoFocus
-                                        placeholder="tu@email.com"
-                                        className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
-                                        value={fieldValues.email}
-                                        onChange={(e) => setFieldValues(prev => ({ ...prev, email: e.target.value }))}
-                                        onBlur={(e) => markFieldAsTouched('email', e.target.value)}
-                                    />
-                                    <CustomError 
-                                        message={getErrorMessage('email', errors.email, fieldValues.email)} 
-                                        show={shouldShowError('email', errors.email, fieldValues.email)}
-                                    />
-                                </div>
-
-                                <Button
-                                    type="submit"
-                                    className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-all duration-200"
-                                    disabled={processing}
-                                    data-test="email-password-reset-link-button"
-                                >
-                                    {processing && (
-                                        <LoaderCircle className="h-4 w-4 animate-spin mr-2" />
-                                    )}
-                                    Enviar Enlace de Recuperación
-                                </Button>
-                            </div>
-                        </>
-                    )}
-                </Form>
-
-                <div className="mt-6 text-center">
-                    <Link
-                        href={login()}
-                        className="text-xs sm:text-sm text-blue-600 hover:text-blue-800"
-                    >
-                        ← Volver al inicio de sesión
-                    </Link>
-                </div>
-            </div>
-        </MarketplaceAuthLayout>
-    );
+        <div className="mt-6 text-center">
+          {/* 👇 ahora pasamos string */}
+          <Link href={login().url} className="text-xs sm:text-sm text-blue-600 hover:text-blue-800">
+            ← Volver al inicio de sesión
+          </Link>
+        </div>
+      </div>
+    </MarketplaceAuthLayout>
+  );
 }

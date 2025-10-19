@@ -9,9 +9,9 @@ export default function Welcome() {
     useEffect(() => {
         // Redirigir automáticamente al login o dashboard
         if (auth.user) {
-            window.location.href = dashboard().toString();
+            window.location.href = dashboard.url();
         } else {
-            window.location.href = login().toString();
+            window.location.href = login.url();
         }
     }, [auth.user]);
 
