@@ -1,9 +1,10 @@
 import PasswordResetLinkController from '@/actions/App/Http/Controllers/Auth/PasswordResetLinkController';
 import { login } from '@/routes';
+import { Link } from '@inertiajs/react';
 import { Form, Head } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
 
-import InputError from '@/components/input-error';
+import CustomError, { getErrorMessage } from '@/components/custom-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -54,7 +55,7 @@ export default function ForgotPassword({ status }: { status?: string }) {
                                         placeholder="tu@email.com"
                                         className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
                                     />
-                                    <InputError message={errors.email} />
+                                    <CustomError message={getErrorMessage('validation.email.required', errors.email)} />
                                 </div>
 
                                 <Button
@@ -74,12 +75,12 @@ export default function ForgotPassword({ status }: { status?: string }) {
                 </Form>
 
                 <div className="mt-6 text-center">
-                    <a
+                    <Link
                         href={login()}
                         className="text-xs sm:text-sm text-blue-600 hover:text-blue-800"
                     >
                         ← Volver al inicio de sesión
-                    </a>
+                    </Link>
                 </div>
             </div>
         </MarketplaceAuthLayout>
