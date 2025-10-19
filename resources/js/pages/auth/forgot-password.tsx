@@ -3,15 +3,25 @@ import { login } from '@/routes';
 import { Link } from '@inertiajs/react';
 import { Form, Head } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
+import { useState } from 'react';
 
-import CustomError, { getErrorMessage } from '@/components/custom-error';
+import CustomError, { getErrorMessage, errorMessages } from '@/components/custom-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import MarketplaceAuthLayout from '@/layouts/auth/marketplace-auth-layout';
 import MarketplaceLogo from '@/components/marketplace-logo';
+import { useFieldValidation } from '@/hooks/use-field-validation';
 
 export default function ForgotPassword({ status }: { status?: string }) {
+    const { markFieldAsTouched, shouldShowError, getErrorMessage } = useFieldValidation();
+    const [fieldValues, setFieldValues] = useState({ email: '' });
+
+    // Función para traducir el mensaje de status
+    const translateStatusMessage = (statusMessage: string): string => {
+        return errorMessages[statusMessage as keyof typeof errorMessages] || statusMessage;
+    };
+
     return (
         <MarketplaceAuthLayout>
             <Head title="Recuperar Contraseña" />
@@ -34,7 +44,7 @@ export default function ForgotPassword({ status }: { status?: string }) {
 
                 {status && (
                     <div className="mb-4 text-center text-sm font-medium text-green-600">
-                        {status}
+                        {translateStatusMessage(status)}
                     </div>
                 )}
 
@@ -54,8 +64,14 @@ export default function ForgotPassword({ status }: { status?: string }) {
                                         autoFocus
                                         placeholder="tu@email.com"
                                         className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
+                                        value={fieldValues.email}
+                                        onChange={(e) => setFieldValues(prev => ({ ...prev, email: e.target.value }))}
+                                        onBlur={(e) => markFieldAsTouched('email', e.target.value)}
                                     />
-                                    <CustomError message={getErrorMessage('validation.email.required', errors.email)} />
+                                    <CustomError 
+                                        message={getErrorMessage('email', errors.email, fieldValues.email)} 
+                                        show={shouldShowError('email', errors.email, fieldValues.email)}
+                                    />
                                 </div>
 
                                 <Button
