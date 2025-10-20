@@ -8,15 +8,12 @@ use App\Enums\StatusType;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Inertia\Inertia;
 use Inertia\Response;
-use Tymon\JWTAuth\Exceptions\JWTException;
-use Tymon\JWTAuth\Facades\JWTAuth;
 
 class RegisteredUserController extends Controller
 {
@@ -35,30 +32,41 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'surname' => 'required|string|max:255',
-            'email' => 'required|string|lowercase|email|max:255|unique:' . User::class,
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'phone' => 'required|string|max:20|unique:' . User::class,
-            'address' => 'required|string|max:500',
-            'gender' => 'required|in:' . implode(',', array_column(GenderType::cases(), 'value'),),
-        ]);
+        try {
+            //code...
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'surname' => 'required|string|max:255',
+                'email' => 'required|string|lowercase|email|max:255|unique:' . User::class,
+                'password' => ['required', 'confirmed', Rules\Password::defaults()],
+                'phone' => 'required|string|max:20|unique:' . User::class,
+                'address' => 'required|string|max:500',
+                'gender' => 'required|in:' . implode(',', array_column(GenderType::cases(), 'value'),),
+                'role'=> 'required|in:comprador,vendedor',
+            ]);
 
-        $user = User::create([
-            'name' => $request->name,
-            'surname' => $request->surname,
-            'phone' => $request->phone,
-            'address' => $request->address,
-            'gender' => $request->gender,
-            'role' => RoleType::COMPRADOR,
-            'status' => StatusType::HABILITADO,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
+            $user = User::create([
+                'name' => $request->name,
+                'surname' => $request->surname,
+                'phone' => $request->phone,
+                'address' => $request->address,
+                'gender' => $request->gender,
+                'role' => $request->role,
+                'status' => StatusType::HABILITADO->value,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+            ]);
 
-        event(new Registered($user));
-        Auth::login($user);
-        return redirect()->intended(route('dashboard', absolute: false));
+            event(new Registered($user));
+            Auth::login($user);
+            return redirect()->intended(route('home', absolute: false));
+        } catch (\Throwable $th) {
+            return back()
+                ->withErrors([
+                    'general' => $th->getMessage(),
+                    'precise' => $th->getTraceAsString() 
+                    ])
+                ->withInput(); // mantiene los valores del formulario
+        }
     }
 }

@@ -10,7 +10,7 @@ final class HomeRouteCest
 {
     public function checkType(AcceptanceTester $I)
     {
-        $I->amOnPage('/home');
+        $I->amOnPage('/testing');
         $I->seeResponseCodeIs(200);
         $I->see('ok');
     }

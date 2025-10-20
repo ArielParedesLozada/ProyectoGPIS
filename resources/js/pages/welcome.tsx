@@ -1,20 +1,18 @@
-import { dashboard, login } from '@/routes';
+import { home, login } from '@/routes';
 import { type SharedData } from '@/types';
-import { Head, usePage } from '@inertiajs/react';
+import { usePage } from '@inertiajs/react';
 import { useEffect } from 'react';
 
 export default function Welcome() {
     const { auth } = usePage<SharedData>().props;
-
     useEffect(() => {
         // Redirigir automáticamente al login o dashboard
         if (auth.user) {
-            window.location.href = dashboard().toString();
+            window.location.href = home().url
         } else {
-            window.location.href = login().toString();
+            window.location.href = login().url;
         }
     }, [auth.user]);
-
     // Mostrar un mensaje de carga mientras redirige
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-white to-blue-50 p-4">
