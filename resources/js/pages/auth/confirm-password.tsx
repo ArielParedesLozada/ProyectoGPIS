@@ -1,4 +1,4 @@
-import InputError from '@/components/input-error';
+import CustomError, { getErrorMessage } from '@/components/custom-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,7 +29,7 @@ export default function ConfirmPassword() {
                                 autoFocus
                             />
 
-                            <InputError message={errors.password} />
+                                <CustomError message={getErrorMessage('validation.password.required', errors.password)} />
                         </div>
 
                         <div className="flex items-center">

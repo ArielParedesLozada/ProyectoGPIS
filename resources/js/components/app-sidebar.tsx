@@ -10,55 +10,64 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes';
+import { home } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid } from 'lucide-react';
-import AppLogo from './app-logo';
+import { LayoutGrid } from 'lucide-react';
+import MarketplaceLogo from './marketplace-logo';
 
 const mainNavItems: NavItem[] = [
     {
-        title: 'Dashboard',
-        href: dashboard(),
+        title: 'Inicio',
+        href: home(),
         icon: LayoutGrid,
-    },
-];
-
-const footerNavItems: NavItem[] = [
-    {
-        title: 'Repository',
-        href: 'https://github.com/laravel/react-starter-kit',
-        icon: Folder,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#react',
-        icon: BookOpen,
     },
 ];
 
 export function AppSidebar() {
     return (
-        <Sidebar collapsible="icon" variant="inset">
-            <SidebarHeader>
+        <Sidebar
+            collapsible="icon"
+            variant="sidebar"
+            className="bg-white shadow-lg border-r border-gray-300 flex flex-col h-screen"
+        >
+            {/* Header */}
+            <SidebarHeader className="p-4 border-b border-gray-100">
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" asChild>
-                            <Link href={dashboard()} prefetch>
-                                <AppLogo />
+                        <SidebarMenuButton
+                            size="lg"
+                            asChild
+                            className="flex items-center gap-3 hover:bg-gray-50 rounded-lg transition-colors duration-200"
+                        >
+                            <Link href={home()} prefetch className='h-full w-full'>
+                                <div className="flex items-center gap-2">
+                                    <MarketplaceLogo />
+                                </div>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>
             </SidebarHeader>
 
-            <SidebarContent>
-                <NavMain items={mainNavItems} />
+            {/* Navigation Content */}
+            <SidebarContent className="flex-1 overflow-y-auto p-4">
+                <div className="space-y-4">
+                    <h2 className="text-sm font-semibold text-gray-500 tracking-wide uppercase px-2">
+                        Navegación
+                    </h2>
+                    <NavMain items={mainNavItems} />
+                </div>
             </SidebarContent>
 
-            <SidebarFooter>
-                <NavFooter items={footerNavItems} className="mt-auto" />
-                <NavUser />
+            {/* Footer */}
+            <SidebarFooter className="border-t border-gray-100 p-4">
+                <div className="flex flex-col gap-3">
+                    <NavFooter items={[]} className="mt-auto" />
+                    <div className="pt-3 border-t border-gray-100">
+                        <NavUser />
+                    </div>
+                </div>
             </SidebarFooter>
         </Sidebar>
     );
