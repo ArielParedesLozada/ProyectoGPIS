@@ -33,8 +33,8 @@ class RegisteredUserController extends Controller
     public function store(Request $request)
     {
         try {
-            //code...
             $request->validate([
+                'cedula' => 'required|string|max:10|unique:'.User::class,
                 'name' => 'required|string|max:255',
                 'surname' => 'required|string|max:255',
                 'email' => 'required|string|lowercase|email|max:255|unique:' . User::class,
@@ -46,6 +46,7 @@ class RegisteredUserController extends Controller
             ]);
 
             $user = User::create([
+                'cedula' => $request->cedula,
                 'name' => $request->name,
                 'surname' => $request->surname,
                 'phone' => $request->phone,
@@ -59,7 +60,7 @@ class RegisteredUserController extends Controller
 
             event(new Registered($user));
             Auth::login($user);
-            return redirect()->intended(route('home', absolute: false));
+            return redirect()->intended(route('publication-index', absolute: false));
         } catch (\Throwable $th) {
             return back()
                 ->withErrors([

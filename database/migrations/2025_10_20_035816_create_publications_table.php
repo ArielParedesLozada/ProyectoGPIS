@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\PublicationType;
+use App\Enums\StatusType;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -11,10 +13,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('products', function (Blueprint $table) {
+        Schema::create('publications', function (Blueprint $table) {
             $table->id();
+            $table->uuid('code')->unique();
             $table->string('title');
-            $table->string('description');
+            $table->text('description');
             $table->decimal('price');
             $table->magellanGeography('location', 4326);
             $table->boolean('disponibility');
@@ -24,7 +27,10 @@ return new class extends Migration
             $table->foreignId('created_by')
                 ->constrained('users', 'id')
                 ->cascadeOnDelete();
+            $table->enum('status', array_column(StatusType::cases(), 'value'))->default(StatusType::HABILITADO->value);
+            $table->enum('type', array_column(PublicationType::cases(), 'value'))->default(PublicationType::PRODUCT->value);
             $table->dateTime('published_at');
+            $table->dateTime('horario')->nullable();
             $table->timestamps();
         });
     }
@@ -34,6 +40,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('products');
+        Schema::dropIfExists('publications');
     }
 };

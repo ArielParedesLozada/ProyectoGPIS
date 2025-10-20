@@ -21,7 +21,10 @@ class CategoryFactory extends Factory
         $categoryFactories = [
             'Comida',
             'Muebles',
-            'Inmuebles'
+            'Inmuebles',
+            'Ropa',
+            'Servicio manual',
+            'Peliculas'
         ];
         return [
             'name' => Arr::random($categoryFactories),
