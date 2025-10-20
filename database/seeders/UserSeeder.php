@@ -25,7 +25,7 @@ class UserSeeder extends Seeder
                 'phone' => '123456789', // Campo único y requerido
                 'address' => 'Test Address', // Campo requerido
                 'gender' => GenderType::HOMBRE->value, // Campo requerido con enum
-                'role' => RoleType::COMPRADOR->value, // Campo requerido con enum
+                'role' => RoleType::ADMIN->value, // Campo requerido con enum
                 'status' => StatusType::HABILITADO->value, // Campo requerido con enum
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),

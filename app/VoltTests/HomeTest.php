@@ -18,7 +18,7 @@ class HomeTest implements VoltTestCase
         // Define your test scenario
         $scenario = $manager->scenario('HomeTest');
         $scenario->step('Check route')
-                ->get('/home')
+                ->get('/testing')
                 ->expectStatus(200)
                 ;
 
