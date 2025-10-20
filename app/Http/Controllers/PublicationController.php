@@ -14,8 +14,13 @@ class PublicationController extends Controller
     {
         $query = Publication::query()->with('category');
         if ($request->filled('category_id')) {
-            $query->where('category_id', $request->category_id)->where('status', StatusType::HABILITADO);
+            $query->where('category_id', $request->category_id);
         }
+        if ($request->filled('type')) {
+            $query->where('type', $request->type);
+        }
+        $query->where('status', StatusType::HABILITADO);
+
         $publications = $query->paginate(6)->withQueryString();
 
         $categories = Category::select('id', 'name')->get();
@@ -24,6 +29,7 @@ class PublicationController extends Controller
             'publications' => $publications,
             'categories' => $categories,
             'selectedCategory' => $request->category_id,
+            'selectedType' => $request->type,
         ]);
     }
 

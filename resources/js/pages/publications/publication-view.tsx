@@ -1,5 +1,6 @@
 import AppLayout from "@/layouts/app-layout";
-import { Publication } from "@/types";
+import { publicationView } from "@/routes";
+import { BreadcrumbItem, Publication } from "@/types";
 import { Head } from "@inertiajs/react";
 
 interface PublicationViewProps {
@@ -7,8 +8,14 @@ interface PublicationViewProps {
 }
 
 export default function PublicationView({ publication }: PublicationViewProps) {
+    const breadcrumbs: BreadcrumbItem[] = [
+        {
+            title: `${publication.category.name}/${publication.title}`,
+            href: publicationView(publication).url,
+        },
+    ];
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={publication.title} />
 
             <div

@@ -18,7 +18,7 @@ import MarketplaceLogo from './marketplace-logo';
 
 const mainNavItems: NavItem[] = [
     {
-        title: 'Inicio',
+        title: 'Publicaciones',
         href: publicationIndex(),
         icon: LayoutGrid,
     },
