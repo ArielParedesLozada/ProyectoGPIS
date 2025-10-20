@@ -1,20 +1,20 @@
 import { Link } from "@inertiajs/react";
-import ProductCard from "./products-card";
-import { Paginated, Product } from "@/types";
+import { Paginated, Publication } from "@/types";
+import PublicationCard from "./publication-card";
 
-export default function ProductList({ products }: { products: Paginated<Product> }) {
+export default function PublicationList({ publications }: { publications: Paginated<Publication> }) {
     return (
         <div className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Productos</h2>
+            <h2 className="text-xl font-semibold mb-4">Publicaciones</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                {products.data.map((p) => (
-                    <ProductCard product={p} />
+                {publications.data.map((p, _) => (
+                    <PublicationCard key={_} publication={p} />
                 ))}
             </div>
 
             {/* Paginación */}
             <div className="flex justify-center mt-6 gap-2">
-                {products.links.map((link, i) =>
+                {publications.links.map((link, i) =>
                     link.url ? (
                         <Link
                             key={i}
