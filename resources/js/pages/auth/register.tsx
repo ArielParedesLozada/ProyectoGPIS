@@ -19,6 +19,7 @@ import TextLink from '@/components/text-link';
 export default function Register() {
     const { markFieldAsTouched, markSelectAsTouched, shouldShowError, getErrorMessage } = useFieldValidation();
     const [fieldValues, setFieldValues] = useState({
+        cedula: '',
         name: '',
         surname: '',
         phone: '',
@@ -55,8 +56,7 @@ export default function Register() {
                 </div>
 
                 <Form
-                    action="/register"
-                    method="post"
+                    {...RegisteredUserController.store.form()}
                     resetOnSuccess={['password', 'password_confirmation']}
                     disableWhileProcessing
                     className="space-y-6"
@@ -72,6 +72,33 @@ export default function Register() {
                                 )}
 
                                 {/* Grid para campos en pantallas grandes */}
+                                <div>
+                                    <Label htmlFor="cedula" className="text-xs sm:text-sm font-medium text-gray-700 mb-2 block">
+                                        Cédula
+                                    </Label>
+                                    <Input
+                                        id="cedula"
+                                        name="cedula"
+                                        type="text"
+                                        inputMode="numeric"
+                                        pattern="[0-9]*"
+                                        maxLength={10}
+                                        tabIndex={1}
+                                        placeholder="1234567890"
+                                        value={fieldValues.cedula}
+                                        onChange={(e) => {
+                                            const onlyNumbers = e.target.value.replace(/\D/g, ''); // elimina letras
+                                            if (onlyNumbers.length <= 10) {
+                                                setFieldValues(prev => ({ ...prev, cedula: onlyNumbers }));
+                                            }
+                                        }}
+                                        onBlur={(e) => markFieldAsTouched('cedula', e.target.value)}
+                                        className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
+                                    />
+                                    <CustomError
+                                        message={getErrorMessage('cedula', errors.cedula, fieldValues.cedula)}
+                                        show={shouldShowError('cedula', errors.cedula, fieldValues.cedula)}
+                                    />                                </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                     {/* Nombre */}
                                     <div>
@@ -82,7 +109,7 @@ export default function Register() {
                                             id="name"
                                             type="text"
                                             autoFocus
-                                            tabIndex={1}
+                                            tabIndex={2}
                                             autoComplete="given-name"
                                             name="name"
                                             placeholder="Juan"
@@ -105,7 +132,7 @@ export default function Register() {
                                         <Input
                                             id="surname"
                                             type="text"
-                                            tabIndex={2}
+                                            tabIndex={3}
                                             autoComplete="family-name"
                                             name="surname"
                                             placeholder="Pérez"
@@ -128,21 +155,27 @@ export default function Register() {
                                     </Label>
                                     <Input
                                         id="phone"
-                                        type="tel"
-                                        tabIndex={3}
-                                        autoComplete="tel"
                                         name="phone"
+                                        type="tel"
+                                        inputMode="numeric"
+                                        pattern="[0-9]*"
+                                        maxLength={10}
+                                        tabIndex={4}
                                         placeholder="0900112266"
-                                        className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
                                         value={fieldValues.phone}
-                                        onChange={(e) => setFieldValues(prev => ({ ...prev, phone: e.target.value }))}
+                                        onChange={(e) => {
+                                            const onlyNumbers = e.target.value.replace(/\D/g, '');
+                                            if (onlyNumbers.length <= 10) {
+                                                setFieldValues(prev => ({ ...prev, phone: onlyNumbers }));
+                                            }
+                                        }}
                                         onBlur={(e) => markFieldAsTouched('phone', e.target.value)}
+                                        className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
                                     />
                                     <CustomError
                                         message={getErrorMessage('phone', errors.phone, fieldValues.phone)}
                                         show={shouldShowError('phone', errors.phone, fieldValues.phone)}
-                                    />
-                                </div>
+                                    />                                </div>
 
                                 {/* Dirección */}
                                 <div>
@@ -152,7 +185,7 @@ export default function Register() {
                                     <Input
                                         id="address"
                                         type="text"
-                                        tabIndex={4}
+                                        tabIndex={5}
                                         autoComplete="street-address"
                                         name="address"
                                         placeholder="Calle Principal 123, Ciudad"
@@ -183,7 +216,7 @@ export default function Register() {
                                             }}
                                         >
                                             <SelectTrigger
-                                                tabIndex={5}
+                                                tabIndex={6}
                                                 className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
                                                 onBlur={() => markSelectAsTouched('gender', fieldValues.gender)}
                                             >
@@ -214,7 +247,7 @@ export default function Register() {
                                             }}
                                         >
                                             <SelectTrigger
-                                                tabIndex={6}
+                                                tabIndex={7}
                                                 className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
                                                 onBlur={() => markSelectAsTouched('role', fieldValues.role)}
                                             >
@@ -240,7 +273,7 @@ export default function Register() {
                                     <Input
                                         id="email"
                                         type="email"
-                                        tabIndex={7}
+                                        tabIndex={8}
                                         autoComplete="email"
                                         name="email"
                                         placeholder="tu@email.com"
@@ -264,14 +297,15 @@ export default function Register() {
                                         </Label>
                                         <PasswordInput
                                             id="password"
-                                            tabIndex={8}
+                                            tabIndex={9}
                                             autoComplete="new-password"
                                             name="password"
                                             className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
                                             value={fieldValues.password}
                                             onChange={(e) => setFieldValues(prev => ({ ...prev, password: e.target.value }))}
-                                            onBlur={(e) => markFieldAsTouched('password', e.target.value)}
-                                        />
+                                            onBlur={(e) => {
+                                                markFieldAsTouched('password', e.target.value);
+                                            }} />
                                         <CustomError
                                             message={getErrorMessage('password', errors.password, fieldValues.password)}
                                             show={shouldShowError('password', errors.password, fieldValues.password)}
@@ -285,14 +319,15 @@ export default function Register() {
                                         </Label>
                                         <PasswordInput
                                             id="password_confirmation"
-                                            tabIndex={9}
+                                            tabIndex={10}
                                             autoComplete="new-password"
                                             name="password_confirmation"
                                             className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
                                             value={fieldValues.password_confirmation}
                                             onChange={(e) => setFieldValues(prev => ({ ...prev, password_confirmation: e.target.value }))}
-                                            onBlur={(e) => markFieldAsTouched('password_confirmation', e.target.value)}
-                                        />
+                                            onBlur={(e) => {
+                                                markFieldAsTouched('password_confirmation', e.target.value);
+                                            }} />
                                         <CustomError
                                             message={getErrorMessage('password_confirmation', errors.password_confirmation, fieldValues.password_confirmation, fieldValues)}
                                             show={shouldShowError('password_confirmation', errors.password_confirmation, fieldValues.password_confirmation)}
@@ -314,7 +349,7 @@ export default function Register() {
                                 <Button
                                     type="submit"
                                     className="mt-2 w-full"
-                                    tabIndex={5}
+                                    tabIndex={11}
                                     data-test="register-user-button"
                                 >
                                     {processing && (
@@ -326,7 +361,7 @@ export default function Register() {
 
                             <div className="text-center text-sm text-muted-foreground">
                                 Already have an account?{' '}
-                                <TextLink href={login().url} tabIndex={6}>
+                                <TextLink href={login()} tabIndex={12}>
                                     Log in
                                 </TextLink>
                             </div>

@@ -10,7 +10,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { home } from '@/routes';
+import { publicationIndex } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
 import { LayoutGrid } from 'lucide-react';
@@ -19,7 +19,7 @@ import MarketplaceLogo from './marketplace-logo';
 const mainNavItems: NavItem[] = [
     {
         title: 'Inicio',
-        href: home(),
+        href: publicationIndex(),
         icon: LayoutGrid,
     },
 ];
@@ -40,7 +40,7 @@ export function AppSidebar() {
                             asChild
                             className="flex items-center gap-3 hover:bg-gray-50 rounded-lg transition-colors duration-200"
                         >
-                            <Link href={home()} prefetch className='h-full w-full'>
+                            <Link href={publicationIndex()} prefetch className='h-full w-full'>
                                 <div className="flex items-center gap-2">
                                     <MarketplaceLogo />
                                 </div>
