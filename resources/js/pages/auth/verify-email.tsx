@@ -20,23 +20,23 @@ export default function VerifyEmail({ status }: { status?: string }) {
         </div>
       )}
 
-      <Form {...EmailVerificationNotificationController.store.form()} className="space-y-6 text-center">
-        {({ processing }) => (
-          <>
+      <div className="space-y-6 text-center">
+        <Form {...EmailVerificationNotificationController.store.form()}>
+          {({ processing }) => (
             <Button disabled={processing} variant="secondary">
               {processing && <LoaderCircle className="h-4 w-4 animate-spin" />}
               Resend verification email
             </Button>
+          )}
+        </Form>
 
-            {/* 👇 logout por POST usando tu helper de form() */}
-            <Form {...logout.form()} className="inline">
-              <Button type="submit" variant="link" className="mx-auto block text-sm p-0">
-                Log out
-              </Button>
-            </Form>
-          </>
-        )}
-      </Form>
+        {/* 👇 logout por POST usando tu helper de form() */}
+        <Form {...logout.form()} className="inline">
+          <Button type="submit" variant="link" className="mx-auto block text-sm p-0">
+            Log out
+          </Button>
+        </Form>
+      </div>
     </AuthLayout>
   );
 }
