@@ -312,23 +312,17 @@ export default function Register() {
                                 </div>
                                 <Button
                                     type="submit"
-                                    className="mt-2 w-full"
+                                    className="mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white"
                                     tabIndex={5}
                                     data-test="register-user-button"
                                 >
                                     {processing && (
                                         <LoaderCircle className="h-4 w-4 animate-spin" />
                                     )}
-                                    Create account
+                                    Crear cuenta
                                 </Button>
                             </div>
 
-                            <div className="text-center text-sm text-muted-foreground">
-                                Already have an account?{' '}
-                                <TextLink href={login()} tabIndex={6}>
-                                    Log in
-                                </TextLink>
-                            </div>
                         </>
                     )}
                 </Form>
