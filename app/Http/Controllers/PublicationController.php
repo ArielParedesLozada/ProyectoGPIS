@@ -19,6 +19,12 @@ class PublicationController extends Controller
         if ($request->filled('type')) {
             $query->where('type', $request->type);
         }
+        if ($request->filled('min_price')) {
+            $query->where('price', '>=', $request->min_price);
+        }
+        if ($request->filled('max_price')) {
+            $query->where('price', '<=', $request->max_price);
+        }
         $query->where('status', StatusType::HABILITADO);
 
         $publications = $query->paginate(6)->withQueryString();
@@ -30,6 +36,8 @@ class PublicationController extends Controller
             'categories' => $categories,
             'selectedCategory' => $request->category_id,
             'selectedType' => $request->type,
+            'selectedMinPrice' => $request->min_price,
+            'selectedMaxPrice' => $request->max_price,
         ]);
     }
 
