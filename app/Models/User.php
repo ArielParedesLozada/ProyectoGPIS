@@ -15,6 +15,7 @@ class User extends Authenticatable implements MustVerifyEmail
 {
     use HasFactory, Notifiable, TwoFactorAuthenticatable, Notifiable;
     protected $fillable = [
+        'cedula',
         'name',
         'surname',
         'email',
@@ -39,8 +40,8 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     //Custom
-    public function products(): HasMany
+    public function publications(): HasMany
     {
-        return $this->hasMany(Product::class, 'created_by', 'id');
+        return $this->hasMany(Publication::class, 'created_by', 'id');
     }
 }

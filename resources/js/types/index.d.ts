@@ -48,8 +48,14 @@ export interface Category {
     banned: boolean
 }
 
-export interface Product {
+export interface Publication {
     id: number;
+    code: string;
+    type: "servicio" | "producto";
+    status: 1 | 2;
+    disponibility: boolean;
+    horario: Date;
+    published_at: Date;
     title: string;
     price: number;
     image?: string;
