@@ -22,9 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
-        $middleware->alias([
-            'jwt' => JWTMiddleware::class
-        ]);
+
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
