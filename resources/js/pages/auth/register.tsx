@@ -3,7 +3,7 @@ import { login } from '@/routes';
 import { Form, Head } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
 
-import CustomError, { getErrorMessage } from '@/components/custom-error';
+import CustomError from '@/components/custom-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,37 +14,39 @@ import MarketplaceLogo from '@/components/marketplace-logo';
 import AuthTabs from '@/components/auth-tabs';
 import { useFieldValidation } from '@/hooks/use-field-validation';
 import { useState } from 'react';
+import TextLink from '@/components/text-link';
 
 export default function Register() {
     const { markFieldAsTouched, markSelectAsTouched, shouldShowError, getErrorMessage } = useFieldValidation();
-    const [fieldValues, setFieldValues] = useState({ 
-        name: '', 
-        surname: '', 
-        phone: '', 
-        address: '', 
-        gender: '', 
-        role: '', 
-        email: '', 
-        password: '', 
-        password_confirmation: '' 
+    const [fieldValues, setFieldValues] = useState({
+        name: '',
+        surname: '',
+        phone: '',
+        address: '',
+        gender: '',
+        role: '',
+        email: '',
+        password: '',
+        password_confirmation: ''
     });
 
     return (
         <MarketplaceAuthLayout>
+
             <Head title="Registrarse" />
-            
+
             {/* Logo */}
             <MarketplaceLogo />
-            
+
             {/* Welcome message */}
             <div className="text-center mb-6 sm:mb-8">
                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Bienvenido</h1>
                 <p className="text-sm sm:text-base text-gray-600">Inicia sesión o crea una cuenta para continuar</p>
             </div>
-            
+
             {/* Auth tabs */}
             <AuthTabs activeTab="register" />
-            
+
             {/* Register form card */}
             <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 lg:p-8">
                 <div className="mb-4 sm:mb-6">
@@ -61,6 +63,13 @@ export default function Register() {
                     {({ processing, errors }) => (
                         <>
                             <div className="space-y-3 sm:space-y-4">
+                                {errors.general && (
+                                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                                        <p className="text-red-600 text-md">Ocurrio un error inesperado al registrar al usuario</p>
+                                        <p className='text-red-700 text-sm'>{errors.general}</p>
+                                    </div>
+                                )}
+
                                 {/* Grid para campos en pantallas grandes */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                     {/* Nombre */}
@@ -81,8 +90,8 @@ export default function Register() {
                                             onChange={(e) => setFieldValues(prev => ({ ...prev, name: e.target.value }))}
                                             onBlur={(e) => markFieldAsTouched('name', e.target.value)}
                                         />
-                                        <CustomError 
-                                            message={getErrorMessage('name', errors.name, fieldValues.name)} 
+                                        <CustomError
+                                            message={getErrorMessage('name', errors.name, fieldValues.name)}
                                             show={shouldShowError('name', errors.name, fieldValues.name)}
                                         />
                                     </div>
@@ -104,8 +113,8 @@ export default function Register() {
                                             onChange={(e) => setFieldValues(prev => ({ ...prev, surname: e.target.value }))}
                                             onBlur={(e) => markFieldAsTouched('surname', e.target.value)}
                                         />
-                                        <CustomError 
-                                            message={getErrorMessage('surname', errors.surname, fieldValues.surname)} 
+                                        <CustomError
+                                            message={getErrorMessage('surname', errors.surname, fieldValues.surname)}
                                             show={shouldShowError('surname', errors.surname, fieldValues.surname)}
                                         />
                                     </div>
@@ -128,8 +137,8 @@ export default function Register() {
                                         onChange={(e) => setFieldValues(prev => ({ ...prev, phone: e.target.value }))}
                                         onBlur={(e) => markFieldAsTouched('phone', e.target.value)}
                                     />
-                                    <CustomError 
-                                        message={getErrorMessage('phone', errors.phone, fieldValues.phone)} 
+                                    <CustomError
+                                        message={getErrorMessage('phone', errors.phone, fieldValues.phone)}
                                         show={shouldShowError('phone', errors.phone, fieldValues.phone)}
                                     />
                                 </div>
@@ -151,8 +160,8 @@ export default function Register() {
                                         onChange={(e) => setFieldValues(prev => ({ ...prev, address: e.target.value }))}
                                         onBlur={(e) => markFieldAsTouched('address', e.target.value)}
                                     />
-                                    <CustomError 
-                                        message={getErrorMessage('address', errors.address, fieldValues.address)} 
+                                    <CustomError
+                                        message={getErrorMessage('address', errors.address, fieldValues.address)}
                                         show={shouldShowError('address', errors.address, fieldValues.address)}
                                     />
                                 </div>
@@ -164,7 +173,7 @@ export default function Register() {
                                         <Label htmlFor="gender" className="text-xs sm:text-sm font-medium text-gray-700 mb-2 block">
                                             Género
                                         </Label>
-                                        <Select 
+                                        <Select
                                             name="gender"
                                             value={fieldValues.gender}
                                             onValueChange={(value) => {
@@ -172,8 +181,8 @@ export default function Register() {
                                                 markSelectAsTouched('gender', value);
                                             }}
                                         >
-                                            <SelectTrigger 
-                                                tabIndex={5} 
+                                            <SelectTrigger
+                                                tabIndex={5}
                                                 className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
                                                 onBlur={() => markSelectAsTouched('gender', fieldValues.gender)}
                                             >
@@ -184,8 +193,8 @@ export default function Register() {
                                                 <SelectItem value="mujer" className="text-gray-900 hover:bg-gray-100">Mujer</SelectItem>
                                             </SelectContent>
                                         </Select>
-                                        <CustomError 
-                                            message={getErrorMessage('gender', errors.gender, fieldValues.gender)} 
+                                        <CustomError
+                                            message={getErrorMessage('gender', errors.gender, fieldValues.gender)}
                                             show={shouldShowError('gender', errors.gender, fieldValues.gender)}
                                         />
                                     </div>
@@ -195,7 +204,7 @@ export default function Register() {
                                         <Label htmlFor="role" className="text-xs sm:text-sm font-medium text-gray-700 mb-2 block">
                                             Rol
                                         </Label>
-                                        <Select 
+                                        <Select
                                             name="role"
                                             value={fieldValues.role}
                                             onValueChange={(value) => {
@@ -203,22 +212,20 @@ export default function Register() {
                                                 markSelectAsTouched('role', value);
                                             }}
                                         >
-                                            <SelectTrigger 
-                                                tabIndex={6} 
+                                            <SelectTrigger
+                                                tabIndex={6}
                                                 className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
                                                 onBlur={() => markSelectAsTouched('role', fieldValues.role)}
                                             >
                                                 <SelectValue placeholder="Selecciona tu rol" />
                                             </SelectTrigger>
                                             <SelectContent className="bg-white border border-gray-300 rounded-lg shadow-lg">
-                                                <SelectItem value="buyer" className="text-gray-900 hover:bg-gray-100">Comprador/Visualizador</SelectItem>
-                                                <SelectItem value="seller" className="text-gray-900 hover:bg-gray-100">Vendedor</SelectItem>
-                                                <SelectItem value="moderator" className="text-gray-900 hover:bg-gray-100">Moderador</SelectItem>
-                                                <SelectItem value="admin" className="text-gray-900 hover:bg-gray-100">Administrador</SelectItem>
+                                                <SelectItem value="comprador" className="text-gray-900 hover:bg-gray-100">Comprador/Visualizador</SelectItem>
+                                                <SelectItem value="vendedor" className="text-gray-900 hover:bg-gray-100">Vendedor</SelectItem>
                                             </SelectContent>
                                         </Select>
-                                        <CustomError 
-                                            message={getErrorMessage('role', errors.role, fieldValues.role)} 
+                                        <CustomError
+                                            message={getErrorMessage('role', errors.role, fieldValues.role)}
                                             show={shouldShowError('role', errors.role, fieldValues.role)}
                                         />
                                     </div>
@@ -241,8 +248,8 @@ export default function Register() {
                                         onChange={(e) => setFieldValues(prev => ({ ...prev, email: e.target.value }))}
                                         onBlur={(e) => markFieldAsTouched('email', e.target.value)}
                                     />
-                                    <CustomError 
-                                        message={getErrorMessage('email', errors.email, fieldValues.email)} 
+                                    <CustomError
+                                        message={getErrorMessage('email', errors.email, fieldValues.email)}
                                         show={shouldShowError('email', errors.email, fieldValues.email)}
                                     />
                                 </div>
@@ -264,8 +271,8 @@ export default function Register() {
                                             onChange={(e) => setFieldValues(prev => ({ ...prev, password: e.target.value }))}
                                             onBlur={(e) => markFieldAsTouched('password', e.target.value)}
                                         />
-                                        <CustomError 
-                                            message={getErrorMessage('password', errors.password, fieldValues.password)} 
+                                        <CustomError
+                                            message={getErrorMessage('password', errors.password, fieldValues.password)}
                                             show={shouldShowError('password', errors.password, fieldValues.password)}
                                         />
                                     </div>
@@ -285,8 +292,8 @@ export default function Register() {
                                             onChange={(e) => setFieldValues(prev => ({ ...prev, password_confirmation: e.target.value }))}
                                             onBlur={(e) => markFieldAsTouched('password_confirmation', e.target.value)}
                                         />
-                                        <CustomError 
-                                            message={getErrorMessage('password_confirmation', errors.password_confirmation, fieldValues.password_confirmation, fieldValues)} 
+                                        <CustomError
+                                            message={getErrorMessage('password_confirmation', errors.password_confirmation, fieldValues.password_confirmation, fieldValues)}
                                             show={shouldShowError('password_confirmation', errors.password_confirmation, fieldValues.password_confirmation)}
                                         />
                                     </div>
@@ -303,18 +310,24 @@ export default function Register() {
                                         Política de Privacidad
                                     </a>
                                 </div>
-
                                 <Button
                                     type="submit"
-                                    className="w-full bg-blue-600 text-white py-2 sm:py-3 rounded-lg text-sm sm:text-base font-medium hover:bg-blue-700 transition-all duration-200"
-                                    tabIndex={10}
+                                    className="mt-2 w-full"
+                                    tabIndex={5}
                                     data-test="register-user-button"
                                 >
                                     {processing && (
-                                        <LoaderCircle className="h-4 w-4 animate-spin mr-2" />
+                                        <LoaderCircle className="h-4 w-4 animate-spin" />
                                     )}
-                                    Crear Cuenta
+                                    Create account
                                 </Button>
+                            </div>
+
+                            <div className="text-center text-sm text-muted-foreground">
+                                Already have an account?{' '}
+                                <TextLink href={login()} tabIndex={6}>
+                                    Log in
+                                </TextLink>
                             </div>
                         </>
                     )}

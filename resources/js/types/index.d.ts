@@ -41,3 +41,29 @@ export interface User {
     updated_at: string;
     [key: string]: unknown; // This allows for additional properties...
 }
+
+export interface Category {
+    id: number
+    name: string
+    banned: boolean
+}
+
+export interface Product {
+    id: number;
+    title: string;
+    price: number;
+    image?: string;
+    description?: string;
+    user: User,
+    category: Category 
+}
+
+export interface Paginated<T> {
+    data: T[];
+    links: {
+        url: string | null;
+        label: string;
+        active: boolean;
+    }[];
+}
+
