@@ -11,10 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('categories', function (Blueprint $table) {
+        Schema::create('publication_images', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->boolean('banned')->default(false);
+            $table->foreignId('publication_id')
+                ->constrained('publications', 'id')
+                ->cascadeOnDelete();
+            $table->string('image_url');
             $table->timestamps();
         });
     }
@@ -24,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('categories');
+        Schema::dropIfExists('publication_images');
     }
 };
