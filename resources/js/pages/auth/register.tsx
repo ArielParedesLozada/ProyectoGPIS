@@ -55,7 +55,8 @@ export default function Register() {
                 </div>
 
                 <Form
-                    {...RegisteredUserController.store.form()}
+                    action="/register"
+                    method="post"
                     resetOnSuccess={['password', 'password_confirmation']}
                     disableWhileProcessing
                     className="space-y-6"
@@ -325,7 +326,7 @@ export default function Register() {
 
                             <div className="text-center text-sm text-muted-foreground">
                                 Already have an account?{' '}
-                                <TextLink href={login()} tabIndex={6}>
+                                <TextLink href={login().url} tabIndex={6}>
                                     Log in
                                 </TextLink>
                             </div>

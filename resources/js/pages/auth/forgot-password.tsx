@@ -41,7 +41,7 @@ export default function ForgotPassword({ status }: { status?: string }) {
           </div>
         )}
 
-        <Form {...PasswordResetLinkController.store.form()}>
+        <Form action="/forgot-password" method="post">
           {({ processing, errors }) => (
             <>
               <div className="space-y-4">
