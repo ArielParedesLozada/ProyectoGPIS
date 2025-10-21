@@ -8,12 +8,15 @@ export default function Welcome() {
 
   useEffect(() => {
     if (auth?.user) {
+      // Usuario autenticado → publicaciones/dashboard
       window.location.href = publicationIndex().url;
     } else {
+      // No autenticado → login
       window.location.href = login().url;
     }
   }, [auth?.user]);
 
+  // Pantalla mínima mientras redirige
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-white to-blue-50 p-4">
       <div className="text-center max-w-md">
