@@ -10,7 +10,7 @@ export default function Welcome() {
         if (auth.user) {
             window.location.href = publicationIndex().url
         } else {
-            window.location.href = login().url;
+            window.location.href = login.url();
         }
     }, [auth.user]);
     // Mostrar un mensaje de carga mientras redirige
