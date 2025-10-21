@@ -1,4 +1,4 @@
-import { dashboard, home, login } from '@/routes';
+import { login, publicationIndex } from '@/routes';
 import { type SharedData } from '@/types';
 import { usePage } from '@inertiajs/react';
 import { useEffect } from 'react';
@@ -8,7 +8,7 @@ export default function Welcome() {
     useEffect(() => {
         // Redirigir automáticamente al login o dashboard
         if (auth.user) {
-            window.location.href = dashboard.url();
+            window.location.href = publicationIndex().url
         } else {
             window.location.href = login.url();
         }

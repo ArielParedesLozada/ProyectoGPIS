@@ -20,6 +20,7 @@ class UserSeeder extends Seeder
         User::firstOrCreate(
             ['email' => 'test@example.com'],
             [
+                'cedula' => '1850283001',
                 'name' => 'Test User',
                 'surname' => 'Test Surname', // Campo requerido
                 'phone' => '123456789', // Campo único y requerido

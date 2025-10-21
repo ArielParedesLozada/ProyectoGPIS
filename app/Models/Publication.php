@@ -5,8 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Product extends Model
+class Publication extends Model
 {
     use HasFactory;
     protected $fillable = [
@@ -18,6 +19,9 @@ class Product extends Model
         'category_id',
         'created_by',
         'published_at',
+        'status',
+        'type',
+        'horario'
     ];
 
     public function category(): BelongsTo
@@ -27,5 +31,8 @@ class Product extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by', 'id');
+    }
+    public function images(): HasMany {
+        return $this->hasMany(PublicationImage::class, 'publication_id', 'id');
     }
 }

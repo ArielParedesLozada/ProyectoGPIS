@@ -12,8 +12,8 @@ export function useFieldValidation() {
     const markFieldAsTouched = (fieldName: string, value: string = '') => {
         setFields(prev => ({
             ...prev,
-            [fieldName]: { 
-                ...prev[fieldName], 
+            [fieldName]: {
+                ...prev[fieldName],
                 touched: true,
                 value: value
             }
@@ -23,8 +23,8 @@ export function useFieldValidation() {
     const markSelectAsTouched = (fieldName: string, value: string = '') => {
         setFields(prev => ({
             ...prev,
-            [fieldName]: { 
-                ...prev[fieldName], 
+            [fieldName]: {
+                ...prev[fieldName],
                 touched: true,
                 value: value
             }
@@ -33,7 +33,15 @@ export function useFieldValidation() {
 
     const validateField = (fieldName: string, value: string): string | undefined => {
         // Validaciones del lado del cliente
+        const upper = /[A-Z]/;
+        const lower = /[a-z]/;
+        const number = /[0-9]/;
+        const special = /[!@#$%^&*(),.?":{}|<>_]/;
+
         switch (fieldName) {
+            case 'cedula':
+                if (!value.trim()) return 'La cedula es obligatoria.';
+                break;
             case 'email':
                 if (!value.trim()) return 'El email es obligatorio.';
                 if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Debe ser un email válido.';
@@ -41,6 +49,10 @@ export function useFieldValidation() {
             case 'password':
                 if (!value.trim()) return 'La contraseña es obligatoria.';
                 if (value.length < 8) return 'La contraseña debe tener al menos 8 caracteres.';
+                if (!upper.test(value)) return 'Debe contener al menos una letra mayúscula';
+                if (!lower.test(value)) return 'Debe contener al menos una letra minúscula';
+                if (!number.test(value)) return 'Debe contener al menos un número';
+                if (!special.test(value)) return 'Debe contener al menos un carácter especial';
                 break;
             case 'name':
                 if (!value.trim()) return 'El nombre es obligatorio.';
@@ -76,10 +88,10 @@ export function useFieldValidation() {
     const shouldShowError = (fieldName: string, serverError: string | undefined, fieldValue: string = ''): boolean => {
         const field = fields[fieldName];
         if (!field?.touched) return false;
-        
+
         // Si hay error del servidor, mostrarlo solo si el campo no está vacío
         if (serverError && fieldValue.trim() === '') return true;
-        
+
         // Si no hay error del servidor, validar del lado del cliente
         const clientError = validateField(fieldName, fieldValue);
         return !!clientError;
@@ -88,16 +100,16 @@ export function useFieldValidation() {
     const getErrorMessage = (fieldName: string, serverError: string | undefined, fieldValue: string = '', allFieldValues?: Record<string, string>): string | undefined => {
         const field = fields[fieldName];
         if (!field?.touched) return undefined;
-        
+
         // Si hay error del servidor y el campo está vacío, mostrarlo
         if (serverError && fieldValue.trim() === '') return serverError;
-        
+
         // Validación especial para confirmación de contraseña
         if (fieldName === 'password_confirmation' && allFieldValues) {
             if (!fieldValue.trim()) return 'Debes confirmar la contraseña.';
             if (fieldValue !== allFieldValues.password) return 'Las contraseñas no coinciden.';
         }
-        
+
         // Si no hay error del servidor, usar validación del cliente
         return validateField(fieldName, fieldValue);
     };
@@ -136,6 +148,7 @@ export function useFieldValidation() {
         markFieldAsValid,
         markFieldAsInvalid,
         resetField,
-        resetAllFields
+        resetAllFields,
+        validateField,
     };
 }
