@@ -1,8 +1,7 @@
 <?php
 
 use App\Http\Controllers\ExampleController;
-use App\Http\Controllers\ProductController;
-use App\Http\Controllers\UserController;
+use App\Http\Controllers\PublicationController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -19,8 +18,10 @@ Route::get('/', function () {
 
 //Rutas verificadas
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/home', [UserController::class, 'home'])->name('home');
-    Route::get('/product/{id}', [ProductController::class, 'view'])->name('product-view');
+    Route::prefix('publication')->group(function () {
+        Route::get('/', [PublicationController::class, 'index'])->name('publication-index');
+        Route::get('/{id}', [PublicationController::class, 'view'])->name('publication-view');
+    });
 });
 
 require __DIR__ . '/settings.php';
