@@ -19,6 +19,7 @@ import { Head, Link, router } from "@inertiajs/react";
 import { BreadcrumbItem } from "@/types";
 import MapPicker from "@/components/publications/MapPicker";
 import ServiceSchedule from "@/components/publications/ServiceSchedule";
+import { useToast, ToastProvider } from "@/hooks/useToast";
 
 interface EditPublicationProps {
     publication: Publication & {
@@ -27,11 +28,13 @@ interface EditPublicationProps {
     categories: Category[];
 }
 
-export default function EditPublication({ publication, categories }: EditPublicationProps) {
+// Componente interno que usa useToast
+function EditPublicationContent({ publication, categories }: EditPublicationProps) {
     const [selectedImages, setSelectedImages] = useState<File[]>([]);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
     const [existingImages, setExistingImages] = useState(publication.images || []);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const { showToast } = useToast();
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -60,8 +63,35 @@ export default function EditPublication({ publication, categories }: EditPublica
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         
+        // Validar número máximo de imágenes
         if (selectedImages.length + files.length > 5) {
-            alert('Máximo 5 imágenes permitidas');
+            showToast({
+                type: 'error',
+                title: 'Demasiadas imágenes',
+                message: 'No se pueden subir más de 5 imágenes.'
+            });
+            return;
+        }
+
+        // Validar archivos vacíos (ser más permisivo con tipos)
+        const emptyFiles = files.filter(file => file.size === 0);
+        if (emptyFiles.length > 0) {
+            showToast({
+                type: 'error',
+                title: 'Archivo vacío',
+                message: 'Algunos archivos están vacíos.'
+            });
+            return;
+        }
+
+        // Validar tamaño de cada archivo (5MB máximo)
+        const oversizedFiles = files.filter(file => file.size > 5 * 1024 * 1024);
+        if (oversizedFiles.length > 0) {
+            showToast({
+                type: 'error',
+                title: 'Archivo demasiado grande',
+                message: 'Las imágenes no pueden superar los 5MB cada una.'
+            });
             return;
         }
 
@@ -114,23 +144,33 @@ export default function EditPublication({ publication, categories }: EditPublica
         formData.append('lng', data.lng);
         formData.append('horario', data.horario || '');
         
-        // Agregar imágenes si las hay
-        if (selectedImages.length > 0) {
-            selectedImages.forEach((image, index) => {
-                formData.append(`images[${index}]`, image);
-            });
-        }
+        // Agregar imágenes como images[]
+        selectedImages.forEach((image) => {
+            formData.append('images[]', image);
+        });
         
-        // Enviar con router.post usando FormData
-        router.post(`/my-publications/${publication.id}`, {
-            _method: 'PUT',
-            ...Object.fromEntries(formData.entries())
-        }, {
+        // Agregar método PUT
+        formData.append('_method', 'PUT');
+        
+        // Enviar FormData directamente
+        router.post(`/my-publications/${publication.id}`, formData, {
             forceFormData: true,
             onSuccess: () => {
                 // Limpiar imágenes seleccionadas después del éxito
                 setSelectedImages([]);
                 setImagePreviews([]);
+            },
+            onError: (errors) => {
+                // Mostrar errores específicos con toast
+                Object.keys(errors).forEach(key => {
+                    const errorValue = errors[key];
+                    const errorMessage = Array.isArray(errorValue) ? errorValue[0] : errorValue;
+                    showToast({
+                        type: 'error',
+                        title: 'Error de validación',
+                        message: errorMessage
+                    });
+                });
             }
         });
     };
@@ -431,5 +471,14 @@ export default function EditPublication({ publication, categories }: EditPublica
                 </div>
             </div>
         </AppLayout>
+    );
+}
+
+// Componente principal que envuelve con ToastProvider
+export default function EditPublication({ publication, categories }: EditPublicationProps) {
+    return (
+        <ToastProvider>
+            <EditPublicationContent publication={publication} categories={categories} />
+        </ToastProvider>
     );
 }

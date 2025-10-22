@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { useForm } from "@inertiajs/react";
+import { useForm, router } from "@inertiajs/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,7 @@ import { Upload, X, AlertCircle } from "lucide-react";
 import { Category } from "@/types";
 import MapPicker from "./MapPicker";
 import ServiceSchedule from "./ServiceSchedule";
+import { useToast } from "@/hooks/useToast";
 
 interface CreatePublicationModalProps {
     categories: Category[];
@@ -26,6 +27,7 @@ export default function CreatePublicationModal({ categories, onClose }: CreatePu
     const [selectedImages, setSelectedImages] = useState<File[]>([]);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const { showToast } = useToast();
 
     const { data, setData, post, processing, errors } = useForm({
         title: '',
@@ -43,8 +45,35 @@ export default function CreatePublicationModal({ categories, onClose }: CreatePu
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         
+        // Validar número máximo de imágenes
         if (selectedImages.length + files.length > 5) {
-            alert('Máximo 5 imágenes permitidas');
+            showToast({
+                type: 'error',
+                title: 'Demasiadas imágenes',
+                message: 'No se pueden subir más de 5 imágenes.'
+            });
+            return;
+        }
+
+        // Validar tamaño de cada archivo (5MB máximo) y archivos corruptos
+        const oversizedFiles = files.filter(file => file.size > 5 * 1024 * 1024);
+        if (oversizedFiles.length > 0) {
+            showToast({
+                type: 'error',
+                title: 'Archivo demasiado grande',
+                message: 'Las imágenes no pueden superar los 5MB cada una.'
+            });
+            return;
+        }
+
+        // Validar archivos vacíos (ser más permisivo con tipos)
+        const emptyFiles = files.filter(file => file.size === 0);
+        if (emptyFiles.length > 0) {
+            showToast({
+                type: 'error',
+                title: 'Archivo vacío',
+                message: 'Algunos archivos están vacíos.'
+            });
             return;
         }
 
@@ -73,9 +102,41 @@ export default function CreatePublicationModal({ categories, onClose }: CreatePu
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        post('/my-publications', {
+        
+        // Crear FormData manualmente para asegurar que los archivos se envíen
+        const formData = new FormData();
+        formData.append('title', data.title);
+        formData.append('description', data.description);
+        formData.append('price', data.price);
+        formData.append('category_id', data.category_id);
+        formData.append('type', data.type);
+        formData.append('location', data.location);
+        formData.append('lat', data.lat);
+        formData.append('lng', data.lng);
+        formData.append('horario', data.horario || '');
+        
+        // Agregar imágenes como images[]
+        selectedImages.forEach((image) => {
+            formData.append('images[]', image);
+        });
+        
+        // Enviar FormData directamente
+        router.post('/my-publications', formData, {
+            forceFormData: true,
             onSuccess: () => {
                 onClose();
+            },
+            onError: (errors) => {
+                // Mostrar errores específicos con toast
+                Object.keys(errors).forEach(key => {
+                    const errorValue = errors[key];
+                    const errorMessage = Array.isArray(errorValue) ? errorValue[0] : errorValue;
+                    showToast({
+                        type: 'error',
+                        title: 'Error de validación',
+                        message: errorMessage
+                    });
+                });
             }
         });
     };

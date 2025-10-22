@@ -40,7 +40,7 @@ class PublicationController extends Controller
             $radiusKm = $request->radius_km;
             
             $query->whereRaw(
-                "ST_DWithin(location_point, ST_SetSRID(ST_MakePoint(?, ?), 4326), ?)",
+                "ST_DWithin(location_point, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?)",
                 [$lng, $lat, $radiusKm * 1000] // Convertir km a metros
             );
         }
@@ -98,9 +98,7 @@ class PublicationController extends Controller
     public function store(Request $request)
     {
         try {
-            $userId = Auth::id();
-            Log::info('store - User ID: ' . $userId);
-            
+            // Validación original que funcionaba
             $request->validate([
                 'title' => 'required|string|max:255',
                 'description' => 'required|string',
@@ -120,48 +118,48 @@ class PublicationController extends Controller
                 return redirect()->back()->withErrors(['horario' => 'El horario es obligatorio para servicios.']);
             }
 
-        $publicationData = [
-            'code' => Str::uuid(),
-            'title' => $request->title,
-            'description' => $request->description,
-            'price' => $request->price,
-            'location' => $request->location, // Usar el texto de ubicación del usuario
-            'disponibility' => true,
-            'category_id' => $request->category_id,
-            'created_by' => $userId,
-            'status' => StatusType::HABILITADO,
-            'type' => $request->type,
-            'published_at' => now(),
-            'horario' => $request->horario,
-        ];
+            $userId = Auth::id();
+            $publicationData = [
+                'code' => Str::uuid(),
+                'title' => $request->title,
+                'description' => $request->description,
+                'price' => $request->price,
+                'location' => $request->location, // Usar el texto de ubicación del usuario
+                'disponibility' => true,
+                'category_id' => $request->category_id,
+                'created_by' => $userId,
+                'status' => StatusType::HABILITADO, // Siempre crear como HABILITADO
+                'type' => $request->type,
+                'published_at' => now(),
+                'horario' => $request->horario,
+            ];
 
-        // Agregar coordenadas geográficas si están disponibles
-        if ($request->filled('lat') && $request->filled('lng') && is_numeric($request->lat) && is_numeric($request->lng)) {
-            try {
-                // Crear Point sin dimensión Z
-                $publicationData['location_point'] = Point::make($request->lat, $request->lng);
-            } catch (\Exception $e) {
-                Log::error('Error creating Point: ' . $e->getMessage());
-                // Continuar sin coordenadas si hay error
+
+            // Agregar coordenadas geográficas si están disponibles
+            if ($request->filled('lat') && $request->filled('lng') && is_numeric($request->lat) && is_numeric($request->lng)) {
+                try {
+                    // Crear Point sin dimensión Z (solo lat, lng)
+                    $publicationData['location_point'] = Point::make($request->lat, $request->lng);
+                } catch (\Exception $e) {
+                    // Error creating Point - continue without location
+                }
             }
-        }
 
-        $publication = Publication::create($publicationData);
+            $publication = Publication::create($publicationData);
 
-        // Guardar imágenes
-        if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $image) {
-                $path = $image->store('publications', 'public');
-                PublicationImage::create([
-                    'publication_id' => $publication->id,
-                    'image_url' => $path,
-                ]);
+            // Guardar imágenes si las hay
+            if ($request->hasFile('images')) {
+                foreach ($request->file('images') as $image) {
+                    $path = $image->store('publications', 'public');
+                    PublicationImage::create([
+                        'publication_id' => $publication->id,
+                        'image_url' => $path,
+                    ]);
+                }
             }
-        }
 
             return redirect()->route('my-publications')->with('success', 'Publicación creada exitosamente.');
         } catch (\Exception $e) {
-            Log::error('Error creating publication: ' . $e->getMessage());
             return redirect()->back()->withErrors(['error' => 'Error al crear la publicación: ' . $e->getMessage()]);
         }
     }
@@ -192,41 +190,25 @@ class PublicationController extends Controller
             $publication = Publication::where('created_by', $userId)->findOrFail($id);
 
 
-            // Validación más flexible
-            $validationRules = [
-                'images' => 'nullable|array|max:5',
-                'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:5120',
+            // Validación original que funcionaba
+            $request->validate([
+                'title' => 'required|string|max:255',
+                'description' => 'required|string',
+                'price' => 'required|numeric|min:0',
+                'category_id' => 'required|exists:categories,id',
+                'type' => 'required|in:producto,servicio',
+                'location' => 'required|string',
                 'lat' => 'nullable|numeric|between:-90,90',
                 'lng' => 'nullable|numeric|between:-180,180',
                 'horario' => 'nullable|string|max:255',
-            ];
-
-            // Solo validar campos que no están vacíos
-            if ($request->filled('title')) {
-                $validationRules['title'] = 'required|string|max:255';
-            }
-            if ($request->filled('description')) {
-                $validationRules['description'] = 'required|string';
-            }
-            if ($request->filled('price')) {
-                $validationRules['price'] = 'required|numeric|min:0';
-            }
-            if ($request->filled('category_id')) {
-                $validationRules['category_id'] = 'required|exists:categories,id';
-            }
-            if ($request->filled('type')) {
-                $validationRules['type'] = 'required|in:producto,servicio';
-            }
-            if ($request->filled('location')) {
-                $validationRules['location'] = 'required|string';
-            }
+                'images' => 'nullable|array|max:5',
+                'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:5120', // 5MB max
+            ]);
 
             // Validar horario requerido para servicios
-            if ($request->filled('type') && $request->type === 'servicio' && empty($request->horario)) {
+            if ($request->type === 'servicio' && empty($request->horario)) {
                 return redirect()->back()->withErrors(['horario' => 'El horario es obligatorio para servicios.']);
             }
-
-            $request->validate($validationRules);
 
             // Actualizar solo los campos que se envían y no están vacíos
             $updateData = [];
@@ -256,11 +238,10 @@ class PublicationController extends Controller
             // Actualizar coordenadas geográficas si están disponibles
             if ($request->filled('lat') && $request->filled('lng') && is_numeric($request->lat) && is_numeric($request->lng)) {
                 try {
-                    // Crear Point sin dimensión Z
+                    // Crear Point sin dimensión Z (solo lat, lng)
                     $updateData['location_point'] = Point::make($request->lat, $request->lng);
                 } catch (\Exception $e) {
-                    Log::error('Error creating Point: ' . $e->getMessage());
-                    // Continuar sin coordenadas si hay error
+                    // Error creating Point - continue without location
                 }
             }
 
@@ -282,7 +263,6 @@ class PublicationController extends Controller
             return redirect()->route('my-publication-view', $publication->id)->with('success', 'Publicación actualizada exitosamente.');
             
         } catch (\Exception $e) {
-            Log::error('Error updating publication: ' . $e->getMessage());
             return redirect()->back()->withErrors(['error' => 'Error al actualizar la publicación: ' . $e->getMessage()]);
         }
     }
