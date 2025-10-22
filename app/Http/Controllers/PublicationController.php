@@ -7,6 +7,7 @@ use App\Enums\PublicationType;
 use App\Models\Category;
 use App\Models\Publication;
 use App\Models\PublicationImage;
+use App\Services\GeocodingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -98,16 +99,15 @@ class PublicationController extends Controller
     public function store(Request $request)
     {
         try {
-            // Validación original que funcionaba
+            // Validación actualizada - lat y lng son obligatorios
             $request->validate([
                 'title' => 'required|string|max:255',
                 'description' => 'required|string',
                 'price' => 'required|numeric|min:0',
                 'category_id' => 'required|exists:categories,id',
                 'type' => 'required|in:producto,servicio',
-                'location' => 'required|string',
-                'lat' => 'nullable|numeric|between:-90,90',
-                'lng' => 'nullable|numeric|between:-180,180',
+                'lat' => 'required|numeric|between:-90,90',
+                'lng' => 'required|numeric|between:-180,180',
                 'horario' => 'nullable|string|max:255',
                 'images' => 'nullable|array|max:5',
                 'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:5120', // 5MB max
@@ -119,12 +119,16 @@ class PublicationController extends Controller
             }
 
             $userId = Auth::id();
+            
+            // Obtener ubicación legible usando reverse geocoding
+            $location = GeocodingService::reverseGeocode($request->lat, $request->lng);
+            
             $publicationData = [
                 'code' => Str::uuid(),
                 'title' => $request->title,
                 'description' => $request->description,
                 'price' => $request->price,
-                'location' => $request->location, // Usar el texto de ubicación del usuario
+                'location' => $location, // Ubicación obtenida por reverse geocoding
                 'disponibility' => true,
                 'category_id' => $request->category_id,
                 'created_by' => $userId,
@@ -134,15 +138,17 @@ class PublicationController extends Controller
                 'horario' => $request->horario,
             ];
 
-
-            // Agregar coordenadas geográficas si están disponibles
-            if ($request->filled('lat') && $request->filled('lng') && is_numeric($request->lat) && is_numeric($request->lng)) {
-                try {
-                    // Crear Point sin dimensión Z (lng, lat) - PostGIS usa longitud primero
-                    $publicationData['location_point'] = Point::make($request->lng, $request->lat);
-                } catch (\Exception $e) {
-                    // Error creating Point - continue without location
-                }
+            // Agregar coordenadas geográficas
+            try {
+                // Crear Point sin dimensión Z (lng, lat) - PostGIS usa longitud primero
+                $publicationData['location_point'] = Point::make($request->lng, $request->lat);
+            } catch (\Exception $e) {
+                // Error creating Point - continue without location
+                Log::error('Error creating Point for publication', [
+                    'lat' => $request->lat,
+                    'lng' => $request->lng,
+                    'error' => $e->getMessage()
+                ]);
             }
 
             $publication = Publication::create($publicationData);
@@ -202,16 +208,15 @@ class PublicationController extends Controller
             $publication = Publication::where('created_by', $userId)->findOrFail($id);
 
 
-            // Validación original que funcionaba
+            // Validación actualizada - lat y lng son obligatorios
             $request->validate([
                 'title' => 'required|string|max:255',
                 'description' => 'required|string',
                 'price' => 'required|numeric|min:0',
                 'category_id' => 'required|exists:categories,id',
                 'type' => 'required|in:producto,servicio',
-                'location' => 'required|string',
-                'lat' => 'nullable|numeric|between:-90,90',
-                'lng' => 'nullable|numeric|between:-180,180',
+                'lat' => 'required|numeric|between:-90,90',
+                'lng' => 'required|numeric|between:-180,180',
                 'horario' => 'nullable|string|max:255',
                 'images' => 'nullable|array|max:5',
                 'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:5120', // 5MB max
@@ -222,6 +227,9 @@ class PublicationController extends Controller
                 return redirect()->back()->withErrors(['horario' => 'El horario es obligatorio para servicios.']);
             }
 
+            // Obtener ubicación legible usando reverse geocoding
+            $location = GeocodingService::reverseGeocode($request->lat, $request->lng);
+            
             // Actualizar solo los campos que se envían y no están vacíos
             $updateData = [];
             
@@ -240,21 +248,23 @@ class PublicationController extends Controller
             if ($request->filled('type')) {
                 $updateData['type'] = $request->type;
             }
-            if ($request->filled('location')) {
-                $updateData['location'] = $request->location;
-            }
+            // Actualizar ubicación con reverse geocoding
+            $updateData['location'] = $location;
             if ($request->filled('horario')) {
                 $updateData['horario'] = $request->horario;
             }
 
-            // Actualizar coordenadas geográficas si están disponibles
-            if ($request->filled('lat') && $request->filled('lng') && is_numeric($request->lat) && is_numeric($request->lng)) {
-                try {
-                    // Crear Point sin dimensión Z (solo lat, lng)
-                    $updateData['location_point'] = Point::make($request->lng, $request->lat);
-                } catch (\Exception $e) {
-                    // Error creating Point - continue without location
-                }
+            // Actualizar coordenadas geográficas
+            try {
+                // Crear Point sin dimensión Z (lng, lat) - PostGIS usa longitud primero
+                $updateData['location_point'] = Point::make($request->lng, $request->lat);
+            } catch (\Exception $e) {
+                // Error creating Point - continue without location
+                Log::error('Error creating Point for publication update', [
+                    'lat' => $request->lat,
+                    'lng' => $request->lng,
+                    'error' => $e->getMessage()
+                ]);
             }
 
             if (!empty($updateData)) {

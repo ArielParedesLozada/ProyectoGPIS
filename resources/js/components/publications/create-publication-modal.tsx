@@ -35,7 +35,6 @@ export default function CreatePublicationModal({ categories, onClose }: CreatePu
         price: '',
         category_id: '',
         type: '',
-        location: '',
         lat: '',
         lng: '',
         horario: '',
@@ -103,6 +102,16 @@ export default function CreatePublicationModal({ categories, onClose }: CreatePu
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         
+        // Validar que se haya seleccionado una ubicación en el mapa
+        if (!data.lat || !data.lng || data.lat === '' || data.lng === '') {
+            showToast({
+                type: 'error',
+                title: 'Ubicación requerida',
+                message: 'Por favor selecciona una ubicación en el mapa.'
+            });
+            return;
+        }
+        
         // Crear FormData manualmente para asegurar que los archivos se envíen
         const formData = new FormData();
         formData.append('title', data.title);
@@ -110,7 +119,6 @@ export default function CreatePublicationModal({ categories, onClose }: CreatePu
         formData.append('price', data.price);
         formData.append('category_id', data.category_id);
         formData.append('type', data.type);
-        formData.append('location', data.location);
         formData.append('lat', data.lat);
         formData.append('lng', data.lng);
         formData.append('horario', data.horario || '');
@@ -248,7 +256,7 @@ export default function CreatePublicationModal({ categories, onClose }: CreatePu
             <Card className="bg-white shadow-sm">
                 <CardContent className="pt-8 pb-8">
                     <h3 className="text-xl font-semibold mb-6 text-gray-900">Información comercial</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-4">
                         {/* Precio */}
                         <div>
                             <Label htmlFor="price">Precio *</Label>
@@ -272,25 +280,6 @@ export default function CreatePublicationModal({ categories, onClose }: CreatePu
                                 </div>
                             )}
                         </div>
-
-                        {/* Ubicación */}
-                        <div>
-                            <Label htmlFor="location">Ubicación *</Label>
-                            <Input
-                                id="location"
-                                type="text"
-                                placeholder="Ciudad, País"
-                                value={data.location}
-                                onChange={(e) => setData('location', e.target.value)}
-                                className={errors.location ? 'border-red-500' : ''}
-                            />
-                            {errors.location && (
-                                <div className="flex items-center gap-1 mt-1 text-red-500 text-sm">
-                                    <AlertCircle className="w-4 h-4" />
-                                    {errors.location}
-                                </div>
-                            )}
-                        </div>
                     </div>
                 </CardContent>
             </Card>
@@ -298,13 +287,22 @@ export default function CreatePublicationModal({ categories, onClose }: CreatePu
             {/* Mapa de Ubicación */}
             <Card className="bg-white shadow-sm">
                 <CardContent className="pt-8 pb-8">
-                    <h3 className="text-xl font-semibold mb-6 text-gray-900">Ubicación en el mapa</h3>
+                    <h3 className="text-xl font-semibold mb-6 text-gray-900">Ubicación en el mapa *</h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                        Selecciona la ubicación exacta de tu producto o servicio en el mapa
+                    </p>
                     <MapPicker
                         lat={data.lat ? parseFloat(data.lat) : -0.2299}
                         lng={data.lng ? parseFloat(data.lng) : -78.5249}
                         onLocationChange={handleLocationChange}
                         className="h-64 w-full"
                     />
+                    {(!data.lat || !data.lng || data.lat === '' || data.lng === '') && (
+                        <p className="text-sm text-amber-600 mt-2 flex items-center gap-1">
+                            <AlertCircle className="w-4 h-4" />
+                            Por favor selecciona una ubicación en el mapa
+                        </p>
+                    )}
                 </CardContent>
             </Card>
 
