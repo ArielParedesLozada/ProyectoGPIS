@@ -29,7 +29,7 @@ import {
 import { UserMenuContent } from '@/components/user-menu-content';
 import { useInitials } from '@/hooks/use-initials';
 import { cn } from '@/lib/utils';
-import { home } from '@/routes';
+import { dashboard } from '@/routes';
 import { type BreadcrumbItem, type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 import { BookOpen, Folder, LayoutGrid, Menu, Search } from 'lucide-react';
@@ -39,7 +39,7 @@ import AppLogoIcon from './app-logo-icon';
 const mainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
-        href: home(),
+        href: dashboard(),
         icon: LayoutGrid,
     },
 ];
@@ -192,14 +192,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                     </div>
 
                     <div className="ml-auto flex items-center space-x-2">
-                        <div className="relative flex items-center space-x-1">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="group h-9 w-9 cursor-pointer"
-                            >
-                                <Search className="!size-5 opacity-80 group-hover:opacity-100" />
-                            </Button>
+                        {/* Botón de búsqueda omitido según solicitud */}
                             <div className="hidden lg:flex">
                                 {rightNavItems.map((item) => (
                                     <TooltipProvider

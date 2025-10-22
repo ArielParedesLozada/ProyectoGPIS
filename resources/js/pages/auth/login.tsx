@@ -41,8 +41,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
         </div>
 
         <Form
-          action="/login"
-          method="post"
+          {...AuthenticatedSessionController.store.form()}
           resetOnSuccess={['password']}
           className="space-y-6"
         >
