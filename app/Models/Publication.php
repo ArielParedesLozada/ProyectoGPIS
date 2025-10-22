@@ -26,6 +26,11 @@ class Publication extends Model
         'horario'
     ];
 
+    protected $casts = [
+        'status' => \App\Enums\StatusType::class,
+        'published_at' => 'datetime',
+    ];
+
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class, 'category_id', 'id');
