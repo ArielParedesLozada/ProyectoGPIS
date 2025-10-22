@@ -50,7 +50,9 @@ export default function Login({ status, canResetPassword }: LoginProps) {
             <>
               {(errors.email || errors.password) && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-                  <p className="text-red-600 text-sm">Las credenciales no coinciden con nuestros registros.</p>
+                  <p className="text-red-600 text-sm">
+                    {errors.email || errors.password || 'Las credenciales no coinciden con nuestros registros.'}
+                  </p>
                 </div>
               )}
 

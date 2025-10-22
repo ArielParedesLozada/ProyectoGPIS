@@ -1,6 +1,6 @@
 import AppLogoIcon from '@/components/app-logo-icon';
 import MarketplaceLogo from '@/components/marketplace-logo';
-import { publicationIndex } from '@/routes';
+import { publicationIndex } from '@/routes/index';
 import { Link } from '@inertiajs/react';
 import { type PropsWithChildren } from 'react';
 import { ArrowLeft } from 'lucide-react';

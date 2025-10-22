@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 
@@ -41,14 +42,44 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        /** @var User|null $user */
-        $user = Auth::getProvider()->retrieveByCredentials($this->only('email', 'password'));
+        // Buscar el usuario directamente por email
+        $user = \App\Models\User::where('email', $this->input('email'))->first();
 
-        if (! $user || ! Auth::getProvider()->validateCredentials($user, $this->only('password'))) {
+        Log::info('Login attempt', [
+            'email' => $this->input('email'),
+            'user_found' => $user ? true : false,
+            'user_active' => $user ? $user->is_active : null,
+        ]);
+
+        if (!$user) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
-                'email' => __('auth.failed'),
+                'email' => 'Las credenciales no coinciden con nuestros registros.',
+            ]);
+        }
+
+        // Primero validar la contraseña
+        if (!Auth::getProvider()->validateCredentials($user, $this->only('password'))) {
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'email' => 'Las credenciales no coinciden con nuestros registros.',
+            ]);
+        }
+
+        // Después de validar la contraseña, verificar si la cuenta está activa
+        if (!$user->is_active) {
+            Log::info('User is inactive', [
+                'email' => $user->email,
+                'is_active' => $user->is_active,
+            ]);
+            
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'email' => 'Tu cuenta ha sido desactivada. Contacta al administrador.',
+                'general' => 'Tu cuenta ha sido desactivada. Contacta al administrador.',
             ]);
         }
 
@@ -64,20 +95,18 @@ class LoginRequest extends FormRequest
      */
     public function ensureIsNotRateLimited(): void
     {
-        if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
-            return;
+        if (RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
+            event(new Lockout($this));
+
+            $seconds = RateLimiter::availableIn($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'email' => __('auth.throttle', [
+                    'seconds' => $seconds,
+                    'minutes' => ceil($seconds / 60),
+                ]),
+            ]);
         }
-
-        event(new Lockout($this));
-
-        $seconds = RateLimiter::availableIn($this->throttleKey());
-
-        throw ValidationException::withMessages([
-            'email' => __('auth.throttle', [
-                'seconds' => $seconds,
-                'minutes' => ceil($seconds / 60),
-            ]),
-        ]);
     }
 
     /**

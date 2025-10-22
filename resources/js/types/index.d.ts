@@ -71,6 +71,7 @@ export interface Publication {
 
 export interface Paginated<T> {
     data: T[];
+    total: number;
     links: {
         url: string | null;
         label: string;

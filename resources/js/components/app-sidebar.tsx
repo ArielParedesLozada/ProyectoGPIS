@@ -12,24 +12,65 @@ import {
 } from '@/components/ui/sidebar';
 import { publicationIndex, myPublications } from '@/routes';
 import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/react';
-import { LayoutGrid, User } from 'lucide-react';
+import { Link, usePage } from '@inertiajs/react';
+import { LayoutGrid, User, Shield, Users, UserPlus, Settings } from 'lucide-react';
 import MarketplaceLogo from './marketplace-logo';
-
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Publicaciones',
-        href: publicationIndex(),
-        icon: LayoutGrid,
-    },
-    {
-        title: 'Mis Publicaciones',
-        href: myPublications(),
-        icon: User,
-    },
-];
+import { SharedData } from '@/types';
 
 export function AppSidebar() {
+    const { auth } = usePage<SharedData>().props;
+    
+    const mainNavItems: NavItem[] = [
+        {
+            title: 'Publicaciones',
+            href: publicationIndex(),
+            icon: LayoutGrid,
+        },
+        {
+            title: 'Mis Publicaciones',
+            href: myPublications(),
+            icon: User,
+        },
+    ];
+
+    // Opciones de administración según el rol
+    const adminNavItems: NavItem[] = [];
+    
+    if (auth.user.role === 'super_admin' || auth.user.role === 'admin') {
+        adminNavItems.push(
+            {
+                title: 'Dashboard Admin',
+                href: '/admin',
+                icon: Settings,
+            }
+        );
+    }
+    
+    if (auth.user.role === 'super_admin') {
+        adminNavItems.push(
+            {
+                title: 'Administradores',
+                href: '/admin/admins',
+                icon: Shield,
+            },
+            {
+                title: 'Moderadores',
+                href: '/admin/moderators',
+                icon: Users,
+            }
+        );
+    } else if (auth.user.role === 'admin') {
+        adminNavItems.push(
+            {
+                title: 'Moderadores',
+                href: '/admin/moderators',
+                icon: Users,
+            }
+        );
+    }
+
+    // Combinar elementos de navegación
+    const allNavItems = [...mainNavItems, ...adminNavItems];
     return (
         <Sidebar
             collapsible="icon"
@@ -61,7 +102,7 @@ export function AppSidebar() {
                     <h2 className="text-sm font-semibold text-gray-500 tracking-wide uppercase px-2">
                         Navegación
                     </h2>
-                    <NavMain items={mainNavItems} />
+                    <NavMain items={allNavItems} />
                 </div>
             </SidebarContent>
 
