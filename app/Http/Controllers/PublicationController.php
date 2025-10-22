@@ -249,6 +249,27 @@ class PublicationController extends Controller
                 $publication->update($updateData);
             }
 
+            // Manejar imágenes existentes
+            if ($request->has('existing_images')) {
+                // Obtener IDs de imágenes que se mantienen
+                $keepImageIds = $request->input('existing_images', []);
+                
+                // Eliminar imágenes que no están en la lista de mantener
+                $imagesToDelete = $publication->images()->whereNotIn('id', $keepImageIds)->get();
+                foreach ($imagesToDelete as $image) {
+                    // Eliminar del storage
+                    \Storage::disk('public')->delete($image->image_url);
+                    // Eliminar de la base de datos
+                    $image->delete();
+                }
+            } else {
+                // Si no se envían existing_images, eliminar todas las imágenes existentes
+                foreach ($publication->images as $image) {
+                    \Storage::disk('public')->delete($image->image_url);
+                    $image->delete();
+                }
+            }
+
             // Guardar nuevas imágenes si las hay
             if ($request->hasFile('images')) {
                 foreach ($request->file('images') as $image) {

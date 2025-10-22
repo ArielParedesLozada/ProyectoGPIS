@@ -149,6 +149,11 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
             formData.append('images[]', image);
         });
         
+        // Agregar IDs de imágenes existentes que se mantienen
+        existingImages.forEach((image) => {
+            formData.append('existing_images[]', image.id.toString());
+        });
+        
         // Agregar método PUT
         formData.append('_method', 'PUT');
         
