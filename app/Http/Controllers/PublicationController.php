@@ -136,8 +136,14 @@ class PublicationController extends Controller
         ];
 
         // Agregar coordenadas geográficas si están disponibles
-        if ($request->filled('lat') && $request->filled('lng')) {
-            $publicationData['location_point'] = new Point($request->lng, $request->lat);
+        if ($request->filled('lat') && $request->filled('lng') && is_numeric($request->lat) && is_numeric($request->lng)) {
+            try {
+                // Crear Point sin dimensión Z
+                $publicationData['location_point'] = Point::make($request->lat, $request->lng);
+            } catch (\Exception $e) {
+                Log::error('Error creating Point: ' . $e->getMessage());
+                // Continuar sin coordenadas si hay error
+            }
         }
 
         $publication = Publication::create($publicationData);
@@ -248,8 +254,14 @@ class PublicationController extends Controller
             }
 
             // Actualizar coordenadas geográficas si están disponibles
-            if ($request->filled('lat') && $request->filled('lng')) {
-                $updateData['location_point'] = new Point($request->lng, $request->lat);
+            if ($request->filled('lat') && $request->filled('lng') && is_numeric($request->lat) && is_numeric($request->lng)) {
+                try {
+                    // Crear Point sin dimensión Z
+                    $updateData['location_point'] = Point::make($request->lat, $request->lng);
+                } catch (\Exception $e) {
+                    Log::error('Error creating Point: ' . $e->getMessage());
+                    // Continuar sin coordenadas si hay error
+                }
             }
 
             if (!empty($updateData)) {
