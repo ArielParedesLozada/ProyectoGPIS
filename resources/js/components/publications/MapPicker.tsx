@@ -28,6 +28,7 @@ const MapEvents: React.FC<{ onLocationChange: (lat: number, lng: number) => void
   return null;
 };
 
+
 const MapPicker: React.FC<MapPickerProps> = ({ 
   lat = -0.2299, 
   lng = -78.5249, 
@@ -38,8 +39,15 @@ const MapPicker: React.FC<MapPickerProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const mapRef = useRef<L.Map>(null);
 
+  // Actualizar posición cuando cambien las coordenadas del backend
   useEffect(() => {
-    setPosition([lat, lng]);
+    if (lat !== undefined && lng !== undefined && lat !== 0 && lng !== 0) {
+      setPosition([lat, lng]);
+      // Centrar el mapa cuando cambien las coordenadas
+      if (mapRef.current) {
+        mapRef.current.setView([lat, lng], 13);
+      }
+    }
   }, [lat, lng]);
 
   const handleLocationChange = (newLat: number, newLng: number) => {

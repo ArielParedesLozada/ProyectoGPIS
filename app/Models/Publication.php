@@ -31,6 +31,7 @@ class Publication extends Model
         'published_at' => 'datetime',
     ];
 
+
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class, 'category_id', 'id');

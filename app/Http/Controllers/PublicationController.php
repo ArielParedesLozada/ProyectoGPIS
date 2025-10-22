@@ -138,8 +138,8 @@ class PublicationController extends Controller
             // Agregar coordenadas geográficas si están disponibles
             if ($request->filled('lat') && $request->filled('lng') && is_numeric($request->lat) && is_numeric($request->lng)) {
                 try {
-                    // Crear Point sin dimensión Z (solo lat, lng)
-                    $publicationData['location_point'] = Point::make($request->lat, $request->lng);
+                    // Crear Point sin dimensión Z (lng, lat) - PostGIS usa longitud primero
+                    $publicationData['location_point'] = Point::make($request->lng, $request->lat);
                 } catch (\Exception $e) {
                     // Error creating Point - continue without location
                 }
@@ -169,6 +169,18 @@ class PublicationController extends Controller
         $publication = Publication::with(['category', 'images'])
             ->where('created_by', Auth::id())
             ->findOrFail($id);
+        
+        // Extraer coordenadas del campo location_point si existe
+        $coords = \DB::selectOne("SELECT ST_X(location_point::geometry) as lng, ST_Y(location_point::geometry) as lat FROM publications WHERE id = ?", [$id]);
+        
+        if ($coords) {
+            $publication->location_point = [
+                'lat' => (float) $coords->lat,
+                'lng' => (float) $coords->lng
+            ];
+        } else {
+            $publication->location_point = null;
+        }
         
         $categories = Category::select('id', 'name')->get();
 
@@ -239,7 +251,7 @@ class PublicationController extends Controller
             if ($request->filled('lat') && $request->filled('lng') && is_numeric($request->lat) && is_numeric($request->lng)) {
                 try {
                     // Crear Point sin dimensión Z (solo lat, lng)
-                    $updateData['location_point'] = Point::make($request->lat, $request->lng);
+                    $updateData['location_point'] = Point::make($request->lng, $request->lat);
                 } catch (\Exception $e) {
                     // Error creating Point - continue without location
                 }

@@ -60,6 +60,8 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
         images: [] as File[]
     });
 
+
+
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         
@@ -358,8 +360,8 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
                                 <CardContent className="pt-6">
                                     <h3 className="text-lg font-semibold mb-4">Ubicación en el mapa</h3>
                                     <MapPicker
-                                        lat={data.lat ? parseFloat(data.lat) : -0.2299}
-                                        lng={data.lng ? parseFloat(data.lng) : -78.5249}
+                                        lat={data.lat && data.lat !== '' ? parseFloat(data.lat) : undefined}
+                                        lng={data.lng && data.lng !== '' ? parseFloat(data.lng) : undefined}
                                         onLocationChange={handleLocationChange}
                                         className="h-64 w-full"
                                     />
