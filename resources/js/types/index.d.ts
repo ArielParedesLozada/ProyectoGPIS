@@ -60,8 +60,13 @@ export interface Publication {
     price: number;
     image?: string;
     description?: string;
+    location?: string;
     user: User,
-    category: Category 
+    category: Category;
+    images?: Array<{
+        id: number;
+        image_url: string;
+    }>;
 }
 
 export interface Paginated<T> {
