@@ -150,4 +150,141 @@ class ModeratorUserController extends Controller
             ]);
         }
     }
+
+    /**
+     * Display the specified moderator user.
+     */
+    public function show(User $moderator)
+    {
+        // Verificar que el usuario sea realmente un moderador
+        if ($moderator->role !== RoleType::MODERADOR->value) {
+            abort(404, 'Usuario no encontrado.');
+        }
+
+        return Inertia::render('admin/moderator-details', [
+            'moderator' => $moderator,
+        ]);
+    }
+
+    /**
+     * Show the form for editing the specified moderator user.
+     */
+    public function edit(User $moderator)
+    {
+        // Verificar que el usuario sea realmente un moderador
+        if ($moderator->role !== RoleType::MODERADOR->value) {
+            abort(404, 'Usuario no encontrado.');
+        }
+
+        return Inertia::render('admin/edit-moderator', [
+            'moderator' => $moderator,
+        ]);
+    }
+
+    /**
+     * Update the specified moderator user.
+     */
+    public function update(Request $request, User $moderator)
+    {
+        // Verificar que el usuario sea realmente un moderador
+        if ($moderator->role !== RoleType::MODERADOR->value) {
+            abort(404, 'Usuario no encontrado.');
+        }
+
+        $request->validate([
+            'cedula' => 'required|string|max:10|unique:users,cedula,' . $moderator->id,
+            'name' => 'required|string|max:255',
+            'surname' => 'required|string|max:255',
+            'phone' => 'required|string|max:10|unique:users,phone,' . $moderator->id,
+            'address' => 'required|string|max:255',
+            'gender' => 'required|in:hombre,mujer',
+            'email' => 'required|string|email|max:255|unique:users,email,' . $moderator->id,
+            'password' => 'nullable|string|min:8|confirmed',
+        ]);
+
+        $data = $request->only([
+            'cedula', 'name', 'surname', 'phone', 'address', 'gender', 'email'
+        ]);
+
+        // Solo actualizar la contraseña si se proporciona
+        if ($request->filled('password')) {
+            $data['password'] = Hash::make($request->password);
+        }
+
+        $moderator->update($data);
+
+        return redirect()->route('admin.moderators.index')->with('success', 'Moderador actualizado exitosamente.');
+    }
+
+    /**
+     * Remove the specified moderator user.
+     */
+    public function destroy(User $moderator)
+    {
+        // Verificar que el usuario sea realmente un moderador
+        if ($moderator->role !== RoleType::MODERADOR->value) {
+            abort(404, 'Usuario no encontrado.');
+        }
+
+        // No permitir eliminar el propio usuario
+        if ($moderator->id === Auth::id()) {
+            return back()->withErrors([
+                'general' => 'No puedes eliminar tu propia cuenta.'
+            ]);
+        }
+
+        $moderator->delete();
+
+        return redirect()->route('admin.moderators.index')->with('success', 'Moderador eliminado exitosamente.');
+    }
+
+    /**
+     * Display a listing of deleted moderator users.
+     */
+    public function deleted()
+    {
+        $deletedModerators = User::onlyTrashed()
+            ->where('role', RoleType::MODERADOR->value)
+            ->select('id', 'name', 'surname', 'email', 'is_active', 'created_at', 'deleted_at')
+            ->orderBy('deleted_at', 'desc')
+            ->paginate(10);
+
+        return Inertia::render('admin/deleted-moderators', [
+            'deletedModerators' => $deletedModerators,
+        ]);
+    }
+
+    /**
+     * Restore the specified deleted moderator user.
+     */
+    public function restore($id)
+    {
+        $moderator = User::onlyTrashed()->findOrFail($id);
+        
+        // Verificar que el usuario sea realmente un moderador
+        if ($moderator->role !== RoleType::MODERADOR->value) {
+            abort(404, 'Usuario no encontrado.');
+        }
+
+        $moderator->restore();
+
+        return redirect()->route('admin.moderators.deleted')->with('success', 'Moderador restaurado exitosamente.');
+    }
+
+    /**
+     * Permanently delete the specified moderator user.
+     */
+    public function forceDelete($id)
+    {
+        $moderator = User::onlyTrashed()->findOrFail($id);
+        
+        // Verificar que el usuario sea realmente un moderador
+        if ($moderator->role !== RoleType::MODERADOR->value) {
+            abort(404, 'Usuario no encontrado.');
+        }
+
+        $moderator->forceDelete();
+
+        return redirect()->route('admin.moderators.deleted')->with('success', 'Moderador eliminado permanentemente.');
+    }
 }

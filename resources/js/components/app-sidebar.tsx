@@ -10,7 +10,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { publicationIndex, myPublications } from '@/routes';
+import { publicationIndex, myPublications } from '@/routes/index';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 import { LayoutGrid, User, Shield, Users, UserPlus, Settings } from 'lucide-react';
@@ -26,12 +26,16 @@ export function AppSidebar() {
             href: publicationIndex(),
             icon: LayoutGrid,
         },
-        {
+    ];
+
+    // Solo usuarios no administrativos ven "Mis Publicaciones"
+    if (auth.user.role !== 'super_admin' && auth.user.role !== 'admin') {
+        mainNavItems.push({
             title: 'Mis Publicaciones',
             href: myPublications(),
             icon: User,
-        },
-    ];
+        });
+    }
 
     // Opciones de administración según el rol
     const adminNavItems: NavItem[] = [];

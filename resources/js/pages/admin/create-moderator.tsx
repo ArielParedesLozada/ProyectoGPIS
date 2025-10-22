@@ -40,35 +40,28 @@ export default function CreateModerator() {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Crear Moderador" />
 
-            <div className="space-y-6">
-                {/* Header */}
-                <div className="flex items-center space-x-4">
-                    <Button variant="outline" size="sm" asChild>
-                        <Link href="/admin/moderators">
+            <div className="space-y-6 px-6 py-6">
+                    {/* Back Link */}
+                    <div className="max-w-4xl mx-auto">
+                        <Link href="/admin/moderators" className="flex items-center text-gray-600 hover:text-gray-900 transition-colors">
                             <ArrowLeft className="h-4 w-4 mr-2" />
-                            Volver
+                            Volver a Moderadores
                         </Link>
-                    </Button>
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Crear Moderador</h1>
-                        <p className="text-gray-600">Registra un nuevo moderador en el sistema</p>
                     </div>
-                </div>
 
                 {/* Form */}
-                <Card className="max-w-2xl">
-                    <CardHeader>
-                        <CardTitle>Información del Moderador</CardTitle>
-                        <CardDescription>
-                            Completa todos los campos requeridos para crear el moderador
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Form
-                            action="/admin/moderators"
-                            method="post"
-                            className="space-y-6"
-                        >
+                <div className="max-w-4xl mx-auto">
+                    <div className="bg-white rounded-lg shadow-lg border border-gray-200">
+                        <div className="px-6 py-6 border-b border-gray-200">
+                            <h1 className="text-2xl font-bold text-gray-900">Crear Moderador</h1>
+                        </div>
+                        <div className="px-6 py-6">
+                            <h2 className="text-lg font-semibold text-gray-900 mb-6">Información del Moderador</h2>
+                            <Form
+                                action="/admin/moderators"
+                                method="post"
+                                className="space-y-8"
+                            >
                             {({ processing, errors }) => (
                                 <>
                                     {errors.general && (
@@ -77,7 +70,7 @@ export default function CreateModerator() {
                                         </div>
                                     )}
 
-                                    <div className="space-y-4">
+                                    <div className="space-y-6">
                                         {/* Cédula */}
                                         <div>
                                             <Label htmlFor="cedula" className="text-sm font-medium text-gray-700 mb-2 block">
@@ -108,7 +101,7 @@ export default function CreateModerator() {
                                         </div>
 
                                         {/* Nombre y Apellido */}
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div>
                                                 <Label htmlFor="name" className="text-sm font-medium text-gray-700 mb-2 block">
                                                     Nombre *
@@ -291,20 +284,21 @@ export default function CreateModerator() {
                                     </div>
 
                                     {/* Submit Button */}
-                                    <div className="flex justify-end space-x-4 pt-4">
-                                        <Button type="button" variant="outline" asChild>
+                                    <div className="flex justify-end space-x-4 pt-8 border-t border-gray-200">
+                                        <Button type="button" variant="outline" size="lg" asChild>
                                             <Link href="/admin/moderators">Cancelar</Link>
                                         </Button>
-                                        <Button type="submit" disabled={processing}>
+                                            <Button type="submit" size="lg" disabled={processing} className="bg-blue-600 hover:bg-blue-700">
                                             {processing && <LoaderCircle className="h-4 w-4 mr-2 animate-spin" />}
                                             Crear Moderador
                                         </Button>
                                     </div>
                                 </>
                             )}
-                        </Form>
-                    </CardContent>
-                </Card>
+                            </Form>
+                        </div>
+                    </div>
+                </div>
             </div>
         </AppLayout>
     );

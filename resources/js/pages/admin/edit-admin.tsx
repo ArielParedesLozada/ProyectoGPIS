@@ -3,7 +3,6 @@ import { Form } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, LoaderCircle } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
@@ -14,18 +13,34 @@ import CustomError from '@/components/custom-error';
 import PasswordInput from '@/components/password-input';
 import { useFieldValidation } from '@/hooks/use-field-validation';
 
-export default function CreateAdmin() {
+interface AdminUser {
+    id: number;
+    cedula: string;
+    name: string;
+    surname: string;
+    phone: string;
+    address: string;
+    gender: string;
+    email: string;
+    is_active: boolean;
+}
+
+interface EditAdminProps {
+    admin: AdminUser;
+}
+
+export default function EditAdmin({ admin }: EditAdminProps) {
     const { auth } = usePage<SharedData>().props;
     const { markFieldAsTouched, markSelectAsTouched, shouldShowError, getErrorMessage } = useFieldValidation();
     
     const [fieldValues, setFieldValues] = useState({
-        cedula: '',
-        name: '',
-        surname: '',
-        phone: '',
-        address: '',
-        gender: '',
-        email: '',
+        cedula: admin.cedula || '',
+        name: admin.name || '',
+        surname: admin.surname || '',
+        phone: admin.phone || '',
+        address: admin.address || '',
+        gender: admin.gender || '',
+        email: admin.email || '',
         password: '',
         password_confirmation: ''
     });
@@ -33,33 +48,33 @@ export default function CreateAdmin() {
     const breadcrumbs = [
         { title: 'Administración', href: '#' },
         { title: 'Administradores', href: '/admin/admins' },
-        { title: 'Crear', href: '#' },
+        { title: 'Editar', href: '#' },
     ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Crear Administrador" />
+            <Head title="Editar Administrador" />
 
             <div className="space-y-6 px-6 py-6">
-                    {/* Back Link */}
-                    <div className="max-w-4xl mx-auto">
-                        <Link href="/admin/admins" className="flex items-center text-gray-600 hover:text-gray-900 transition-colors">
-                            <ArrowLeft className="h-4 w-4 mr-2" />
-                            Volver a Administradores
-                        </Link>
-                    </div>
+                {/* Back Link */}
+                <div className="max-w-4xl mx-auto">
+                    <Link href="/admin/admins" className="flex items-center text-gray-600 hover:text-gray-900 transition-colors">
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        Volver a Administradores
+                    </Link>
+                </div>
 
                 {/* Form */}
                 <div className="max-w-4xl mx-auto">
                     <div className="bg-white rounded-lg shadow-lg border border-gray-200">
                         <div className="px-6 py-6 border-b border-gray-200">
-                            <h1 className="text-2xl font-bold text-gray-900">Crear Administrador</h1>
+                            <h1 className="text-2xl font-bold text-gray-900">Editar Administrador</h1>
                         </div>
                         <div className="px-6 py-6">
                             <h2 className="text-lg font-semibold text-gray-900 mb-6">Información del Administrador</h2>
                             <Form
-                                action="/admin/admins"
-                                method="post"
+                                action={`/admin/admins/${admin.id}`}
+                                method="patch"
                                 className="space-y-8"
                             >
                             {({ processing, errors }) => (
@@ -143,54 +158,55 @@ export default function CreateAdmin() {
                                             </div>
                                         </div>
 
-                                        {/* Teléfono */}
-                                        <div>
-                                            <Label htmlFor="phone" className="text-sm font-medium text-gray-700 mb-2 block">
-                                                Teléfono *
-                                            </Label>
-                                            <Input
-                                                id="phone"
-                                                name="phone"
-                                                type="tel"
-                                                inputMode="numeric"
-                                                pattern="[0-9]*"
-                                                maxLength={10}
-                                                placeholder="0900112266"
-                                                value={fieldValues.phone}
-                                                onChange={(e) => {
-                                                    const onlyNumbers = e.target.value.replace(/\D/g, '');
-                                                    if (onlyNumbers.length <= 10) {
-                                                        setFieldValues(prev => ({ ...prev, phone: onlyNumbers }));
-                                                    }
-                                                }}
-                                                onBlur={(e) => markFieldAsTouched('phone', e.target.value)}
-                                                className="w-full"
-                                            />
-                                            <CustomError
-                                                message={getErrorMessage('phone', errors.phone, fieldValues.phone)}
-                                                show={shouldShowError('phone', errors.phone, fieldValues.phone)}
-                                            />
-                                        </div>
+                                        {/* Teléfono y Dirección */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div>
+                                                <Label htmlFor="phone" className="text-sm font-medium text-gray-700 mb-2 block">
+                                                    Teléfono *
+                                                </Label>
+                                                <Input
+                                                    id="phone"
+                                                    name="phone"
+                                                    type="tel"
+                                                    inputMode="numeric"
+                                                    pattern="[0-9]*"
+                                                    maxLength={10}
+                                                    placeholder="0900112266"
+                                                    value={fieldValues.phone}
+                                                    onChange={(e) => {
+                                                        const onlyNumbers = e.target.value.replace(/\D/g, '');
+                                                        if (onlyNumbers.length <= 10) {
+                                                            setFieldValues(prev => ({ ...prev, phone: onlyNumbers }));
+                                                        }
+                                                    }}
+                                                    onBlur={(e) => markFieldAsTouched('phone', e.target.value)}
+                                                    className="w-full"
+                                                />
+                                                <CustomError
+                                                    message={getErrorMessage('phone', errors.phone, fieldValues.phone)}
+                                                    show={shouldShowError('phone', errors.phone, fieldValues.phone)}
+                                                />
+                                            </div>
 
-                                        {/* Dirección */}
-                                        <div>
-                                            <Label htmlFor="address" className="text-sm font-medium text-gray-700 mb-2 block">
-                                                Dirección *
-                                            </Label>
-                                            <Input
-                                                id="address"
-                                                name="address"
-                                                type="text"
-                                                placeholder="Calle Principal 123, Ciudad"
-                                                value={fieldValues.address}
-                                                onChange={(e) => setFieldValues(prev => ({ ...prev, address: e.target.value }))}
-                                                onBlur={(e) => markFieldAsTouched('address', e.target.value)}
-                                                className="w-full"
-                                            />
-                                            <CustomError
-                                                message={getErrorMessage('address', errors.address, fieldValues.address)}
-                                                show={shouldShowError('address', errors.address, fieldValues.address)}
-                                            />
+                                            <div>
+                                                <Label htmlFor="address" className="text-sm font-medium text-gray-700 mb-2 block">
+                                                    Dirección *
+                                                </Label>
+                                                <Input
+                                                    id="address"
+                                                    name="address"
+                                                    type="text"
+                                                    placeholder="Calle Principal 123, Ciudad"
+                                                    value={fieldValues.address}
+                                                    onChange={(e) => setFieldValues(prev => ({ ...prev, address: e.target.value }))}
+                                                    onBlur={(e) => markFieldAsTouched('address', e.target.value)}
+                                                    className="w-full"
+                                                />
+                                                <CustomError
+                                                    message={getErrorMessage('address', errors.address, fieldValues.address)}
+                                                    show={shouldShowError('address', errors.address, fieldValues.address)}
+                                                />
+                                            </div>
                                         </div>
 
                                         {/* Género */}
@@ -229,7 +245,7 @@ export default function CreateAdmin() {
                                                 id="email"
                                                 name="email"
                                                 type="email"
-                                                placeholder="admin@ejemplo.com"
+                                                placeholder="admin@example.com"
                                                 value={fieldValues.email}
                                                 onChange={(e) => setFieldValues(prev => ({ ...prev, email: e.target.value }))}
                                                 onBlur={(e) => markFieldAsTouched('email', e.target.value)}
@@ -241,44 +257,47 @@ export default function CreateAdmin() {
                                             />
                                         </div>
 
-                                        {/* Contraseñas */}
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div>
-                                                <Label htmlFor="password" className="text-sm font-medium text-gray-700 mb-2 block">
-                                                    Contraseña *
-                                                </Label>
-                                                <PasswordInput
-                                                    id="password"
-                                                    name="password"
-                                                    placeholder="Mínimo 8 caracteres"
-                                                    value={fieldValues.password}
-                                                    onChange={(e) => setFieldValues(prev => ({ ...prev, password: e.target.value }))}
-                                                    onBlur={(e) => markFieldAsTouched('password', e.target.value)}
-                                                    className="w-full"
-                                                />
-                                                <CustomError
-                                                    message={getErrorMessage('password', errors.password, fieldValues.password)}
-                                                    show={shouldShowError('password', errors.password, fieldValues.password)}
-                                                />
-                                            </div>
+                                        {/* Contraseña (opcional) */}
+                                        <div className="border-t pt-6">
+                                            <h3 className="text-md font-semibold text-gray-900 mb-4">Cambiar Contraseña (Opcional)</h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div>
+                                                    <Label htmlFor="password" className="text-sm font-medium text-gray-700 mb-2 block">
+                                                        Nueva Contraseña
+                                                    </Label>
+                                                    <PasswordInput
+                                                        id="password"
+                                                        name="password"
+                                                        placeholder="Dejar vacío para mantener la actual"
+                                                        value={fieldValues.password}
+                                                        onChange={(e) => setFieldValues(prev => ({ ...prev, password: e.target.value }))}
+                                                        onBlur={(e) => markFieldAsTouched('password', e.target.value)}
+                                                        className="w-full"
+                                                    />
+                                                    <CustomError
+                                                        message={getErrorMessage('password', errors.password, fieldValues.password)}
+                                                        show={shouldShowError('password', errors.password, fieldValues.password)}
+                                                    />
+                                                </div>
 
-                                            <div>
-                                                <Label htmlFor="password_confirmation" className="text-sm font-medium text-gray-700 mb-2 block">
-                                                    Confirmar Contraseña *
-                                                </Label>
-                                                <PasswordInput
-                                                    id="password_confirmation"
-                                                    name="password_confirmation"
-                                                    placeholder="Repite la contraseña"
-                                                    value={fieldValues.password_confirmation}
-                                                    onChange={(e) => setFieldValues(prev => ({ ...prev, password_confirmation: e.target.value }))}
-                                                    onBlur={(e) => markFieldAsTouched('password_confirmation', e.target.value)}
-                                                    className="w-full"
-                                                />
-                                                <CustomError
-                                                    message={getErrorMessage('password_confirmation', errors.password_confirmation, fieldValues.password_confirmation, fieldValues)}
-                                                    show={shouldShowError('password_confirmation', errors.password_confirmation, fieldValues.password_confirmation)}
-                                                />
+                                                <div>
+                                                    <Label htmlFor="password_confirmation" className="text-sm font-medium text-gray-700 mb-2 block">
+                                                        Confirmar Nueva Contraseña
+                                                    </Label>
+                                                    <PasswordInput
+                                                        id="password_confirmation"
+                                                        name="password_confirmation"
+                                                        placeholder="Repite la nueva contraseña"
+                                                        value={fieldValues.password_confirmation}
+                                                        onChange={(e) => setFieldValues(prev => ({ ...prev, password_confirmation: e.target.value }))}
+                                                        onBlur={(e) => markFieldAsTouched('password_confirmation', e.target.value)}
+                                                        className="w-full"
+                                                    />
+                                                    <CustomError
+                                                        message={getErrorMessage('password_confirmation', errors.password_confirmation, fieldValues.password_confirmation, fieldValues)}
+                                                        show={shouldShowError('password_confirmation', errors.password_confirmation, fieldValues.password_confirmation)}
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -290,12 +309,12 @@ export default function CreateAdmin() {
                                         </Button>
                                         <Button type="submit" size="lg" disabled={processing} className="bg-blue-600 hover:bg-blue-700">
                                             {processing && <LoaderCircle className="h-4 w-4 mr-2 animate-spin" />}
-                                            Crear Administrador
+                                            Actualizar Administrador
                                         </Button>
                                     </div>
                                 </>
                             )}
-                            </Form>
+                        </Form>
                         </div>
                     </div>
                 </div>

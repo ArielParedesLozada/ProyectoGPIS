@@ -44,100 +44,115 @@ export default function AdminDashboard({ stats }: AdminDashboardProps) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Dashboard de Administración" />
 
-            <div className="space-y-6">
+            <div className="space-y-8 px-6 py-6">
                 {/* Header */}
-                <div className="flex justify-between items-center">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Dashboard de Administración</h1>
-                        <p className="text-gray-600">
-                            Bienvenido, {auth.user.name}. Gestiona el sistema desde aquí.
-                        </p>
-                    </div>
-                    <div className="flex space-x-2">
-                        <Badge variant="outline" className="text-sm">
-                            {auth.user.role === 'super_admin' ? 'Super Administrador' : 'Administrador'}
-                        </Badge>
+                <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 text-white">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <h1 className="text-3xl font-bold mb-2">Dashboard de Administración</h1>
+                            <p className="text-blue-100 text-lg">
+                                Bienvenido, {auth.user.name}. Gestiona el sistema desde aquí.
+                            </p>
+                        </div>
+                        <div className="flex space-x-3">
+                            <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
+                                {auth.user.role === 'super_admin' ? 'Super Administrador' : 'Administrador'}
+                            </Badge>
+                        </div>
                     </div>
                 </div>
 
-                {/* Quick Actions */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Stats Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                     {auth.user.role === 'super_admin' && (
-                        <Card className="hover:shadow-md transition-shadow">
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-                                    <Shield className="h-4 w-4 mr-2" />
-                                    Administradores
-                                </CardTitle>
+                        <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 bg-white/95 backdrop-blur-sm border border-gray-200/50">
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="text-sm font-semibold text-gray-700 flex items-center">
+                                        <Shield className="h-5 w-5 mr-2 text-blue-600" />
+                                        Administradores
+                                    </CardTitle>
+                                    <Badge variant="outline" className="text-xs">
+                                        {stats.activeAdmins}/{stats.totalAdmins}
+                                    </Badge>
+                                </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{stats.totalAdmins}</div>
-                                <p className="text-xs text-gray-500">
+                                <div className="text-3xl font-bold text-blue-600 mb-2">{stats.totalAdmins}</div>
+                                <p className="text-sm text-gray-600 mb-4">
                                     {stats.activeAdmins} activos
                                 </p>
-                                <Button size="sm" className="mt-2" asChild>
+                                <Button size="sm" className="w-full" asChild>
                                     <Link href="/admin/admins">Gestionar</Link>
                                 </Button>
                             </CardContent>
                         </Card>
                     )}
 
-                    <Card className="hover:shadow-md transition-shadow">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-                                <Users className="h-4 w-4 mr-2" />
-                                Moderadores
-                            </CardTitle>
+                    <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-all duration-200 bg-white/95 backdrop-blur-sm border border-gray-200/50">
+                        <CardHeader className="pb-3">
+                            <div className="flex items-center justify-between">
+                                <CardTitle className="text-sm font-semibold text-gray-700 flex items-center">
+                                    <Users className="h-5 w-5 mr-2 text-green-600" />
+                                    Moderadores
+                                </CardTitle>
+                                <Badge variant="outline" className="text-xs">
+                                    {stats.activeModerators}/{stats.totalModerators}
+                                </Badge>
+                            </div>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{stats.totalModerators}</div>
-                            <p className="text-xs text-gray-500">
+                            <div className="text-3xl font-bold text-green-600 mb-2">{stats.totalModerators}</div>
+                            <p className="text-sm text-gray-600 mb-4">
                                 {stats.activeModerators} activos
                             </p>
-                            <Button size="sm" className="mt-2" asChild>
+                            <Button size="sm" className="w-full" asChild>
                                 <Link href="/admin/moderators">Gestionar</Link>
                             </Button>
                         </CardContent>
                     </Card>
 
-                    <Card className="hover:shadow-md transition-shadow">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-                                <UserPlus className="h-4 w-4 mr-2" />
+                    <Card className="border-l-4 border-l-purple-500 hover:shadow-lg transition-all duration-200 bg-white/95 backdrop-blur-sm border border-gray-200/50">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-sm font-semibold text-gray-700 flex items-center">
+                                <UserPlus className="h-5 w-5 mr-2 text-purple-600" />
                                 Crear Usuario
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">+</div>
-                            <p className="text-xs text-gray-500">
+                            <div className="text-3xl font-bold text-purple-600 mb-2">+</div>
+                            <p className="text-sm text-gray-600 mb-4">
                                 Nuevo usuario
                             </p>
-                            <Button size="sm" className="mt-2" asChild>
+                            <Button size="sm" className="w-full" asChild>
                                 <Link href="/admin/moderators/create">Crear</Link>
                             </Button>
                         </CardContent>
                     </Card>
 
-                    <Card className="hover:shadow-md transition-shadow">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-                                <Activity className="h-4 w-4 mr-2" />
+                    <Card className="border-l-4 border-l-orange-500 hover:shadow-lg transition-all duration-200 bg-white/95 backdrop-blur-sm border border-gray-200/50">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-sm font-semibold text-gray-700 flex items-center">
+                                <Activity className="h-5 w-5 mr-2 text-orange-600" />
                                 Actividad
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{stats.recentActivity.length}</div>
-                            <p className="text-xs text-gray-500">
+                            <div className="text-3xl font-bold text-orange-600 mb-2">{stats.recentActivity.length}</div>
+                            <p className="text-sm text-gray-600 mb-4">
                                 Eventos recientes
                             </p>
+                            <Button size="sm" variant="outline" className="w-full">
+                                Ver Actividad
+                            </Button>
                         </CardContent>
                     </Card>
                 </div>
 
                 {/* Stats Overview */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {/* User Management Stats */}
-                    <Card>
+                    <Card className="bg-white/95 backdrop-blur-sm border border-gray-200/50 shadow-lg">
                         <CardHeader>
                             <CardTitle className="flex items-center">
                                 <TrendingUp className="h-5 w-5 mr-2" />
@@ -183,7 +198,7 @@ export default function AdminDashboard({ stats }: AdminDashboardProps) {
                     </Card>
 
                     {/* Recent Activity */}
-                    <Card>
+                    <Card className="bg-white/95 backdrop-blur-sm border border-gray-200/50 shadow-lg">
                         <CardHeader>
                             <CardTitle className="flex items-center">
                                 <Activity className="h-5 w-5 mr-2" />
@@ -218,7 +233,7 @@ export default function AdminDashboard({ stats }: AdminDashboardProps) {
                 </div>
 
                 {/* Quick Links */}
-                <Card>
+                <Card className="bg-white/95 backdrop-blur-sm border border-gray-200/50 shadow-lg">
                     <CardHeader>
                         <CardTitle>Accesos Rápidos</CardTitle>
                         <CardDescription>
