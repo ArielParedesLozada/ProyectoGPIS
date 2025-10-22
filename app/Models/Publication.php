@@ -37,4 +37,27 @@ class Publication extends Model
     public function images(): HasMany {
         return $this->hasMany(PublicationImage::class, 'publication_id', 'id');
     }
+
+    // Accessor para convertir location_point a formato JSON
+    public function getLocationPointAttribute($value)
+    {
+        if (!$value) {
+            return null;
+        }
+
+        // Si ya es un array, devolverlo tal como está
+        if (is_array($value)) {
+            return $value;
+        }
+
+        // Si es un objeto Point de Magellan, extraer lat y lng
+        if (is_object($value) && method_exists($value, 'getLat') && method_exists($value, 'getLng')) {
+            return [
+                'lat' => $value->getLat(),
+                'lng' => $value->getLng()
+            ];
+        }
+
+        return null;
+    }
 }
