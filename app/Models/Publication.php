@@ -11,11 +11,12 @@ class Publication extends Model
 {
     use HasFactory;
     protected $fillable = [
+        'code',
         'title',
         'description',
         'price',
         'location',
-        'disponibilty',
+        'disponibility',
         'category_id',
         'created_by',
         'published_at',

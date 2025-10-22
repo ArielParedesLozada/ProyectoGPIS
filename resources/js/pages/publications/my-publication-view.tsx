@@ -1,43 +1,60 @@
 import AppLayout from "@/layouts/app-layout";
-import { publicationView } from "@/routes";
 import { BreadcrumbItem, Publication } from "@/types";
-import { Head, Link } from "@inertiajs/react";
-import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { Head, Link, router } from "@inertiajs/react";
+import { ArrowLeft, Edit, Eye, EyeOff, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState, useEffect } from "react";
 
-interface PublicationViewProps {
-    publication: Publication
+interface MyPublicationViewProps {
+    publication: Publication;
 }
 
-export default function PublicationView({ publication }: PublicationViewProps) {
+export default function MyPublicationView({ publication }: MyPublicationViewProps) {
     const breadcrumbs: BreadcrumbItem[] = [
         {
-            title: `${publication.category.name}/${publication.title}`,
-            href: publicationView(publication).url,
+            title: `Mis Publicaciones/${publication.title}`,
+            href: `/my-publications/${publication.id}`,
         },
     ];
 
     // Estado para el carrusel de imágenes
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     
-    // Array de imágenes (puedes expandir esto con más imágenes)
-    const images = [
-        publication.image || "https://picsum.photos/800/600",
-        "https://picsum.photos/800/601",
-        "https://picsum.photos/800/602",
-        "https://picsum.photos/800/603"
-    ];
+    // Array de imágenes - solo las imágenes reales de la publicación
+    const images = publication.images && publication.images.length > 0 
+        ? publication.images.map(img => `/storage/${img.image_url}`)
+        : [];
+
+
+    // Resetear el índice cuando cambien las imágenes
+    useEffect(() => {
+        setCurrentImageIndex(0);
+    }, [publication.images]);
 
     const nextImage = () => {
-        setCurrentImageIndex((prev) => (prev + 1) % images.length);
+        if (images.length > 0) {
+            setCurrentImageIndex((prev) => (prev + 1) % images.length);
+        }
     };
 
     const prevImage = () => {
-        setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+        if (images.length > 0) {
+            setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+        }
     };
+
+    const handleDelete = () => {
+        if (confirm('¿Estás seguro de que quieres eliminar esta publicación?')) {
+            router.delete(`/my-publications/${publication.id}`);
+        }
+    };
+
+    const handleToggleStatus = () => {
+        router.patch(`/my-publications/${publication.id}/toggle-status`);
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={publication.title} />
+            <Head title={`${publication.title} - Mis Publicaciones`} />
 
             <div className="min-h-screen bg-gray-50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
@@ -46,7 +63,7 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                         <div className="lg:col-span-2">
                             {/* Flecha de regreso - posicionada absolutamente */}
                             <Link
-                                href="/publication"
+                                href="/my-publications"
                                 className="absolute top-0 left-0 z-10 inline-flex items-center justify-center w-8 h-8 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
                             >
                                 <ArrowLeft className="h-4 w-4" />
@@ -54,11 +71,21 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                             
                             <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
                                 <div className="relative group">
-                                    <img
-                                        src={images[currentImageIndex]}
-                                        alt={publication.title}
-                                        className="w-full h-80 sm:h-96 lg:h-[510px] xl:h-[560px] object-cover transition-opacity duration-300"
-                                    />
+                                    {images.length > 0 ? (
+                                        <img
+                                            src={images[currentImageIndex]}
+                                            alt={publication.title}
+                                            className="w-full h-80 sm:h-96 lg:h-[510px] xl:h-[560px] object-cover transition-opacity duration-300"
+                                        />
+                                    ) : (
+                                        <div className="w-full h-80 sm:h-96 lg:h-[510px] xl:h-[560px] bg-gray-200 flex items-center justify-center">
+                                            <div className="text-center">
+                                                <div className="text-6xl text-gray-400 mb-4">📷</div>
+                                                <p className="text-gray-500 text-lg">Sin imágenes</p>
+                                                <p className="text-gray-400 text-sm">Esta publicación no tiene imágenes</p>
+                                            </div>
+                                        </div>
+                                    )}
                                     
                                     {/* Controles del carrusel */}
                                     {images.length > 1 && (
@@ -106,7 +133,7 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                                                 ? 'bg-green-500 text-white' 
                                                 : 'bg-red-500 text-white'
                                         }`}>
-                                            {publication.status === 1 ? "Disponible" : "No disponible"}
+                                            {publication.status === 1 ? "Habilitado" : "Inhabilitado"}
                                         </span>
                                     </div>
                                 </div>
@@ -124,11 +151,31 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                                     <div className="text-sm text-gray-500">Precio final</div>
                                 </div>
                                 <div className="space-y-3">
-                                    <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition">
-                                        Contactar Vendedor
-                                    </button>
-                                    <button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-6 rounded-xl transition">
-                                        Agregar a Favoritos
+                                    <Link href={`/my-publications/${publication.id}/edit`}>
+                                        <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition">
+                                            <Edit className="w-4 h-4 mr-2 inline" />
+                                            Editar Publicación
+                                        </button>
+                                    </Link>
+                                    <button 
+                                        onClick={handleToggleStatus}
+                                        className={`w-full font-semibold py-3 px-6 rounded-xl transition ${
+                                            publication.status === 1
+                                                ? 'bg-red-100 hover:bg-red-200 text-red-700'
+                                                : 'bg-green-100 hover:bg-green-200 text-green-700'
+                                        }`}
+                                    >
+                                        {publication.status === 1 ? (
+                                            <>
+                                                <EyeOff className="w-4 h-4 mr-2 inline" />
+                                                Inhabilitar
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Eye className="w-4 h-4 mr-2 inline" />
+                                                Habilitar
+                                            </>
+                                        )}
                                     </button>
                                 </div>
                             </div>
@@ -151,6 +198,12 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                                         <span className="text-gray-600 text-sm font-medium">Código:</span>
                                         <span className="text-gray-900 font-mono text-sm">{publication.code}</span>
                                     </div>
+                                    {publication.location && (
+                                        <div className="flex justify-between items-center py-2">
+                                            <span className="text-gray-600 text-sm font-medium">Ubicación:</span>
+                                            <span className="text-gray-900 text-sm">{publication.location}</span>
+                                        </div>
+                                    )}
                                     {publication.horario && (
                                         <div className="flex justify-between items-center py-2">
                                             <span className="text-gray-600 text-sm font-medium">Horario:</span>
@@ -167,6 +220,18 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Card de acciones peligrosas */}
+                            <div className="bg-white rounded-2xl shadow-lg p-6">
+                                <h3 className="font-bold text-gray-900 mb-4 text-lg">Acciones Peligrosas</h3>
+                                <button 
+                                    onClick={handleDelete}
+                                    className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-xl transition"
+                                >
+                                    <Trash2 className="w-4 h-4 mr-2 inline" />
+                                    Eliminar Publicación
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -181,29 +246,8 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                             </div>
                         </div>
                     </div>
-
-                    {/* Información del vendedor - al final */}
-                    <div className="mt-8">
-                        <div className="bg-white rounded-2xl shadow-lg p-6">
-                            <h2 className="text-lg font-semibold text-gray-900 mb-4">Información del Vendedor</h2>
-                            <div className="flex items-center space-x-3">
-                                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                                    <span className="text-blue-600 font-semibold text-lg">
-                                        {publication.user.name?.charAt(0) || 'U'}
-                                    </span>
-                                </div>
-                                <div>
-                                    <div className="font-medium text-gray-900">{publication.user.name}</div>
-                                    <div className="text-sm text-gray-500">Vendedor verificado</div>
-                                    <div className="text-xs text-gray-400 mt-1">
-                                        Miembro desde {new Date(publication.published_at).getFullYear()}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </AppLayout>
-    )
+    );
 }
