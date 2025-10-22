@@ -56,7 +56,8 @@ export default function Register() {
                 </div>
 
                 <Form
-                    {...RegisteredUserController.store.form()}
+                    action={RegisteredUserController.store().url}
+                    method={RegisteredUserController.store().method}
                     resetOnSuccess={['password', 'password_confirmation']}
                     disableWhileProcessing
                     className="space-y-6"
