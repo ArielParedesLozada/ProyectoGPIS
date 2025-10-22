@@ -14,6 +14,8 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Upload, X, AlertCircle } from "lucide-react";
 import { Category } from "@/types";
+import MapPicker from "./MapPicker";
+import ServiceSchedule from "./ServiceSchedule";
 
 interface CreatePublicationModalProps {
     categories: Category[];
@@ -32,6 +34,9 @@ export default function CreatePublicationModal({ categories, onClose }: CreatePu
         category_id: '',
         type: '',
         location: '',
+        lat: '',
+        lng: '',
+        horario: '',
         images: [] as File[]
     });
 
@@ -59,6 +64,11 @@ export default function CreatePublicationModal({ categories, onClose }: CreatePu
         setSelectedImages(newImages);
         setImagePreviews(newPreviews);
         setData('images', newImages);
+    };
+
+    const handleLocationChange = (lat: number, lng: number) => {
+        setData('lat', lat.toString());
+        setData('lng', lng.toString());
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -157,6 +167,18 @@ export default function CreatePublicationModal({ categories, onClose }: CreatePu
                                 </div>
                             )}
                         </div>
+
+                        {/* Horario de atención (solo para servicios) */}
+                        {data.type === 'servicio' && (
+                            <div>
+                                <ServiceSchedule
+                                    value={data.horario}
+                                    onChange={(value) => setData('horario', value)}
+                                    error={errors.horario}
+                                    required={true}
+                                />
+                            </div>
+                        )}
                     </div>
                 </CardContent>
             </Card>
@@ -209,6 +231,19 @@ export default function CreatePublicationModal({ categories, onClose }: CreatePu
                             )}
                         </div>
                     </div>
+                </CardContent>
+            </Card>
+
+            {/* Mapa de Ubicación */}
+            <Card className="bg-white shadow-sm">
+                <CardContent className="pt-8 pb-8">
+                    <h3 className="text-xl font-semibold mb-6 text-gray-900">Ubicación en el mapa</h3>
+                    <MapPicker
+                        lat={data.lat ? parseFloat(data.lat) : -0.2299}
+                        lng={data.lng ? parseFloat(data.lng) : -78.5249}
+                        onLocationChange={handleLocationChange}
+                        className="h-64 w-full"
+                    />
                 </CardContent>
             </Card>
 

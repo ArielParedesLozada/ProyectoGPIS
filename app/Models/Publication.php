@@ -16,6 +16,7 @@ class Publication extends Model
         'description',
         'price',
         'location',
+        'location_point',
         'disponibility',
         'category_id',
         'created_by',

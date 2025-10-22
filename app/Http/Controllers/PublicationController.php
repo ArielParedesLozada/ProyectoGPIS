@@ -32,6 +32,19 @@ class PublicationController extends Controller
         if ($request->filled('max_price')) {
             $query->where('price', '<=', $request->max_price);
         }
+        
+        // Filtro por distancia geográfica
+        if ($request->filled('near_lat') && $request->filled('near_lng') && $request->filled('radius_km')) {
+            $lat = $request->near_lat;
+            $lng = $request->near_lng;
+            $radiusKm = $request->radius_km;
+            
+            $query->whereRaw(
+                "ST_DWithin(location_point, ST_SetSRID(ST_MakePoint(?, ?), 4326), ?)",
+                [$lng, $lat, $radiusKm * 1000] // Convertir km a metros
+            );
+        }
+        
         $query->where('status', StatusType::HABILITADO);
 
         $publications = $query->paginate(6)->withQueryString();
@@ -45,6 +58,9 @@ class PublicationController extends Controller
             'selectedType' => $request->type,
             'selectedMinPrice' => $request->min_price,
             'selectedMaxPrice' => $request->max_price,
+            'nearLat' => $request->near_lat,
+            'nearLng' => $request->near_lng,
+            'radiusKm' => $request->radius_km,
         ]);
     }
 
@@ -92,11 +108,19 @@ class PublicationController extends Controller
                 'category_id' => 'required|exists:categories,id',
                 'type' => 'required|in:producto,servicio',
                 'location' => 'required|string',
+                'lat' => 'nullable|numeric|between:-90,90',
+                'lng' => 'nullable|numeric|between:-180,180',
+                'horario' => 'nullable|string|max:255',
                 'images' => 'nullable|array|max:5',
                 'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:5120', // 5MB max
             ]);
 
-        $publication = Publication::create([
+            // Validar horario requerido para servicios
+            if ($request->type === 'servicio' && empty($request->horario)) {
+                return redirect()->back()->withErrors(['horario' => 'El horario es obligatorio para servicios.']);
+            }
+
+        $publicationData = [
             'code' => Str::uuid(),
             'title' => $request->title,
             'description' => $request->description,
@@ -108,7 +132,15 @@ class PublicationController extends Controller
             'status' => StatusType::HABILITADO,
             'type' => $request->type,
             'published_at' => now(),
-        ]);
+            'horario' => $request->horario,
+        ];
+
+        // Agregar coordenadas geográficas si están disponibles
+        if ($request->filled('lat') && $request->filled('lng')) {
+            $publicationData['location_point'] = new Point($request->lng, $request->lat);
+        }
+
+        $publication = Publication::create($publicationData);
 
         // Guardar imágenes
         if ($request->hasFile('images')) {
@@ -158,6 +190,9 @@ class PublicationController extends Controller
             $validationRules = [
                 'images' => 'nullable|array|max:5',
                 'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:5120',
+                'lat' => 'nullable|numeric|between:-90,90',
+                'lng' => 'nullable|numeric|between:-180,180',
+                'horario' => 'nullable|string|max:255',
             ];
 
             // Solo validar campos que no están vacíos
@@ -178,6 +213,11 @@ class PublicationController extends Controller
             }
             if ($request->filled('location')) {
                 $validationRules['location'] = 'required|string';
+            }
+
+            // Validar horario requerido para servicios
+            if ($request->filled('type') && $request->type === 'servicio' && empty($request->horario)) {
+                return redirect()->back()->withErrors(['horario' => 'El horario es obligatorio para servicios.']);
             }
 
             $request->validate($validationRules);
@@ -202,6 +242,14 @@ class PublicationController extends Controller
             }
             if ($request->filled('location')) {
                 $updateData['location'] = $request->location;
+            }
+            if ($request->filled('horario')) {
+                $updateData['horario'] = $request->horario;
+            }
+
+            // Actualizar coordenadas geográficas si están disponibles
+            if ($request->filled('lat') && $request->filled('lng')) {
+                $updateData['location_point'] = new Point($request->lng, $request->lat);
             }
 
             if (!empty($updateData)) {

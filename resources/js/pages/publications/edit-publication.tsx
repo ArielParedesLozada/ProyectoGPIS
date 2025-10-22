@@ -17,6 +17,8 @@ import { Category, Publication } from "@/types";
 import AppLayout from "@/layouts/app-layout";
 import { Head, Link, router } from "@inertiajs/react";
 import { BreadcrumbItem } from "@/types";
+import MapPicker from "@/components/publications/MapPicker";
+import ServiceSchedule from "@/components/publications/ServiceSchedule";
 
 interface EditPublicationProps {
     publication: Publication & {
@@ -49,6 +51,9 @@ export default function EditPublication({ publication, categories }: EditPublica
         category_id: publication.category_id.toString(),
         type: publication.type,
         location: publication.location || '',
+        lat: publication.location_point?.lat?.toString() || '',
+        lng: publication.location_point?.lng?.toString() || '',
+        horario: publication.horario || '',
         images: [] as File[]
     });
 
@@ -89,6 +94,11 @@ export default function EditPublication({ publication, categories }: EditPublica
         setExistingImages(existingImages.filter((_, i) => i !== index));
     };
 
+    const handleLocationChange = (lat: number, lng: number) => {
+        setData('lat', lat.toString());
+        setData('lng', lng.toString());
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         
@@ -100,6 +110,9 @@ export default function EditPublication({ publication, categories }: EditPublica
         formData.append('category_id', data.category_id);
         formData.append('type', data.type);
         formData.append('location', data.location);
+        formData.append('lat', data.lat);
+        formData.append('lng', data.lng);
+        formData.append('horario', data.horario || '');
         
         // Agregar imágenes si las hay
         if (selectedImages.length > 0) {
@@ -212,7 +225,7 @@ export default function EditPublication({ publication, categories }: EditPublica
                                         {/* Tipo */}
                                         <div>
                                             <Label htmlFor="type">Tipo *</Label>
-                                            <Select value={data.type} onValueChange={(value) => setData('type', value)}>
+                                            <Select value={data.type} onValueChange={(value: "servicio" | "producto") => setData('type', value)}>
                                                 <SelectTrigger className={errors.type ? 'border-red-500' : ''}>
                                                     <SelectValue placeholder="Selecciona el tipo" />
                                                 </SelectTrigger>
@@ -228,6 +241,18 @@ export default function EditPublication({ publication, categories }: EditPublica
                                                 </div>
                                             )}
                                         </div>
+
+                                        {/* Horario de atención (solo para servicios) */}
+                                        {data.type === 'servicio' && (
+                                            <div>
+                                                <ServiceSchedule
+                                                    value={data.horario}
+                                                    onChange={(value: string) => setData('horario', value)}
+                                                    error={errors.horario}
+                                                    required={true}
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                 </CardContent>
                             </Card>
@@ -280,6 +305,19 @@ export default function EditPublication({ publication, categories }: EditPublica
                                             )}
                                         </div>
                                     </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Mapa de Ubicación */}
+                            <Card>
+                                <CardContent className="pt-6">
+                                    <h3 className="text-lg font-semibold mb-4">Ubicación en el mapa</h3>
+                                    <MapPicker
+                                        lat={data.lat ? parseFloat(data.lat) : -0.2299}
+                                        lng={data.lng ? parseFloat(data.lng) : -78.5249}
+                                        onLocationChange={handleLocationChange}
+                                        className="h-64 w-full"
+                                    />
                                 </CardContent>
                             </Card>
 

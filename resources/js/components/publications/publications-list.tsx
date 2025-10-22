@@ -10,6 +10,9 @@ interface PublicationListProps {
     selectedType?: string;
     selectedMinPrice?: number;
     selectedMaxPrice?: number;
+    nearLat?: number;
+    nearLng?: number;
+    radiusKm?: number;
 }
 
 export default function PublicationList({ 
@@ -18,7 +21,10 @@ export default function PublicationList({
     selectedCategory, 
     selectedType,
     selectedMinPrice,
-    selectedMaxPrice
+    selectedMaxPrice,
+    nearLat,
+    nearLng,
+    radiusKm
 }: PublicationListProps) {
     return (
         <div className="bg-gray-50 min-h-screen">
@@ -46,6 +52,9 @@ export default function PublicationList({
                         selectedType={selectedType}
                         selectedMinPrice={selectedMinPrice}
                         selectedMaxPrice={selectedMaxPrice}
+                        nearLat={nearLat}
+                        nearLng={nearLng}
+                        radiusKm={radiusKm}
                     />
                 </div>
             </div>
