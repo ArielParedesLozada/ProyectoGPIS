@@ -132,6 +132,11 @@ export default function CreatePublicationModal({ categories, onClose }: CreatePu
         router.post('/my-publications', formData, {
             forceFormData: true,
             onSuccess: () => {
+                showToast({
+                    type: 'success',
+                    title: 'Publicación creada',
+                    message: 'Tu publicación ha sido creada exitosamente.'
+                });
                 onClose();
             },
             onError: (errors) => {

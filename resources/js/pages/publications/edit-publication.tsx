@@ -171,6 +171,11 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
         router.post(`/my-publications/${publication.id}`, formData, {
             forceFormData: true,
             onSuccess: () => {
+                showToast({
+                    type: 'success',
+                    title: 'Publicación actualizada',
+                    message: 'Tu publicación ha sido actualizada exitosamente.'
+                });
                 // Limpiar imágenes seleccionadas después del éxito
                 setSelectedImages([]);
                 setImagePreviews([]);

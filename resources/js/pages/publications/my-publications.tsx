@@ -18,7 +18,7 @@ import {
 import AppLayout from "@/layouts/app-layout";
 import { SharedData, Paginated, Publication, Category, BreadcrumbItem } from "@/types";
 import { usePage, router, Head, Link } from "@inertiajs/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
     Plus, 
     MoreHorizontal, 
@@ -31,8 +31,10 @@ import {
     DollarSign
 } from "lucide-react";
 import CreatePublicationModal from "@/components/publications/create-publication-modal";
+import { useToast, ToastProvider } from "@/hooks/useToast";
 
-export default function MyPublications() {
+// Componente interno que usa useToast
+function MyPublicationsContent() {
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'Mis Publicaciones',
@@ -49,15 +51,70 @@ export default function MyPublications() {
     }>().props;
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const { showToast } = useToast();
+
+    // Mostrar toast cuando hay mensajes flash
+    useEffect(() => {
+        if (flash?.success) {
+            showToast({
+                type: 'success',
+                title: 'Éxito',
+                message: flash.success
+            });
+        }
+    }, [flash?.success, showToast]);
 
     const handleDelete = (id: number) => {
+        // Mostrar toast de confirmación
+        showToast({
+            type: 'warning',
+            title: 'Confirmar eliminación',
+            message: '¿Estás seguro de que quieres eliminar esta publicación? Haz clic en "Eliminar" en el menú para confirmar.'
+        });
+        
+        // Usar confirm nativo como fallback
         if (confirm('¿Estás seguro de que quieres eliminar esta publicación?')) {
-            router.delete(`/my-publications/${id}`);
+            router.delete(`/my-publications/${id}`, {
+                onSuccess: () => {
+                    showToast({
+                        type: 'success',
+                        title: 'Publicación eliminada',
+                        message: 'La publicación ha sido eliminada exitosamente.'
+                    });
+                },
+                onError: () => {
+                    showToast({
+                        type: 'error',
+                        title: 'Error al eliminar',
+                        message: 'No se pudo eliminar la publicación. Inténtalo de nuevo.'
+                    });
+                }
+            });
         }
     };
 
     const handleToggleStatus = (id: number) => {
-        router.patch(`/my-publications/${id}/toggle-status`);
+        const publication = publications.data.find(p => p.id === id);
+        const isCurrentlyEnabled = publication?.status === 1;
+        
+        router.patch(`/my-publications/${id}/toggle-status`, {}, {
+            onSuccess: () => {
+                showToast({
+                    type: 'success',
+                    title: isCurrentlyEnabled ? 'Publicación inhabilitada' : 'Publicación habilitada',
+                    message: isCurrentlyEnabled 
+                        ? 'La publicación ha sido inhabilitada exitosamente.'
+                        : 'La publicación ha sido habilitada exitosamente.'
+                });
+            },
+            onError: () => {
+                showToast({
+                    type: 'error',
+                    title: 'Error al cambiar estado',
+                    message: 'No se pudo cambiar el estado de la publicación. Inténtalo de nuevo.'
+                });
+            }
+        });
     };
 
     const getStatusBadge = (status: number) => {
@@ -314,12 +371,15 @@ export default function MyPublications() {
                 </div>
             </div>
 
-            {/* Success Message */}
-            {flash?.success && (
-                <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50">
-                    {flash.success}
-                </div>
-            )}
         </AppLayout>
+    );
+}
+
+// Componente principal que envuelve con ToastProvider
+export default function MyPublications() {
+    return (
+        <ToastProvider>
+            <MyPublicationsContent />
+        </ToastProvider>
     );
 }
