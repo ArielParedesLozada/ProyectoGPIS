@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('title');
             $table->text('description');
             $table->decimal('price');
-            $table->string('location'); // Cambiado a string para texto legible
+            $table->magellanGeography('location', 4326);
             $table->boolean('disponibility');
             $table->foreignId('category_id')
                 ->constrained('categories', 'id')

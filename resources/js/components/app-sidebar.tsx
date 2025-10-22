@@ -10,10 +10,10 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { publicationIndex, myPublications } from '@/routes';
+import { publicationIndex } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { LayoutGrid, User } from 'lucide-react';
+import { LayoutGrid } from 'lucide-react';
 import MarketplaceLogo from './marketplace-logo';
 
 const mainNavItems: NavItem[] = [
@@ -21,11 +21,6 @@ const mainNavItems: NavItem[] = [
         title: 'Publicaciones',
         href: publicationIndex(),
         icon: LayoutGrid,
-    },
-    {
-        title: 'Mis Publicaciones',
-        href: myPublications(),
-        icon: User,
     },
 ];
 
