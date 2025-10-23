@@ -8,7 +8,7 @@ import {
     DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import AppLayout from "@/layouts/app-layout";
-import { SharedData, Paginated, Publication, Category, BreadcrumbItem } from "@/types";
+import { SharedData, Paginated, Publication, Category } from "@/types";
 import { usePage, router, Head, Link } from "@inertiajs/react";
 import { useState } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -29,14 +29,7 @@ function MyPublicationsContent() {
     const [publicationToDelete, setPublicationToDelete] = useState<Publication | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
 
-    const breadcrumbs: BreadcrumbItem[] = [
-        {
-            title: 'Mis Publicaciones',
-            href: '/my-publications',
-        },
-    ];
-
-    const { auth, publications, categories } = usePage<SharedData & {
+    const { publications } = usePage<SharedData & {
         publications: Paginated<Publication>,
         categories: Category[],
     }>().props;
