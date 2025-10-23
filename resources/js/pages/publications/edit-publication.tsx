@@ -317,10 +317,10 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
                                 </CardContent>
                             </Card>
 
-                            {/* Precio y Ubicación */}
+                            {/* Precio de venta */}
                             <Card>
                                 <CardContent className="pt-6">
-                                    <h3 className="text-lg font-semibold mb-4">Precio y Ubicación</h3>
+                                    <h3 className="text-lg font-semibold mb-4">Precio de venta</h3>
                                     <div className="space-y-4">
                                         {/* Precio */}
                                         <div>

@@ -294,7 +294,7 @@ function CreatePublicationContent({ categories }: CreatePublicationProps) {
                             {/* Precio */}
                             <Card>
                                 <CardContent className="pt-6">
-                                    <h3 className="text-lg font-semibold mb-4">Precio</h3>
+                                    <h3 className="text-lg font-semibold mb-4">Precio de venta</h3>
                                     <div className="space-y-4">
                                         <div>
                                             <Label htmlFor="price">Precio *</Label>
