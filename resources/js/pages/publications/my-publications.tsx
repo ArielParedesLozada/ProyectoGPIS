@@ -11,6 +11,7 @@ import AppLayout from "@/layouts/app-layout";
 import { SharedData, Paginated, Publication, Category, BreadcrumbItem } from "@/types";
 import { usePage, router, Head, Link } from "@inertiajs/react";
 import { useState } from "react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
     Plus, 
     MoreHorizontal, 
@@ -165,16 +166,23 @@ function MyPublicationsContent() {
                         {publications.data.map((publication) => (
                             <Card key={publication.id} className="group hover:shadow-lg transition-shadow">
                                 <CardHeader className="pb-3">
-                                    <div className="flex justify-between items-start">
-                                        <div className="flex-1">
-                                            <CardTitle className="text-lg line-clamp-2 mb-2">
-                                                {publication.title}
-                                            </CardTitle>
-                                            <div className="flex gap-2 mb-2">
-                                                {getStatusBadge(publication.status)}
-                                                {getTypeBadge(publication.type)}
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex-1 min-w-0">
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <CardTitle className="text-lg line-clamp-2 mb-2 cursor-help">
+                                                            {publication.title}
+                                                        </CardTitle>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p className="whitespace-normal break-words">{publication.title}</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                                <div className="flex gap-2 mb-2">
+                                                    {getStatusBadge(publication.status)}
+                                                    {getTypeBadge(publication.type)}
+                                                </div>
                                             </div>
-                                        </div>
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
                                                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -237,16 +245,34 @@ function MyPublicationsContent() {
                                         </div>
 
                                         {/* Description */}
-                                        <p className="text-sm text-gray-600 line-clamp-2">
-                                            {publication.description}
-                                        </p>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <p className="text-sm text-gray-600 line-clamp-2 cursor-help">
+                                                    {publication.description}
+                                                </p>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p className="whitespace-normal break-words">{publication.description}</p>
+                                            </TooltipContent>
+                                        </Tooltip>
 
-                                        {/* Price and Location */}
-                                        <div className="flex justify-between items-center">
-                                            <div className="flex items-center text-sm text-gray-500">
-                                                <MapPin className="w-4 h-4 mr-1" />
-                                                <span className="truncate">{publication.location}</span>
-                                            </div>
+                                        {/* Location */}
+                                        <div className="flex items-center text-sm text-gray-500 mb-2">
+                                            <MapPin className="w-4 h-4 mr-1 flex-shrink-0" />
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <span className="truncate cursor-help flex-1 min-w-0">
+                                                        {publication.location}
+                                                    </span>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p className="whitespace-normal break-words">{publication.location}</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </div>
+
+                                        {/* Price */}
+                                        <div className="mb-3">
                                             <div className="text-xl font-bold text-gray-900">
                                                 ${publication.price}
                                             </div>

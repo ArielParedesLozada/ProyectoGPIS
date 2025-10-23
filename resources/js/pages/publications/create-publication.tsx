@@ -205,8 +205,17 @@ export default function CreatePublication({ categories }: CreatePublicationProps
     };
 
     const handleLocationChange = (lat: number, lng: number) => {
-        setData('lat', lat.toString());
-        setData('lng', lng.toString());
+        // Redondear coordenadas a 6 decimales para mayor precisión
+        const roundedLat = Math.round(lat * 1000000) / 1000000;
+        const roundedLng = Math.round(lng * 1000000) / 1000000;
+        
+        console.log('Location changed:', {
+            original: { lat, lng },
+            rounded: { lat: roundedLat, lng: roundedLng }
+        });
+        
+        setData('lat', roundedLat.toString());
+        setData('lng', roundedLng.toString());
     };
 
     const handleSubmit = (e: React.FormEvent) => {

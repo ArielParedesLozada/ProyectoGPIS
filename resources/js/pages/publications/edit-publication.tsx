@@ -238,8 +238,12 @@ export default function EditPublication({ publication, categories }: EditPublica
     };
 
     const handleLocationChange = (lat: number, lng: number) => {
-        setData('lat', lat.toString());
-        setData('lng', lng.toString());
+        // Redondear coordenadas a 6 decimales para mayor precisión
+        const roundedLat = Math.round(lat * 1000000) / 1000000;
+        const roundedLng = Math.round(lng * 1000000) / 1000000;
+        
+        setData('lat', roundedLat.toString());
+        setData('lng', roundedLng.toString());
     };
 
     const handleSubmit = (e: React.FormEvent) => {

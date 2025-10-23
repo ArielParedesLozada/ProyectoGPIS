@@ -64,22 +64,41 @@ const MapPicker: React.FC<MapPickerProps> = ({
     setIsLoading(true);
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const { latitude, longitude } = position.coords;
-        handleLocationChange(latitude, longitude);
+        const { latitude, longitude, accuracy } = position.coords;
+        
+        // Redondear coordenadas a 6 decimales para mayor precisión
+        const roundedLat = Math.round(latitude * 1000000) / 1000000;
+        const roundedLng = Math.round(longitude * 1000000) / 1000000;
+        
+        handleLocationChange(roundedLat, roundedLng);
         if (mapRef.current) {
-          mapRef.current.setView([latitude, longitude], 15);
+          mapRef.current.setView([roundedLat, roundedLng], 18); // Zoom más alto para mayor precisión
         }
         setIsLoading(false);
       },
       (error) => {
         console.error('Error obteniendo ubicación:', error);
-        alert('No se pudo obtener tu ubicación actual.');
+        let errorMessage = 'No se pudo obtener tu ubicación actual.';
+        
+        switch(error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = 'Permiso de ubicación denegado. Por favor, permite el acceso a la ubicación.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = 'Ubicación no disponible. Verifica tu conexión GPS.';
+            break;
+          case error.TIMEOUT:
+            errorMessage = 'Tiempo de espera agotado. Intenta nuevamente.';
+            break;
+        }
+        
+        alert(errorMessage);
         setIsLoading(false);
       },
       {
         enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000, // 5 minutos
+        timeout: 15000, // Aumentar timeout
+        maximumAge: 0, // No usar caché para mayor precisión
       }
     );
   };

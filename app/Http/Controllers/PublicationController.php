@@ -150,8 +150,26 @@ class PublicationController extends Controller
 
             // Agregar coordenadas geográficas
             try {
+                // Validar coordenadas
+                $lat = floatval($request->lat);
+                $lng = floatval($request->lng);
+                
+                // Verificar que las coordenadas estén en rangos válidos
+                if ($lat < -90 || $lat > 90 || $lng < -180 || $lng > 180) {
+                    throw new \InvalidArgumentException('Coordenadas fuera de rango válido');
+                }
+                
+                // Redondear coordenadas para mayor precisión
+                $roundedLat = round($lat, 6);
+                $roundedLng = round($lng, 6);
+                
+                Log::info('Creating Point for publication', [
+                    'original' => ['lat' => $lat, 'lng' => $lng],
+                    'rounded' => ['lat' => $roundedLat, 'lng' => $roundedLng]
+                ]);
+                
                 // Crear Point sin dimensión Z (lng, lat) - PostGIS usa longitud primero
-                $publicationData['location_point'] = Point::make($request->lng, $request->lat);
+                $publicationData['location_point'] = Point::make($roundedLng, $roundedLat);
             } catch (\Exception $e) {
                 // Error creating Point - continue without location
                 Log::error('Error creating Point for publication', [
@@ -266,8 +284,26 @@ class PublicationController extends Controller
 
             // Actualizar coordenadas geográficas
             try {
+                // Validar coordenadas
+                $lat = floatval($request->lat);
+                $lng = floatval($request->lng);
+                
+                // Verificar que las coordenadas estén en rangos válidos
+                if ($lat < -90 || $lat > 90 || $lng < -180 || $lng > 180) {
+                    throw new \InvalidArgumentException('Coordenadas fuera de rango válido');
+                }
+                
+                // Redondear coordenadas para mayor precisión
+                $roundedLat = round($lat, 6);
+                $roundedLng = round($lng, 6);
+                
+                Log::info('Updating Point for publication', [
+                    'original' => ['lat' => $lat, 'lng' => $lng],
+                    'rounded' => ['lat' => $roundedLat, 'lng' => $roundedLng]
+                ]);
+                
                 // Crear Point sin dimensión Z (lng, lat) - PostGIS usa longitud primero
-                $updateData['location_point'] = Point::make($request->lng, $request->lat);
+                $updateData['location_point'] = Point::make($roundedLng, $roundedLat);
             } catch (\Exception $e) {
                 // Error creating Point - continue without location
                 Log::error('Error creating Point for publication update', [

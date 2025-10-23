@@ -4,6 +4,7 @@ import { Link } from "@inertiajs/react";
 import { Label } from "../ui/label";
 import { useState } from "react";
 import ReportModal from "./report-modal";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 interface PublicationCardProps {
     publication: Publication
@@ -54,21 +55,48 @@ export default function PublicationCard({ publication }: PublicationCardProps) {
                 {/* Contenido de la card */}
                 <div className="p-4 flex flex-col flex-grow">
                     {/* Título */}
-                    <h3 className="font-bold text-lg text-gray-900 mb-2 line-clamp-2">
-                        {publication.title}
-                    </h3>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <h3 className="font-bold text-lg text-gray-900 mb-2 line-clamp-2 cursor-help">
+                                {publication.title}
+                            </h3>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p className="whitespace-normal break-words">{publication.title}</p>
+                        </TooltipContent>
+                    </Tooltip>
                     
                     {/* Ubicación con icono */}
-                    <div className="flex items-center mb-3">
-                        <svg className="w-4 h-4 text-red-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <div className="flex items-center mb-2">
+                        <svg className="w-4 h-4 text-red-500 mr-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                         </svg>
-                        <span className="text-gray-500 text-sm">{publication.location || 'Ubicación no disponible'}</span>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <span className="text-gray-500 text-sm truncate cursor-help flex-1 min-w-0">
+                                    {publication.location || 'Ubicación no disponible'}
+                                </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p className="whitespace-normal break-words">{publication.location || 'Ubicación no disponible'}</p>
+                            </TooltipContent>
+                        </Tooltip>
                     </div>
 
-                    {/* Precio y botón - siempre al final */}
-                    <div className="flex items-center justify-between mt-auto">
-                        <p className="text-2xl font-bold text-gray-900">${publication.price}</p>
+                    {/* Precio */}
+                    <div className="mb-3">
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <p className="text-2xl font-bold text-gray-900 cursor-help">${publication.price}</p>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Precio: ${publication.price}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </div>
+
+                    {/* Botón - siempre al final */}
+                    <div className="flex justify-end mt-auto">
                         <button className="bg-gray-200 text-gray-800 px-3 py-1 rounded text-sm font-medium">
                             Disponible
                         </button>
