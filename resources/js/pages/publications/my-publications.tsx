@@ -10,7 +10,7 @@ import {
 import AppLayout from "@/layouts/app-layout";
 import { SharedData, Paginated, Publication, Category, BreadcrumbItem } from "@/types";
 import { usePage, router, Head, Link } from "@inertiajs/react";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
     Plus, 
@@ -24,6 +24,75 @@ import {
     DollarSign
 } from "lucide-react";
 import DeleteConfirmationModal from "@/components/publications/delete-confirmation-modal";
+
+// Componente para tooltip condicional
+const ConditionalTooltip = ({ children, content, className = "" }: { 
+    children: React.ReactNode; 
+    content: string; 
+    className?: string; 
+}) => {
+    const [isTruncated, setIsTruncated] = useState(false);
+    const elementRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const checkTruncation = () => {
+            if (elementRef.current) {
+                const element = elementRef.current;
+                
+                // Para line-clamp, comparar scrollHeight con offsetHeight (con tolerancia de 2px)
+                const isVerticallyTruncated = element.scrollHeight > element.offsetHeight + 2;
+                
+                // Para truncate (texto horizontal), comparar scrollWidth con clientWidth (con tolerancia de 2px)
+                const isHorizontallyTruncated = element.scrollWidth > element.clientWidth + 2;
+                
+                // Verificar si hay contenido oculto
+                const isOverflowing = isVerticallyTruncated || isHorizontallyTruncated;
+                
+                setIsTruncated(isOverflowing);
+            }
+        };
+
+        // Usar setTimeout para asegurar que el DOM esté renderizado
+        const timeoutId = setTimeout(checkTruncation, 100);
+        
+        // También verificar en el próximo frame
+        const rafId = requestAnimationFrame(checkTruncation);
+        
+        // Verificar después de que las fuentes se carguen
+        const fontTimeoutId = setTimeout(checkTruncation, 500);
+        
+        window.addEventListener('resize', checkTruncation);
+        
+        return () => {
+            clearTimeout(timeoutId);
+            clearTimeout(fontTimeoutId);
+            cancelAnimationFrame(rafId);
+            window.removeEventListener('resize', checkTruncation);
+        };
+    }, [content]);
+
+    if (isTruncated) {
+        return (
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <div ref={elementRef} className={`${className} cursor-help`}>
+                        {children}
+                    </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p className="whitespace-normal break-words">{content}</p>
+                </TooltipContent>
+            </Tooltip>
+        );
+    }
+
+    return (
+        <div ref={elementRef} className={className}>
+            {children}
+        </div>
+    );
+};
+
 function MyPublicationsContent() {
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [publicationToDelete, setPublicationToDelete] = useState<Publication | null>(null);
@@ -168,16 +237,14 @@ function MyPublicationsContent() {
                                 <CardHeader className="pb-3">
                                         <div className="flex justify-between items-start">
                                             <div className="flex-1 min-w-0">
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <CardTitle className="text-lg line-clamp-2 mb-2 cursor-help">
-                                                            {publication.title}
-                                                        </CardTitle>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                        <p className="whitespace-normal break-words">{publication.title}</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
+                                                <ConditionalTooltip 
+                                                    content={publication.title}
+                                                    className="text-lg line-clamp-2 mb-2"
+                                                >
+                                                    <CardTitle>
+                                                        {publication.title}
+                                                    </CardTitle>
+                                                </ConditionalTooltip>
                                                 <div className="flex gap-2 mb-2">
                                                     {getStatusBadge(publication.status)}
                                                     {getTypeBadge(publication.type)}
@@ -245,30 +312,26 @@ function MyPublicationsContent() {
                                         </div>
 
                                         {/* Description */}
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <p className="text-sm text-gray-600 line-clamp-2 cursor-help">
-                                                    {publication.description}
-                                                </p>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p className="whitespace-normal break-words">{publication.description}</p>
-                                            </TooltipContent>
-                                        </Tooltip>
+                                        <ConditionalTooltip 
+                                            content={publication.description || ''}
+                                            className="text-sm text-gray-600 line-clamp-2"
+                                        >
+                                            <p>
+                                                {publication.description}
+                                            </p>
+                                        </ConditionalTooltip>
 
                                         {/* Location */}
                                         <div className="flex items-center text-sm text-gray-500 mb-2">
                                             <MapPin className="w-4 h-4 mr-1 flex-shrink-0" />
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <span className="truncate cursor-help flex-1 min-w-0">
-                                                        {publication.location}
-                                                    </span>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p className="whitespace-normal break-words">{publication.location}</p>
-                                                </TooltipContent>
-                                            </Tooltip>
+                                            <ConditionalTooltip 
+                                                content={publication.location || ''}
+                                                className="truncate flex-1 min-w-0"
+                                            >
+                                                <span>
+                                                    {publication.location}
+                                                </span>
+                                            </ConditionalTooltip>
                                         </div>
 
                                         {/* Price */}
@@ -292,7 +355,7 @@ function MyPublicationsContent() {
                     </div>
 
                     {/* Paginación - Siempre visible */}
-                    {publications.links.length > 3 && (
+                    {publications.links && publications.links.length > 0 && (
                         <div className="flex justify-center mt-8">
                             <div className="flex items-center gap-2">
                                 {publications.links.map((link, i) =>

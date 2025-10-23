@@ -451,8 +451,16 @@ export default function CreatePublication({ categories }: CreatePublicationProps
 
                                     {/* Upload Area */}
                                     <div
-                                        className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors cursor-pointer"
-                                        onClick={() => fileInputRef.current?.click()}
+                                        className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                                            selectedImages.length >= 5 
+                                                ? 'border-gray-200 bg-gray-50 cursor-not-allowed' 
+                                                : 'border-gray-300 hover:border-gray-400 cursor-pointer'
+                                        }`}
+                                        onClick={() => {
+                                            if (selectedImages.length < 5) {
+                                                fileInputRef.current?.click();
+                                            }
+                                        }}
                                     >
                                         <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                                         <p className="text-gray-600 mb-2">Subir imágenes</p>
