@@ -72,6 +72,7 @@ export interface Publication {
         id: number;
         image_url: string;
     }>;
+    is_hidden?: boolean;
 }
 
 export interface Paginated<T> {

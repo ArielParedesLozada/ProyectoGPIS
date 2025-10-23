@@ -7,6 +7,10 @@ use App\Enums\PublicationType;
 use App\Models\Category;
 use App\Models\Publication;
 use App\Models\PublicationImage;
+use App\Models\ModerationCase;
+use App\Models\ModerationReport;
+use App\Models\ModerationAppeal;
+use App\Models\User;
 use App\Services\GeocodingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -379,6 +383,197 @@ class PublicationController extends Controller
         } catch (\Exception $e) {
             Log::error('Error in myView: ' . $e->getMessage());
             return redirect()->route('my-publications')->withErrors(['error' => 'Error al cargar la publicación']);
+        }
+    }
+
+    /**
+     * Reportar una publicación
+     */
+    public function report(Request $request, $id)
+    {
+        $request->validate([
+            'reason' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+        ]);
+
+        try {
+            $publication = Publication::findOrFail($id);
+            $reporterId = Auth::id();
+
+            // Rate limiting: verificar si el usuario ya reportó esta publicación en los últimos 60 minutos
+            $recentReport = ModerationReport::where('reporter_id', $reporterId)
+                ->whereHas('moderationCase', function($query) use ($id) {
+                    $query->where('publication_id', $id);
+                })
+                ->where('created_at', '>=', now()->subMinutes(60))
+                ->first();
+
+            if ($recentReport) {
+                return back()->withErrors(['error' => 'Ya has reportado esta publicación recientemente. Espera 60 minutos antes de reportar nuevamente.']);
+            }
+
+            DB::beginTransaction();
+
+            // Buscar si ya existe un caso abierto para esta publicación
+            $existingCase = ModerationCase::where('publication_id', $id)
+                ->whereIn('status', ['pending', 'triage', 'in_review', 'appealed'])
+                ->first();
+
+            if ($existingCase) {
+                // Agregar reporte al caso existente
+                $existingCase->increment('report_count');
+                
+                ModerationReport::create([
+                    'moderation_case_id' => $existingCase->id,
+                    'reporter_id' => $reporterId,
+                    'reason' => $request->reason,
+                    'description' => $request->description,
+                    'metadata' => [
+                        'ip_address' => $request->ip(),
+                        'user_agent' => $request->userAgent(),
+                    ]
+                ]);
+            } else {
+                // Crear nuevo caso de moderación
+                $moderationCase = ModerationCase::create([
+                    'publication_id' => $id,
+                    'status' => 'pending',
+                    'source' => 'user',
+                    'report_count' => 1,
+                ]);
+
+                // Asignación automática al moderador con menor carga
+                $this->assignToModerator($moderationCase);
+
+                ModerationReport::create([
+                    'moderation_case_id' => $moderationCase->id,
+                    'reporter_id' => $reporterId,
+                    'reason' => $request->reason,
+                    'description' => $request->description,
+                    'metadata' => [
+                        'ip_address' => $request->ip(),
+                        'user_agent' => $request->userAgent(),
+                    ]
+                ]);
+            }
+
+            DB::commit();
+
+            return back()->with('success', 'Reporte enviado correctamente. Nuestro equipo de moderación revisará el contenido.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al reportar publicación: ' . $e->getMessage());
+            
+            return back()->withErrors(['error' => 'Error al procesar el reporte. Inténtalo nuevamente.']);
+        }
+    }
+
+    /**
+     * Asignar caso a moderador con menor carga
+     */
+    private function assignToModerator(ModerationCase $case)
+    {
+        // Buscar moderadores disponibles (role = 'moderador' o 'admin')
+        $moderator = User::whereIn('role', ['moderador', 'admin'])
+            ->withCount(['moderationCases' => function($query) {
+                $query->whereIn('status', ['pending', 'triage', 'in_review', 'appealed']);
+            }])
+            ->orderBy('moderation_cases_count')
+            ->first();
+
+        if ($moderator) {
+            $case->update([
+                'assigned_moderator_id' => $moderator->id,
+                'assigned_at' => now(),
+            ]);
+        }
+    }
+
+    /**
+     * Apelar una moderación
+     */
+    public function appeal(Request $request, $id)
+    {
+        $request->validate([
+            'reason' => 'required|string|max:1000',
+        ]);
+
+        try {
+            $publication = Publication::findOrFail($id);
+            
+            // Verificar que el usuario sea el propietario de la publicación
+            if ($publication->created_by !== Auth::id()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tienes permisos para apelar esta publicación'
+                ], 403);
+            }
+
+            // Verificar que la publicación esté oculta
+            if (!$publication->is_hidden) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Solo puedes apelar publicaciones que han sido ocultadas por moderación'
+                ], 400);
+            }
+
+            // Buscar el caso de moderación activo
+            $moderationCase = ModerationCase::where('publication_id', $id)
+                ->whereIn('status', ['action_taken', 'dismissed'])
+                ->first();
+
+            if (!$moderationCase) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se encontró un caso de moderación para esta publicación'
+                ], 404);
+            }
+
+            // Verificar si ya existe una apelación pendiente
+            $existingAppeal = ModerationAppeal::where('moderation_case_id', $moderationCase->id)
+                ->where('status', 'pending')
+                ->first();
+
+            if ($existingAppeal) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ya tienes una apelación pendiente para esta publicación'
+                ], 400);
+            }
+
+            DB::beginTransaction();
+
+            // Crear la apelación
+            ModerationAppeal::create([
+                'moderation_case_id' => $moderationCase->id,
+                'appealer_id' => Auth::id(),
+                'status' => 'pending',
+                'appeal_reason' => $request->reason,
+            ]);
+
+            // Actualizar el caso a estado "appealed" y desasignar al moderador anterior
+            $moderationCase->update([
+                'status' => 'appealed',
+                'assigned_moderator_id' => null,
+                'assigned_at' => null,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Apelación enviada correctamente. Otro moderador revisará tu caso.'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al enviar apelación: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al procesar la apelación. Inténtalo nuevamente.'
+            ], 500);
         }
     }
 }

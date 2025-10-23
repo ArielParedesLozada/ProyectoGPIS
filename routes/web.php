@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ExampleController;
 use App\Http\Controllers\PublicationController;
+use App\Http\Controllers\ModerationController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -25,6 +26,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('publication')->group(function () {
         Route::get('/', [PublicationController::class, 'index'])->name('publication-index');
         Route::get('/{id}', [PublicationController::class, 'view'])->name('publication-view');
+        Route::post('/{id}/report', [PublicationController::class, 'report'])->name('publication-report');
     });
     
     // Rutas para Mis Publicaciones
@@ -36,7 +38,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('/{id}/toggle-status', [PublicationController::class, 'toggleStatus'])->name('publications.toggle-status');
         Route::put('/{id}', [PublicationController::class, 'update'])->name('publications.update');
         Route::delete('/{id}', [PublicationController::class, 'destroy'])->name('publications.destroy');
+        Route::post('/{id}/appeal', [PublicationController::class, 'appeal'])->name('publications.appeal');
         Route::get('/{id}', [PublicationController::class, 'myView'])->name('my-publication-view');
+    });
+
+    // Rutas para Moderación
+    Route::prefix('moderation')->middleware('auth')->group(function () {
+        Route::get('/', [ModerationController::class, 'index'])->name('moderation.index');
+        Route::get('/{id}', [ModerationController::class, 'show'])->name('moderation.show');
+        Route::post('/{id}/assign-to-me', [ModerationController::class, 'assignToMe'])->name('moderation.assign-to-me');
+        Route::patch('/{id}/status', [ModerationController::class, 'updateStatus'])->name('moderation.update-status');
+        Route::post('/{id}/hide-publication', [ModerationController::class, 'hidePublication'])->name('moderation.hide-publication');
+        Route::post('/{id}/restore-publication', [ModerationController::class, 'restorePublication'])->name('moderation.restore-publication');
+        Route::post('/{id}/dismiss', [ModerationController::class, 'dismissCase'])->name('moderation.dismiss');
+        Route::post('/{id}/review-appeal', [ModerationController::class, 'reviewAppeal'])->name('moderation.review-appeal');
     });
 });
 

@@ -23,7 +23,8 @@ class Publication extends Model
         'published_at',
         'status',
         'type',
-        'horario'
+        'horario',
+        'is_hidden'
     ];
 
     protected $casts = [
@@ -42,6 +43,16 @@ class Publication extends Model
     }
     public function images(): HasMany {
         return $this->hasMany(PublicationImage::class, 'publication_id', 'id');
+    }
+
+    public function moderationCases(): HasMany
+    {
+        return $this->hasMany(ModerationCase::class);
+    }
+
+    public function activeModerationCase(): HasMany
+    {
+        return $this->hasMany(ModerationCase::class)->whereIn('status', ['pending', 'triage', 'in_review', 'appealed']);
     }
 
     // Accessor para convertir location_point a formato JSON

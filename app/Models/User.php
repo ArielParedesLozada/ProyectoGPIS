@@ -49,6 +49,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(Publication::class, 'created_by', 'id');
     }
 
+    public function moderationCases(): HasMany
+    {
+        return $this->hasMany(ModerationCase::class, 'assigned_moderator_id');
+    }
+
     // Role helper methods
     public function isSuperAdmin(): bool
     {

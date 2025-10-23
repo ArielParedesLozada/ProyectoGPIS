@@ -1,7 +1,7 @@
 import AppLayout from "@/layouts/app-layout";
 import { BreadcrumbItem, Publication } from "@/types";
 import { Head, Link, router } from "@inertiajs/react";
-import { ArrowLeft, Edit, Eye, EyeOff, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Edit, Eye, EyeOff, Trash2, ChevronLeft, ChevronRight, MessageSquare } from "lucide-react";
 import { useState, useEffect } from "react";
 import MiniMap from "@/components/publications/MiniMap";
 
@@ -17,8 +17,12 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
     },
   ];
 
-  // Estado para el carrusel de imágenes
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    // Estado para el carrusel de imágenes
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    
+    // Estado para el modal de apelación
+    const [showAppealModal, setShowAppealModal] = useState(false);
+    const [appealReason, setAppealReason] = useState('');
 
   // Array de imágenes - solo las imágenes reales de la publicación
   const images =
@@ -49,9 +53,43 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
     }
   };
 
-  const handleToggleStatus = () => {
-    router.patch(`/my-publications/${publication.id}/toggle-status`);
-  };
+    const handleToggleStatus = () => {
+        router.patch(`/my-publications/${publication.id}/toggle-status`);
+    };
+
+    const handleAppeal = async () => {
+        if (!appealReason.trim()) {
+            alert('Debes proporcionar una razón para la apelación');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/my-publications/${publication.id}/appeal`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                },
+                body: JSON.stringify({
+                    reason: appealReason,
+                }),
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                alert(data.message);
+                setShowAppealModal(false);
+                setAppealReason('');
+                router.reload();
+            } else {
+                alert(data.message || 'Error al enviar la apelación');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error al enviar la apelación');
+        }
+    };
 
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
@@ -223,17 +261,29 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
                 </div>
               </div>
 
-              {/* Card de acciones peligrosas */}
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h3 className="font-bold text-gray-900 mb-4 text-lg">Acciones Peligrosas</h3>
-                <button
-                  onClick={handleDelete}
-                  className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-xl transition"
-                >
-                  <Trash2 className="w-4 h-4 mr-2 inline" />
-                  Eliminar Publicación
-                </button>
-              </div>
+                            {/* Card de acciones peligrosas */}
+                            <div className="bg-white rounded-2xl shadow-lg p-6">
+                                <h3 className="font-bold text-gray-900 mb-4 text-lg">Acciones Peligrosas</h3>
+                                
+                                {/* Botón de apelación si la publicación está oculta */}
+                                {publication.is_hidden && (
+                                    <button 
+                                        onClick={() => setShowAppealModal(true)}
+                                        className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-6 rounded-xl transition mb-3"
+                                    >
+                                        <MessageSquare className="w-4 h-4 mr-2 inline" />
+                                        Apelar Moderación
+                                    </button>
+                                )}
+                                
+                                <button 
+                                    onClick={handleDelete}
+                                    className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-xl transition"
+                                >
+                                    <Trash2 className="w-4 h-4 mr-2 inline" />
+                                    Eliminar Publicación
+                                </button>
+                            </div>
             </div>
           </div>
 
@@ -262,9 +312,50 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
                 />
               </div>
             </div>
-          )}
-        </div>
-      </div>
-    </AppLayout>
-  );
+                    )}
+                </div>
+            </div>
+
+            {/* Modal de apelación */}
+            {showAppealModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-lg max-w-md w-full p-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Apelar Moderación</h3>
+                        
+                        <div className="mb-6">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Razón de la apelación
+                            </label>
+                            <textarea
+                                value={appealReason}
+                                onChange={(e) => setAppealReason(e.target.value)}
+                                rows={4}
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="Explica por qué crees que la moderación fue incorrecta..."
+                                required
+                            />
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={handleAppeal}
+                                className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 px-4 rounded-lg transition"
+                            >
+                                Enviar Apelación
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowAppealModal(false);
+                                    setAppealReason('');
+                                }}
+                                className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 font-semibold py-2 px-4 rounded-lg transition"
+                            >
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </AppLayout>
+    );
 }

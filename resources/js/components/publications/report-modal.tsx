@@ -3,6 +3,7 @@ import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import GeneralModal from "@/components/ui/general-modal";
+import { router } from "@inertiajs/react";
 
 interface ReportModalProps {
     isOpen: boolean;
@@ -36,11 +37,28 @@ export default function ReportModal({ isOpen, onClose, publicationId, publicatio
     };
 
     const handleSubmit = () => {
-        // Solo mostrar notificación por ahora, no hacer nada más
-        alert(`Reporte de "${selectedReason}" registrado. Esta funcionalidad está en desarrollo.`);
-        onClose();
-        setShowConfirmation(false);
-        setSelectedReason("");
+        router.post(`/publication/${publicationId}/report`, {
+            reason: selectedReason,
+            description: null,
+        }, {
+            onSuccess: (page) => {
+                // Mostrar mensaje de éxito si existe
+                if ((page.props as any).flash?.success) {
+                    alert((page.props as any).flash.success);
+                } else {
+                    alert('Reporte enviado correctamente. Nuestro equipo de moderación revisará el contenido.');
+                }
+                onClose();
+                setShowConfirmation(false);
+                setSelectedReason("");
+            },
+            onError: (errors) => {
+                console.error('Error al enviar reporte:', errors);
+                // Mostrar el primer error disponible
+                const errorMessage = errors.error || Object.values(errors)[0] || 'Error al enviar el reporte. Inténtalo nuevamente.';
+                alert(errorMessage);
+            }
+        });
     };
 
     return (
