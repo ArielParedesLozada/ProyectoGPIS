@@ -20,6 +20,7 @@ import { BreadcrumbItem } from "@/types";
 import MapPicker from "@/components/publications/MapPicker";
 import ServiceSchedule from "@/components/publications/ServiceSchedule";
 import { useToast } from "@/hooks/useToast";
+import ErrorMessage from "@/components/ui/error-message";
 
 interface CreatePublicationProps {
     categories: Category[];
@@ -308,12 +309,7 @@ export default function CreatePublication({ categories }: CreatePublicationProps
                                                 }}
                                                 className={errors.title || validationErrors.title ? 'border-red-500' : ''}
                                             />
-                                            {(errors.title || validationErrors.title) && (
-                                                <div className="flex items-center gap-1 mt-1 text-red-500 text-sm">
-                                                    <AlertCircle className="w-4 h-4" />
-                                                    {errors.title || validationErrors.title}
-                                                </div>
-                                            )}
+                                            <ErrorMessage error={errors.title || validationErrors.title} />
                                         </div>
 
                                         {/* Descripción */}
@@ -330,12 +326,7 @@ export default function CreatePublication({ categories }: CreatePublicationProps
                                                 rows={4}
                                                 className={errors.description || validationErrors.description ? 'border-red-500' : ''}
                                             />
-                                            {(errors.description || validationErrors.description) && (
-                                                <div className="flex items-center gap-1 mt-1 text-red-500 text-sm">
-                                                    <AlertCircle className="w-4 h-4" />
-                                                    {errors.description || validationErrors.description}
-                                                </div>
-                                            )}
+                                            <ErrorMessage error={errors.description || validationErrors.description} />
                                         </div>
 
                                         {/* Categoría */}
@@ -356,12 +347,7 @@ export default function CreatePublication({ categories }: CreatePublicationProps
                                                     ))}
                                                 </SelectContent>
                                             </Select>
-                                            {(errors.category_id || validationErrors.category_id) && (
-                                                <div className="flex items-center gap-1 mt-1 text-red-500 text-sm">
-                                                    <AlertCircle className="w-4 h-4" />
-                                                    {errors.category_id || validationErrors.category_id}
-                                                </div>
-                                            )}
+                                            <ErrorMessage error={errors.category_id || validationErrors.category_id} />
                                         </div>
 
                                         {/* Tipo */}
@@ -379,12 +365,7 @@ export default function CreatePublication({ categories }: CreatePublicationProps
                                                     <SelectItem value="servicio">Servicio</SelectItem>
                                                 </SelectContent>
                                             </Select>
-                                            {(errors.type || validationErrors.type) && (
-                                                <div className="flex items-center gap-1 mt-1 text-red-500 text-sm">
-                                                    <AlertCircle className="w-4 h-4" />
-                                                    {errors.type || validationErrors.type}
-                                                </div>
-                                            )}
+                                            <ErrorMessage error={errors.type || validationErrors.type} />
                                         </div>
 
                                         {/* Horario de atención (solo para servicios) */}
@@ -428,12 +409,7 @@ export default function CreatePublication({ categories }: CreatePublicationProps
                                                     min="0"
                                                 />
                                             </div>
-                                            {(errors.price || validationErrors.price) && (
-                                                <div className="flex items-center gap-1 mt-1 text-red-500 text-sm">
-                                                    <AlertCircle className="w-4 h-4" />
-                                                    {errors.price || validationErrors.price}
-                                                </div>
-                                            )}
+                                            <ErrorMessage error={errors.price || validationErrors.price} />
                                         </div>
                                     </div>
                                 </CardContent>
@@ -452,12 +428,7 @@ export default function CreatePublication({ categories }: CreatePublicationProps
                                         onLocationChange={handleLocationChange}
                                         className="h-64 w-full"
                                     />
-                                    {validationErrors.location && (
-                                        <div className="flex items-center gap-1 mt-2 text-red-500 text-sm">
-                                            <AlertCircle className="w-4 h-4" />
-                                            {validationErrors.location}
-                                        </div>
-                                    )}
+                                    <ErrorMessage error={validationErrors.location} />
                                 </CardContent>
                             </Card>
 
@@ -512,13 +483,7 @@ export default function CreatePublication({ categories }: CreatePublicationProps
                                             ))}
                                         </div>
                                     )}
-
-                                    {(errors.images || validationErrors.images) && (
-                                        <div className="flex items-center gap-1 mt-2 text-red-500 text-sm">
-                                            <AlertCircle className="w-4 h-4" />
-                                            {errors.images || validationErrors.images}
-                                        </div>
-                                    )}
+                                    <ErrorMessage error={errors.images || validationErrors.images} />
                                 </CardContent>
                             </Card>
 
