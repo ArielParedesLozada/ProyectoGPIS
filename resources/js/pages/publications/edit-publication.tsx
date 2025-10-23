@@ -19,7 +19,7 @@ import { Head, Link, router } from "@inertiajs/react";
 import { BreadcrumbItem } from "@/types";
 import MapPicker from "@/components/publications/MapPicker";
 import ServiceSchedule from "@/components/publications/ServiceSchedule";
-import { useToast, ToastProvider } from "@/hooks/useToast";
+import { useToast } from "@/hooks/useToast";
 
 interface EditPublicationProps {
     publication: Publication & {
@@ -28,8 +28,7 @@ interface EditPublicationProps {
     categories: Category[];
 }
 
-// Componente interno que usa useToast
-function EditPublicationContent({ publication, categories }: EditPublicationProps) {
+export default function EditPublication({ publication, categories }: EditPublicationProps) {
     const [selectedImages, setSelectedImages] = useState<File[]>([]);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
     const [existingImages, setExistingImages] = useState(publication.images || []);
@@ -171,11 +170,6 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
         router.post(`/my-publications/${publication.id}`, formData, {
             forceFormData: true,
             onSuccess: () => {
-                showToast({
-                    type: 'success',
-                    title: 'Publicación actualizada',
-                    message: 'Tu publicación ha sido actualizada exitosamente.'
-                });
                 // Limpiar imágenes seleccionadas después del éxito
                 setSelectedImages([]);
                 setImagePreviews([]);
@@ -196,7 +190,7 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
     };
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <>
             <Head title="Editar Publicación" />
             
             <div className="bg-gray-50 min-h-screen py-8">
@@ -480,15 +474,22 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
                     </div>
                 </div>
             </div>
-        </AppLayout>
+        </>
     );
 }
 
-// Componente principal que envuelve con ToastProvider
-export default function EditPublication({ publication, categories }: EditPublicationProps) {
-    return (
-        <ToastProvider>
-            <EditPublicationContent publication={publication} categories={categories} />
-        </ToastProvider>
-    );
-}
+// Layout estático de Inertia
+EditPublication.layout = (page: React.ReactNode) => (
+    <AppLayout breadcrumbs={[
+        {
+            title: 'Mis Publicaciones',
+            href: '/my-publications',
+        },
+        {
+            title: 'Editar Publicación',
+            href: '/my-publications',
+        },
+    ]}>
+        {page}
+    </AppLayout>
+);

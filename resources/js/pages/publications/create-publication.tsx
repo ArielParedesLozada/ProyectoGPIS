@@ -19,14 +19,13 @@ import { Head, Link, router } from "@inertiajs/react";
 import { BreadcrumbItem } from "@/types";
 import MapPicker from "@/components/publications/MapPicker";
 import ServiceSchedule from "@/components/publications/ServiceSchedule";
-import { useToast, ToastProvider } from "@/hooks/useToast";
+import { useToast } from "@/hooks/useToast";
 
 interface CreatePublicationProps {
     categories: Category[];
 }
 
-// Componente interno que usa useToast
-function CreatePublicationContent({ categories }: CreatePublicationProps) {
+export default function CreatePublication({ categories }: CreatePublicationProps) {
     const [selectedImages, setSelectedImages] = useState<File[]>([]);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -145,15 +144,6 @@ function CreatePublicationContent({ categories }: CreatePublicationProps) {
         // Enviar FormData directamente
         router.post('/my-publications', formData, {
             forceFormData: true,
-            onSuccess: () => {
-                showToast({
-                    type: 'success',
-                    title: 'Publicación creada',
-                    message: 'Tu publicación ha sido creada exitosamente.'
-                });
-                // Redirigir a Mis Publicaciones
-                router.visit('/my-publications');
-            },
             onError: (errors) => {
                 // Mostrar errores específicos con toast
                 Object.keys(errors).forEach(key => {
@@ -170,7 +160,7 @@ function CreatePublicationContent({ categories }: CreatePublicationProps) {
     };
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <>
             <Head title="Crear Publicación" />
             
             <div className="bg-gray-50 min-h-screen py-8">
@@ -424,15 +414,22 @@ function CreatePublicationContent({ categories }: CreatePublicationProps) {
                     </div>
                 </div>
             </div>
-        </AppLayout>
+        </>
     );
 }
 
-// Componente principal que envuelve con ToastProvider
-export default function CreatePublication({ categories }: CreatePublicationProps) {
-    return (
-        <ToastProvider>
-            <CreatePublicationContent categories={categories} />
-        </ToastProvider>
-    );
-}
+// Layout estático de Inertia
+CreatePublication.layout = (page: React.ReactNode) => (
+    <AppLayout breadcrumbs={[
+        {
+            title: 'Mis Publicaciones',
+            href: '/my-publications',
+        },
+        {
+            title: 'Crear Publicación',
+            href: '/my-publications/create',
+        },
+    ]}>
+        {page}
+    </AppLayout>
+);
