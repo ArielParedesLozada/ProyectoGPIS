@@ -82,7 +82,7 @@ class PublicationController extends Controller
                 $query->where('status', $request->status);
             }
 
-            $publications = $query->orderBy('created_at', 'desc')->paginate(12)->withQueryString();
+            $publications = $query->orderBy('created_at', 'desc')->paginate(9)->withQueryString();
             $categories = Category::select('id', 'name')->get();
 
             return Inertia::render('publications/my-publications', [

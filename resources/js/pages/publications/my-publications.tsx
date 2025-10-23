@@ -153,6 +153,11 @@ function MyPublicationsContent() {
                             <div>
                                 <h1 className="text-3xl font-bold text-gray-900 mb-2">Mis Publicaciones</h1>
                                 <p className="text-gray-600">Gestiona tus productos y servicios</p>
+                                {publications.data.length > 0 && (
+                                    <p className="text-sm text-gray-500 mt-2">
+                                        Mostrando {publications.data.length} publicaciones
+                                    </p>
+                                )}
                             </div>
                             <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
                                 <DialogTrigger asChild>
@@ -319,29 +324,7 @@ function MyPublicationsContent() {
                         ))}
                     </div>
 
-                    {/* Empty State */}
-                    {publications.data.length === 0 && (
-                        <div className="text-center py-12">
-                            <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                                <Plus className="w-12 h-12 text-gray-400" />
-                            </div>
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">
-                                No tienes publicaciones
-                            </h3>
-                            <p className="text-gray-500 mb-6">
-                                Comienza creando tu primera publicación
-                            </p>
-                            <Button 
-                                onClick={() => setIsCreateModalOpen(true)}
-                                className="bg-blue-600 hover:bg-blue-700 text-white"
-                            >
-                                <Plus className="w-4 h-4 mr-2" />
-                                Crear Primera Publicación
-                            </Button>
-                        </div>
-                    )}
-
-                    {/* Pagination */}
+                    {/* Paginación - Siempre visible */}
                     {publications.links.length > 3 && (
                         <div className="flex justify-center mt-8">
                             <div className="flex items-center gap-2">
@@ -368,6 +351,29 @@ function MyPublicationsContent() {
                             </div>
                         </div>
                     )}
+
+                    {/* Empty State */}
+                    {publications.data.length === 0 && (
+                        <div className="text-center py-12">
+                            <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                                <Plus className="w-12 h-12 text-gray-400" />
+                            </div>
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">
+                                No tienes publicaciones
+                            </h3>
+                            <p className="text-gray-500 mb-6">
+                                Comienza creando tu primera publicación
+                            </p>
+                            <Button 
+                                onClick={() => setIsCreateModalOpen(true)}
+                                className="bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                                <Plus className="w-4 h-4 mr-2" />
+                                Crear Primera Publicación
+                            </Button>
+                        </div>
+                    )}
+
                 </div>
             </div>
 
