@@ -151,7 +151,7 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
                 </div>
 
                 {/* BOTONES: ahora con separación real */}
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-6">
                   <Link href={`/my-publications/${publication.id}/edit`}>
                     <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition">
                       <Edit className="w-4 h-4 mr-2 inline" />
