@@ -43,9 +43,10 @@ const MapPicker: React.FC<MapPickerProps> = ({
   useEffect(() => {
     if (lat !== undefined && lng !== undefined && lat !== 0 && lng !== 0) {
       setPosition([lat, lng]);
-      // Centrar el mapa cuando cambien las coordenadas
+      // Centrar el mapa manteniendo el zoom actual
       if (mapRef.current) {
-        mapRef.current.setView([lat, lng], 13);
+        const currentZoom = (mapRef.current as any).getZoom();
+        (mapRef.current as any).setView([lat, lng], currentZoom);
       }
     }
   }, [lat, lng]);
