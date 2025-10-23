@@ -22,7 +22,12 @@ import {
     MapPin,
     DollarSign
 } from "lucide-react";
+import DeleteConfirmationModal from "@/components/publications/delete-confirmation-modal";
 function MyPublicationsContent() {
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [publicationToDelete, setPublicationToDelete] = useState<Publication | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'Mis Publicaciones',
@@ -36,10 +41,31 @@ function MyPublicationsContent() {
     }>().props;
 
     const handleDelete = (id: number) => {
-        // Usar confirm nativo para confirmación
-        if (confirm('¿Estás seguro de que quieres eliminar esta publicación?')) {
-            router.delete(`/my-publications/${id}`);
-        }
+        const publication = publications.data.find(p => p.id === id);
+        setPublicationToDelete(publication || null);
+        setDeleteModalOpen(true);
+    };
+
+    const handleConfirmDelete = () => {
+        if (!publicationToDelete) return;
+        
+        setIsDeleting(true);
+        router.delete(`/my-publications/${publicationToDelete.id}`, {
+            onSuccess: () => {
+                setDeleteModalOpen(false);
+                setPublicationToDelete(null);
+                setIsDeleting(false);
+            },
+            onError: () => {
+                setIsDeleting(false);
+            }
+        });
+    };
+
+    const handleCloseDeleteModal = () => {
+        setDeleteModalOpen(false);
+        setPublicationToDelete(null);
+        setIsDeleting(false);
     };
 
     const handleToggleStatus = (id: number) => {
@@ -290,6 +316,15 @@ function MyPublicationsContent() {
 
                 </div>
             </div>
+
+            {/* Modal de confirmación de eliminación */}
+            <DeleteConfirmationModal
+                isOpen={deleteModalOpen}
+                onClose={handleCloseDeleteModal}
+                onConfirm={handleConfirmDelete}
+                isDeleting={isDeleting}
+                publicationTitle={publicationToDelete?.title}
+            />
         </>
     );
 }

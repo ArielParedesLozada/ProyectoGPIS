@@ -4,6 +4,7 @@ import { Head, Link, router } from "@inertiajs/react";
 import { ArrowLeft, Edit, Eye, EyeOff, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import MiniMap from "@/components/publications/MiniMap";
+import DeleteConfirmationModal from "@/components/publications/delete-confirmation-modal";
 
 interface MyPublicationViewProps {
   publication: Publication;
@@ -19,6 +20,10 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
 
   // Estado para el carrusel de imágenes
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  
+  // Estado para el modal de confirmación de eliminación
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Array de imágenes - solo las imágenes reales de la publicación
   const images =
@@ -44,9 +49,25 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
   };
 
   const handleDelete = () => {
-    if (confirm("¿Estás seguro de que quieres eliminar esta publicación?")) {
-      router.delete(`/my-publications/${publication.id}`);
-    }
+    setDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    setIsDeleting(true);
+    router.delete(`/my-publications/${publication.id}`, {
+      onSuccess: () => {
+        setDeleteModalOpen(false);
+        setIsDeleting(false);
+      },
+      onError: () => {
+        setIsDeleting(false);
+      }
+    });
+  };
+
+  const handleCloseDeleteModal = () => {
+    setDeleteModalOpen(false);
+    setIsDeleting(false);
   };
 
   const handleToggleStatus = () => {
@@ -265,6 +286,15 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
           )}
         </div>
       </div>
+
+      {/* Modal de confirmación de eliminación */}
+      <DeleteConfirmationModal
+        isOpen={deleteModalOpen}
+        onClose={handleCloseDeleteModal}
+        onConfirm={handleConfirmDelete}
+        isDeleting={isDeleting}
+        publicationTitle={publication.title}
+      />
     </AppLayout>
   );
 }
