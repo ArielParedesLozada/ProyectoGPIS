@@ -10,6 +10,7 @@ use App\Models\PublicationImage;
 use App\Services\GeocodingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -20,7 +21,7 @@ class PublicationController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Publication::query()->with('category');
+        $query = Publication::query()->with(['category', 'images']);
         if ($request->filled('category_id')) {
             $query->where('category_id', $request->category_id);
         }
@@ -186,7 +187,7 @@ class PublicationController extends Controller
             ->findOrFail($id);
         
         // Extraer coordenadas del campo location_point si existe
-        $coords = \DB::selectOne("SELECT ST_X(location_point::geometry) as lng, ST_Y(location_point::geometry) as lat FROM publications WHERE id = ?", [$id]);
+        $coords = DB::selectOne("SELECT ST_X(location_point::geometry) as lng, ST_Y(location_point::geometry) as lat FROM publications WHERE id = ?", [$id]);
         
         if ($coords) {
             $publication->location_point = [
@@ -289,14 +290,14 @@ class PublicationController extends Controller
                 $imagesToDelete = $publication->images()->whereNotIn('id', $keepImageIds)->get();
                 foreach ($imagesToDelete as $image) {
                     // Eliminar del storage
-                    \Storage::disk('public')->delete($image->image_url);
+                    Storage::disk('public')->delete($image->image_url);
                     // Eliminar de la base de datos
                     $image->delete();
                 }
             } else {
                 // Si no se envían existing_images, eliminar todas las imágenes existentes
                 foreach ($publication->images as $image) {
-                    \Storage::disk('public')->delete($image->image_url);
+                    Storage::disk('public')->delete($image->image_url);
                     $image->delete();
                 }
             }

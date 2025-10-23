@@ -21,22 +21,28 @@ class PublicationFactory extends Factory
      */
     public function definition(): array
     {
-        $author = User::where('email', 'test@example.com')->firstOrFail();
         $categories = Category::all();
+        $users = User::all();
         $type = fake()->randomElement(PublicationType::cases());
+        
+        // Generar ubicaciones reales de Costa Rica
+        $lat = fake()->latitude(8.0, 11.0); // Costa Rica lat range
+        $lng = fake()->longitude(-86.0, -82.0); // Costa Rica lng range
+        
         return [
             'code' => fake()->uuid,
-            'title' => fake()->sentence,
-            'description' => fake()->paragraph,
-            'price' => fake()->randomFloat(2, 10, 1000),
-            'location' => Point::makeGeodetic(fake()->latitude, fake()->longitude),
+            'title' => fake()->sentence(3),
+            'description' => fake()->paragraph(3),
+            'price' => fake()->randomFloat(2, 1000, 50000),
+            'location' => fake()->city . ', Costa Rica',
+            'location_point' => Point::make($lng, $lat),
             'disponibility' => true,
             'category_id' => $categories->random()->id,
-            'created_by' => $author->id,
-            'published_at' => today(),
+            'created_by' => $users->random()->id,
+            'published_at' => fake()->dateTimeBetween('-30 days', 'now'),
             'status' => StatusType::HABILITADO->value,
             'type' => $type,
-            'horario' => $type === PublicationType::SERVICE ? today() : null,
+            'horario' => $type === PublicationType::SERVICE ? fake()->randomElement(['Lunes a Viernes 8:00-17:00', '24/7', 'Sábados y Domingos 9:00-18:00']) : null,
         ];
     }
 }

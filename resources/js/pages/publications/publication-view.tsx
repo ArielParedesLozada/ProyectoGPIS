@@ -5,6 +5,7 @@ import { Head, Link } from "@inertiajs/react";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import MiniMap from "@/components/publications/MiniMap";
+import ReportModal from "@/components/publications/report-modal";
 
 interface PublicationViewProps {
     publication: Publication
@@ -21,13 +22,13 @@ export default function PublicationView({ publication }: PublicationViewProps) {
     // Estado para el carrusel de imágenes
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     
-    // Array de imágenes (puedes expandir esto con más imágenes)
-    const images = [
-        publication.image || "https://picsum.photos/800/600",
-        "https://picsum.photos/800/601",
-        "https://picsum.photos/800/602",
-        "https://picsum.photos/800/603"
-    ];
+    // Estado para el modal de reporte
+    const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+    
+    // Array de imágenes reales de la base de datos
+    const images = publication.images && publication.images.length > 0 
+        ? publication.images.map(img => `/storage/${img.image_url}`)
+        : ["https://picsum.photos/800/600"]; // Solo placeholder si no hay imágenes
 
     const nextImage = () => {
         setCurrentImageIndex((prev) => (prev + 1) % images.length);
@@ -101,7 +102,7 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                                             {publication.category.name}
                                         </span>
                                     </div>
-                                    <div className="absolute top-4 right-4">
+                                    <div className="absolute top-4 right-4 flex gap-2">
                                         <span className={`px-3 py-1 rounded-full text-sm font-medium shadow-lg ${
                                             publication.status === 1 
                                                 ? 'bg-green-500 text-white' 
@@ -109,6 +110,15 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                                         }`}>
                                             {publication.status === 1 ? "Disponible" : "No disponible"}
                                         </span>
+                                        <button
+                                            onClick={() => setIsReportModalOpen(true)}
+                                            className="bg-gray-800 bg-opacity-80 text-white p-2 rounded-full hover:bg-opacity-100 transition-all duration-200"
+                                            title="Reportar publicación"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                            </svg>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -220,6 +230,14 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                     </div>
                 </div>
             </div>
+            
+            {/* Modal de reporte */}
+            <ReportModal
+                isOpen={isReportModalOpen}
+                onClose={() => setIsReportModalOpen(false)}
+                publicationId={publication.id}
+                publicationTitle={publication.title}
+            />
         </AppLayout>
     )
 }

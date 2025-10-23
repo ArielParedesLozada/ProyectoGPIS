@@ -37,7 +37,7 @@ export default function PublicationList({
                             <p className="text-gray-600">Descubre productos y servicios de múltiples vendedores</p>
                         </div>
                         <div className="text-right">
-                            <p className="text-sm text-gray-500">{publications.data.length} productos encontrados</p>
+                            <p className="text-sm text-gray-500">{publications.total} productos encontrados</p>
                         </div>
                     </div>
                 </div>

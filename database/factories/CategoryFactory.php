@@ -3,7 +3,6 @@
 namespace Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Arr;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Category>
@@ -17,18 +16,9 @@ class CategoryFactory extends Factory
      */
     public function definition(): array
     {
-        //Poca imaginacion
-        $categoryFactories = [
-            'Comida',
-            'Muebles',
-            'Inmuebles',
-            'Ropa',
-            'Servicio manual',
-            'Peliculas'
-        ];
         return [
-            'name' => Arr::random($categoryFactories),
-            'banned' => true
+            'name' => 'Electrónicos',
+            'banned' => false
         ];
     }
 }
