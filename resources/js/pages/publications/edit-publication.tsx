@@ -205,15 +205,15 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
                     <div className="flex items-center gap-4 mb-8">
                         <Link 
                             href="/my-publications"
-                            className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+                            className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
                         >
                             <ArrowLeft className="w-4 h-4" />
                             Volver a Mis Publicaciones
                         </Link>
                     </div>
 
-                    <div className="bg-white rounded-lg shadow-sm p-8">
-                        <h1 className="text-2xl font-bold text-gray-900 mb-6">Editar Publicación</h1>
+                    <div className="bg-card rounded-lg shadow-sm p-8">
+                        <h1 className="text-2xl font-bold text-foreground mb-6">Editar Publicación</h1>
 
                         <form onSubmit={handleSubmit} className="space-y-6">
                             {/* Información Básica */}
@@ -353,7 +353,7 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
                             <Card>
                                 <CardContent className="pt-6">
                                     <h3 className="text-lg font-semibold mb-4">Ubicación en el mapa *</h3>
-                                    <p className="text-sm text-gray-600 mb-4">
+                                    <p className="text-sm text-muted-foreground mb-4">
                                         Selecciona la ubicación exacta de tu producto o servicio en el mapa
                                     </p>
                                     <MapPicker
@@ -404,7 +404,7 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
                             <Card>
                                 <CardContent className="pt-6">
                                     <h3 className="text-lg font-semibold mb-4">Agregar Nuevas Imágenes</h3>
-                                    <p className="text-sm text-gray-600 mb-4">
+                                    <p className="text-sm text-muted-foreground mb-4">
                                         Agrega hasta 5 imágenes adicionales (máximo 5MB cada una)
                                     </p>
 
@@ -414,7 +414,7 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
                                         onClick={() => fileInputRef.current?.click()}
                                     >
                                         <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                                        <p className="text-gray-600 mb-2">Subir imágenes</p>
+                                        <p className="text-muted-foreground mb-2">Subir imágenes</p>
                                         <p className="text-sm text-gray-500">
                                             Arrastra y suelta o haz clic para seleccionar
                                         </p>

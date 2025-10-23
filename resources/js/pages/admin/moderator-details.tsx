@@ -66,7 +66,7 @@ export default function ModeratorDetails({ moderator }: ModeratorDetailsProps) {
             <div className="space-y-6 px-6 py-6">
                 {/* Back Link */}
                 <div className="max-w-4xl mx-auto">
-                    <Link href="/admin/moderators" className="flex items-center text-gray-600 hover:text-gray-900 transition-colors">
+                    <Link href="/admin/moderators" className="flex items-center text-muted-foreground hover:text-foreground transition-colors">
                         <ArrowLeft className="h-4 w-4 mr-2" />
                         Volver a Moderadores
                     </Link>
@@ -74,8 +74,8 @@ export default function ModeratorDetails({ moderator }: ModeratorDetailsProps) {
 
                 {/* Header */}
                 <div className="max-w-4xl mx-auto">
-                    <div className="bg-white rounded-lg shadow-lg border border-gray-200">
-                        <div className="px-6 py-6 border-b border-gray-200">
+                    <div className="bg-card rounded-lg shadow-lg border border-border">
+                        <div className="px-6 py-6 border-b border-border">
                             <div className="flex justify-between items-start">
                                 <div className="flex items-center space-x-4">
                                     <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
@@ -84,7 +84,7 @@ export default function ModeratorDetails({ moderator }: ModeratorDetailsProps) {
                                         </span>
                                     </div>
                                     <div>
-                                        <h1 className="text-2xl font-bold text-gray-900">
+                                        <h1 className="text-2xl font-bold text-foreground">
                                             {moderator.name} {moderator.surname}
                                         </h1>
                                         <div className="flex items-center space-x-2 mt-1">
@@ -156,37 +156,37 @@ export default function ModeratorDetails({ moderator }: ModeratorDetailsProps) {
                                     </CardHeader>
                                     <CardContent className="space-y-4">
                                         <div className="flex items-center space-x-3">
-                                            <IdCard className="h-4 w-4 text-gray-500" />
+                                            <IdCard className="h-4 w-4 text-muted-foreground" />
                                             <div>
-                                                <p className="text-sm text-gray-500">Cédula</p>
+                                                <p className="text-sm text-muted-foreground">Cédula</p>
                                                 <p className="font-medium">{moderator.cedula}</p>
                                             </div>
                                         </div>
                                         <div className="flex items-center space-x-3">
-                                            <Mail className="h-4 w-4 text-gray-500" />
+                                            <Mail className="h-4 w-4 text-muted-foreground" />
                                             <div>
-                                                <p className="text-sm text-gray-500">Email</p>
+                                                <p className="text-sm text-muted-foreground">Email</p>
                                                 <p className="font-medium">{moderator.email}</p>
                                             </div>
                                         </div>
                                         <div className="flex items-center space-x-3">
-                                            <Phone className="h-4 w-4 text-gray-500" />
+                                            <Phone className="h-4 w-4 text-muted-foreground" />
                                             <div>
-                                                <p className="text-sm text-gray-500">Teléfono</p>
+                                                <p className="text-sm text-muted-foreground">Teléfono</p>
                                                 <p className="font-medium">{moderator.phone}</p>
                                             </div>
                                         </div>
                                         <div className="flex items-center space-x-3">
-                                            <MapPin className="h-4 w-4 text-gray-500" />
+                                            <MapPin className="h-4 w-4 text-muted-foreground" />
                                             <div>
-                                                <p className="text-sm text-gray-500">Dirección</p>
+                                                <p className="text-sm text-muted-foreground">Dirección</p>
                                                 <p className="font-medium">{moderator.address}</p>
                                             </div>
                                         </div>
                                         <div className="flex items-center space-x-3">
-                                            <UserCheck className="h-4 w-4 text-gray-500" />
+                                            <UserCheck className="h-4 w-4 text-muted-foreground" />
                                             <div>
-                                                <p className="text-sm text-gray-500">Género</p>
+                                                <p className="text-sm text-muted-foreground">Género</p>
                                                 <p className="font-medium capitalize">{moderator.gender}</p>
                                             </div>
                                         </div>
@@ -203,23 +203,23 @@ export default function ModeratorDetails({ moderator }: ModeratorDetailsProps) {
                                     </CardHeader>
                                     <CardContent className="space-y-4">
                                         <div className="flex items-center space-x-3">
-                                            <Calendar className="h-4 w-4 text-gray-500" />
+                                            <Calendar className="h-4 w-4 text-muted-foreground" />
                                             <div>
-                                                <p className="text-sm text-gray-500">Fecha de Creación</p>
+                                                <p className="text-sm text-muted-foreground">Fecha de Creación</p>
                                                 <p className="font-medium">{formatDate(moderator.created_at)}</p>
                                             </div>
                                         </div>
                                         <div className="flex items-center space-x-3">
-                                            <Calendar className="h-4 w-4 text-gray-500" />
+                                            <Calendar className="h-4 w-4 text-muted-foreground" />
                                             <div>
-                                                <p className="text-sm text-gray-500">Última Actualización</p>
+                                                <p className="text-sm text-muted-foreground">Última Actualización</p>
                                                 <p className="font-medium">{formatDate(moderator.updated_at)}</p>
                                             </div>
                                         </div>
                                         <div className="flex items-center space-x-3">
-                                            <UserCheck className="h-4 w-4 text-gray-500" />
+                                            <UserCheck className="h-4 w-4 text-muted-foreground" />
                                             <div>
-                                                <p className="text-sm text-gray-500">Estado de la Cuenta</p>
+                                                <p className="text-sm text-muted-foreground">Estado de la Cuenta</p>
                                                 <Badge 
                                                     variant={moderator.is_active ? "default" : "secondary"}
                                                     className={moderator.is_active 

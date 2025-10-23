@@ -43,7 +43,7 @@ export default function CreateAdmin() {
             <div className="space-y-6 px-6 py-6">
                     {/* Back Link */}
                     <div className="max-w-4xl mx-auto">
-                        <Link href="/admin/admins" className="flex items-center text-gray-600 hover:text-gray-900 transition-colors">
+                        <Link href="/admin/admins" className="flex items-center text-muted-foreground hover:text-foreground transition-colors">
                             <ArrowLeft className="h-4 w-4 mr-2" />
                             Volver a Administradores
                         </Link>
@@ -51,12 +51,12 @@ export default function CreateAdmin() {
 
                 {/* Form */}
                 <div className="max-w-4xl mx-auto">
-                    <div className="bg-white rounded-lg shadow-lg border border-gray-200">
-                        <div className="px-6 py-6 border-b border-gray-200">
-                            <h1 className="text-2xl font-bold text-gray-900">Crear Administrador</h1>
+                    <div className="bg-card rounded-lg shadow-lg border border-border">
+                        <div className="px-6 py-6 border-b border-border">
+                            <h1 className="text-2xl font-bold text-foreground">Crear Administrador</h1>
                         </div>
                         <div className="px-6 py-6">
-                            <h2 className="text-lg font-semibold text-gray-900 mb-6">Información del Administrador</h2>
+                            <h2 className="text-lg font-semibold text-foreground mb-6">Información del Administrador</h2>
                             <Form
                                 action="/admin/admins"
                                 method="post"
@@ -73,7 +73,7 @@ export default function CreateAdmin() {
                                     <div className="space-y-6">
                                         {/* Cédula */}
                                         <div>
-                                            <Label htmlFor="cedula" className="text-sm font-medium text-gray-700 mb-2 block">
+                                            <Label htmlFor="cedula" className="text-sm font-medium text-foreground mb-2 block">
                                                 Cédula *
                                             </Label>
                                             <Input
@@ -103,7 +103,7 @@ export default function CreateAdmin() {
                                         {/* Nombre y Apellido */}
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div>
-                                                <Label htmlFor="name" className="text-sm font-medium text-gray-700 mb-2 block">
+                                                <Label htmlFor="name" className="text-sm font-medium text-foreground mb-2 block">
                                                     Nombre *
                                                 </Label>
                                                 <Input
@@ -123,7 +123,7 @@ export default function CreateAdmin() {
                                             </div>
 
                                             <div>
-                                                <Label htmlFor="surname" className="text-sm font-medium text-gray-700 mb-2 block">
+                                                <Label htmlFor="surname" className="text-sm font-medium text-foreground mb-2 block">
                                                     Apellido *
                                                 </Label>
                                                 <Input
@@ -145,7 +145,7 @@ export default function CreateAdmin() {
 
                                         {/* Teléfono */}
                                         <div>
-                                            <Label htmlFor="phone" className="text-sm font-medium text-gray-700 mb-2 block">
+                                            <Label htmlFor="phone" className="text-sm font-medium text-foreground mb-2 block">
                                                 Teléfono *
                                             </Label>
                                             <Input
@@ -174,7 +174,7 @@ export default function CreateAdmin() {
 
                                         {/* Dirección */}
                                         <div>
-                                            <Label htmlFor="address" className="text-sm font-medium text-gray-700 mb-2 block">
+                                            <Label htmlFor="address" className="text-sm font-medium text-foreground mb-2 block">
                                                 Dirección *
                                             </Label>
                                             <Input
@@ -195,7 +195,7 @@ export default function CreateAdmin() {
 
                                         {/* Género */}
                                         <div>
-                                            <Label htmlFor="gender" className="text-sm font-medium text-gray-700 mb-2 block">
+                                            <Label htmlFor="gender" className="text-sm font-medium text-foreground mb-2 block">
                                                 Género *
                                             </Label>
                                             <Select
@@ -222,7 +222,7 @@ export default function CreateAdmin() {
 
                                         {/* Email */}
                                         <div>
-                                            <Label htmlFor="email" className="text-sm font-medium text-gray-700 mb-2 block">
+                                            <Label htmlFor="email" className="text-sm font-medium text-foreground mb-2 block">
                                                 Email *
                                             </Label>
                                             <Input
@@ -244,7 +244,7 @@ export default function CreateAdmin() {
                                         {/* Contraseñas */}
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div>
-                                                <Label htmlFor="password" className="text-sm font-medium text-gray-700 mb-2 block">
+                                                <Label htmlFor="password" className="text-sm font-medium text-foreground mb-2 block">
                                                     Contraseña *
                                                 </Label>
                                                 <PasswordInput
@@ -263,7 +263,7 @@ export default function CreateAdmin() {
                                             </div>
 
                                             <div>
-                                                <Label htmlFor="password_confirmation" className="text-sm font-medium text-gray-700 mb-2 block">
+                                                <Label htmlFor="password_confirmation" className="text-sm font-medium text-foreground mb-2 block">
                                                     Confirmar Contraseña *
                                                 </Label>
                                                 <PasswordInput
@@ -284,7 +284,7 @@ export default function CreateAdmin() {
                                     </div>
 
                                     {/* Submit Button */}
-                                    <div className="flex justify-end space-x-4 pt-8 border-t border-gray-200">
+                                    <div className="flex justify-end space-x-4 pt-8 border-t border-border">
                                         <Button type="button" variant="outline" size="lg" asChild>
                                             <Link href="/admin/admins">Cancelar</Link>
                                         </Button>

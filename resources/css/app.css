@@ -98,38 +98,38 @@
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.145 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.145 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.985 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.396 0.141 25.723);
-    --destructive-foreground: oklch(0.637 0.237 25.331);
-    --border: oklch(0.269 0 0);
-    --input: oklch(0.269 0 0);
-    --ring: oklch(0.439 0 0);
-    --chart-1: oklch(0.488 0.243 264.376);
-    --chart-2: oklch(0.696 0.17 162.48);
-    --chart-3: oklch(0.769 0.188 70.08);
-    --chart-4: oklch(0.627 0.265 303.9);
-    --chart-5: oklch(0.645 0.246 16.439);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.985 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(0.269 0 0);
-    --sidebar-ring: oklch(0.439 0 0);
+    --background: oklch(0.08 0 0);
+    --foreground: oklch(0.95 0 0);
+    --card: oklch(0.12 0 0);
+    --card-foreground: oklch(0.95 0 0);
+    --popover: oklch(0.12 0 0);
+    --popover-foreground: oklch(0.95 0 0);
+    --primary: oklch(0.7 0.15 240);
+    --primary-foreground: oklch(0.95 0 0);
+    --secondary: oklch(0.18 0 0);
+    --secondary-foreground: oklch(0.9 0 0);
+    --muted: oklch(0.18 0 0);
+    --muted-foreground: oklch(0.65 0 0);
+    --accent: oklch(0.18 0 0);
+    --accent-foreground: oklch(0.9 0 0);
+    --destructive: oklch(0.55 0.2 25);
+    --destructive-foreground: oklch(0.95 0 0);
+    --border: oklch(0.25 0 0);
+    --input: oklch(0.18 0 0);
+    --ring: oklch(0.4 0 0);
+    --chart-1: oklch(0.6 0.2 240);
+    --chart-2: oklch(0.65 0.15 160);
+    --chart-3: oklch(0.7 0.18 70);
+    --chart-4: oklch(0.6 0.25 300);
+    --chart-5: oklch(0.65 0.2 20);
+    --sidebar: oklch(0.1 0 0);
+    --sidebar-foreground: oklch(0.9 0 0);
+    --sidebar-primary: oklch(0.7 0.15 240);
+    --sidebar-primary-foreground: oklch(0.95 0 0);
+    --sidebar-accent: oklch(0.18 0 0);
+    --sidebar-accent-foreground: oklch(0.9 0 0);
+    --sidebar-border: oklch(0.25 0 0);
+    --sidebar-ring: oklch(0.4 0 0);
 }
 
 @layer base {
@@ -139,6 +139,58 @@
 
     body {
         @apply bg-background text-foreground;
+    }
+
+    /* Mejoras para el modo oscuro */
+    .dark {
+        /* Asegurar que todos los elementos tengan buen contraste */
+        color-scheme: dark;
+    }
+
+    /* Clases utilitarias para mejor contraste */
+    .text-contrast {
+        @apply text-foreground;
+    }
+
+    .bg-elevated {
+        @apply bg-card;
+    }
+
+    .border-subtle {
+        @apply border-border/50;
+    }
+
+    /* Mejoras para cards en modo oscuro */
+    .dark .card-elevated {
+        @apply bg-card border-border shadow-lg;
+    }
+
+    /* Mejoras para texto en modo oscuro */
+    .dark .text-muted {
+        @apply text-muted-foreground;
+    }
+
+    /* Mejoras para botones en modo oscuro */
+    .dark .btn-primary {
+        @apply bg-primary text-primary-foreground hover:bg-primary/90;
+    }
+
+    /* Mejoras para inputs en modo oscuro */
+    .dark input, .dark textarea, .dark select {
+        @apply bg-input border-border text-foreground;
+    }
+
+    /* Mejoras para tablas en modo oscuro */
+    .dark table {
+        @apply bg-card;
+    }
+
+    .dark th {
+        @apply bg-muted text-muted-foreground;
+    }
+
+    .dark td {
+        @apply border-border;
     }
 }
 

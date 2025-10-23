@@ -58,7 +58,7 @@ export default function EditModerator({ moderator }: EditModeratorProps) {
             <div className="space-y-6 px-6 py-6">
                 {/* Back Link */}
                 <div className="max-w-4xl mx-auto">
-                    <Link href="/admin/moderators" className="flex items-center text-gray-600 hover:text-gray-900 transition-colors">
+                    <Link href="/admin/moderators" className="flex items-center text-muted-foreground hover:text-foreground transition-colors">
                         <ArrowLeft className="h-4 w-4 mr-2" />
                         Volver a Moderadores
                     </Link>
@@ -66,12 +66,12 @@ export default function EditModerator({ moderator }: EditModeratorProps) {
 
                 {/* Form */}
                 <div className="max-w-4xl mx-auto">
-                    <div className="bg-white rounded-lg shadow-lg border border-gray-200">
-                        <div className="px-6 py-6 border-b border-gray-200">
-                            <h1 className="text-2xl font-bold text-gray-900">Editar Moderador</h1>
+                    <div className="bg-card rounded-lg shadow-lg border border-border">
+                        <div className="px-6 py-6 border-b border-border">
+                            <h1 className="text-2xl font-bold text-foreground">Editar Moderador</h1>
                         </div>
                         <div className="px-6 py-6">
-                            <h2 className="text-lg font-semibold text-gray-900 mb-6">Información del Moderador</h2>
+                            <h2 className="text-lg font-semibold text-foreground mb-6">Información del Moderador</h2>
                             <Form
                                 action={`/admin/moderators/${moderator.id}`}
                                 method="patch"
@@ -88,7 +88,7 @@ export default function EditModerator({ moderator }: EditModeratorProps) {
                                     <div className="space-y-6">
                                         {/* Cédula */}
                                         <div>
-                                            <Label htmlFor="cedula" className="text-sm font-medium text-gray-700 mb-2 block">
+                                            <Label htmlFor="cedula" className="text-sm font-medium text-foreground mb-2 block">
                                                 Cédula *
                                             </Label>
                                             <Input
@@ -118,7 +118,7 @@ export default function EditModerator({ moderator }: EditModeratorProps) {
                                         {/* Nombre y Apellido */}
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div>
-                                                <Label htmlFor="name" className="text-sm font-medium text-gray-700 mb-2 block">
+                                                <Label htmlFor="name" className="text-sm font-medium text-foreground mb-2 block">
                                                     Nombre *
                                                 </Label>
                                                 <Input
@@ -138,7 +138,7 @@ export default function EditModerator({ moderator }: EditModeratorProps) {
                                             </div>
 
                                             <div>
-                                                <Label htmlFor="surname" className="text-sm font-medium text-gray-700 mb-2 block">
+                                                <Label htmlFor="surname" className="text-sm font-medium text-foreground mb-2 block">
                                                     Apellido *
                                                 </Label>
                                                 <Input
@@ -161,7 +161,7 @@ export default function EditModerator({ moderator }: EditModeratorProps) {
                                         {/* Teléfono y Dirección */}
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div>
-                                                <Label htmlFor="phone" className="text-sm font-medium text-gray-700 mb-2 block">
+                                                <Label htmlFor="phone" className="text-sm font-medium text-foreground mb-2 block">
                                                     Teléfono *
                                                 </Label>
                                                 <Input
@@ -189,7 +189,7 @@ export default function EditModerator({ moderator }: EditModeratorProps) {
                                             </div>
 
                                             <div>
-                                                <Label htmlFor="address" className="text-sm font-medium text-gray-700 mb-2 block">
+                                                <Label htmlFor="address" className="text-sm font-medium text-foreground mb-2 block">
                                                     Dirección *
                                                 </Label>
                                                 <Input
@@ -211,7 +211,7 @@ export default function EditModerator({ moderator }: EditModeratorProps) {
 
                                         {/* Género */}
                                         <div>
-                                            <Label htmlFor="gender" className="text-sm font-medium text-gray-700 mb-2 block">
+                                            <Label htmlFor="gender" className="text-sm font-medium text-foreground mb-2 block">
                                                 Género *
                                             </Label>
                                             <Select
@@ -238,7 +238,7 @@ export default function EditModerator({ moderator }: EditModeratorProps) {
 
                                         {/* Email */}
                                         <div>
-                                            <Label htmlFor="email" className="text-sm font-medium text-gray-700 mb-2 block">
+                                            <Label htmlFor="email" className="text-sm font-medium text-foreground mb-2 block">
                                                 Email *
                                             </Label>
                                             <Input
@@ -259,10 +259,10 @@ export default function EditModerator({ moderator }: EditModeratorProps) {
 
                                         {/* Contraseña (opcional) */}
                                         <div className="border-t pt-6">
-                                            <h3 className="text-md font-semibold text-gray-900 mb-4">Cambiar Contraseña (Opcional)</h3>
+                                            <h3 className="text-md font-semibold text-foreground mb-4">Cambiar Contraseña (Opcional)</h3>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                 <div>
-                                                    <Label htmlFor="password" className="text-sm font-medium text-gray-700 mb-2 block">
+                                                    <Label htmlFor="password" className="text-sm font-medium text-foreground mb-2 block">
                                                         Nueva Contraseña
                                                     </Label>
                                                     <PasswordInput
@@ -281,7 +281,7 @@ export default function EditModerator({ moderator }: EditModeratorProps) {
                                                 </div>
 
                                                 <div>
-                                                    <Label htmlFor="password_confirmation" className="text-sm font-medium text-gray-700 mb-2 block">
+                                                    <Label htmlFor="password_confirmation" className="text-sm font-medium text-foreground mb-2 block">
                                                         Confirmar Nueva Contraseña
                                                     </Label>
                                                     <PasswordInput
@@ -303,7 +303,7 @@ export default function EditModerator({ moderator }: EditModeratorProps) {
                                     </div>
 
                                     {/* Submit Button */}
-                                    <div className="flex justify-end space-x-4 pt-8 border-t border-gray-200">
+                                    <div className="flex justify-end space-x-4 pt-8 border-t border-border">
                                         <Button type="button" variant="outline" size="lg" asChild>
                                             <Link href="/admin/moderators">Cancelar</Link>
                                         </Button>
