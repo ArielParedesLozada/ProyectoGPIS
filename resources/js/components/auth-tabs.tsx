@@ -7,14 +7,14 @@ interface AuthTabsProps {
 
 export default function AuthTabs({ activeTab }: AuthTabsProps) {
     return (
-        <div className="flex bg-gray-100 rounded-lg p-1 mb-6 sm:mb-8">
+        <div className="flex bg-muted rounded-lg p-1 mb-6 sm:mb-8">
             <Link
                 href="/login"
                 className={cn(
                     "flex-1 text-center py-2 px-2 sm:px-4 rounded-md text-xs sm:text-sm font-medium transition-all duration-200",
                     activeTab === 'login'
-                        ? "bg-blue-600 text-white shadow-sm"
-                        : "text-gray-600 hover:text-gray-800"
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
                 )}
             >
                 Iniciar Sesión
@@ -24,8 +24,8 @@ export default function AuthTabs({ activeTab }: AuthTabsProps) {
                 className={cn(
                     "flex-1 text-center py-2 px-2 sm:px-4 rounded-md text-xs sm:text-sm font-medium transition-all duration-200",
                     activeTab === 'register'
-                        ? "bg-blue-600 text-white shadow-sm"
-                        : "text-gray-600 hover:text-gray-800"
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
                 )}
             >
                 Registrarse

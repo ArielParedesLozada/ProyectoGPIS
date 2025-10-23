@@ -15,6 +15,7 @@ import {
     Shield
 } from "lucide-react";
 import { useState } from "react";
+import GeneralModal from "@/components/ui/general-modal";
 
 interface ModerationCase {
     id: number;
@@ -92,19 +93,14 @@ export default function ModerationShow({ case: caseItem }: ModerationShowProps) 
         },
     ];
 
-    const [showStatusModal, setShowStatusModal] = useState(false);
     const [showDismissModal, setShowDismissModal] = useState(false);
-    const [newStatus, setNewStatus] = useState(caseItem.status);
+    const [showHideModal, setShowHideModal] = useState(false);
     const [notes, setNotes] = useState(caseItem.resolution_notes || '');
+    const [hideReason, setHideReason] = useState('');
 
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'pending': return 'bg-yellow-100 text-yellow-800';
-            case 'triage': return 'bg-blue-100 text-blue-800';
-            case 'in_review': return 'bg-purple-100 text-purple-800';
-            case 'action_taken': return 'bg-green-100 text-green-800';
-            case 'dismissed': return 'bg-gray-100 text-gray-800';
-            case 'appealed': return 'bg-red-100 text-red-800';
             case 'closed': return 'bg-gray-100 text-gray-800';
             default: return 'bg-gray-100 text-gray-800';
         }
@@ -113,122 +109,60 @@ export default function ModerationShow({ case: caseItem }: ModerationShowProps) 
     const getStatusText = (status: string) => {
         switch (status) {
             case 'pending': return 'Pendiente';
-            case 'triage': return 'En triaje';
-            case 'in_review': return 'En revisión';
-            case 'action_taken': return 'Acción tomada';
-            case 'dismissed': return 'Descartado';
-            case 'appealed': return 'Apelado';
             case 'closed': return 'Cerrado';
             default: return status;
         }
     };
 
-    const handleStatusUpdate = async () => {
-        try {
-            const response = await fetch(`/moderation/${caseItem.id}/status`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                },
-                body: JSON.stringify({
-                    status: newStatus,
-                    notes: notes,
-                }),
-            });
 
-            const data = await response.json();
-            
-            if (data.success) {
-                router.reload();
-                setShowStatusModal(false);
-            } else {
-                alert(data.message || 'Error al actualizar el estado');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Error al actualizar el estado');
+    const handleHidePublication = () => {
+        if (!hideReason.trim()) {
+            alert('Debes proporcionar un motivo para ocultar la publicación');
+            return;
         }
+
+        router.post(`/moderation/${caseItem.id}/hide-publication`, {
+            reason: hideReason,
+        }, {
+            onSuccess: () => {
+                setShowHideModal(false);
+                setHideReason('');
+            },
+            onError: (errors) => {
+                console.error('Error:', errors);
+                alert('Error al ocultar la publicación');
+            }
+        });
     };
 
-    const handleHidePublication = async () => {
-        if (!confirm('¿Estás seguro de que quieres ocultar esta publicación?')) return;
-
-        try {
-            const response = await fetch(`/moderation/${caseItem.id}/hide-publication`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                },
-            });
-
-            const data = await response.json();
-            
-            if (data.success) {
-                router.reload();
-            } else {
-                alert(data.message || 'Error al ocultar la publicación');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Error al ocultar la publicación');
-        }
-    };
-
-    const handleRestorePublication = async () => {
+    const handleRestorePublication = () => {
         if (!confirm('¿Estás seguro de que quieres restaurar esta publicación?')) return;
 
-        try {
-            const response = await fetch(`/moderation/${caseItem.id}/restore-publication`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                },
-            });
-
-            const data = await response.json();
-            
-            if (data.success) {
-                router.reload();
-            } else {
-                alert(data.message || 'Error al restaurar la publicación');
+        router.post(`/moderation/${caseItem.id}/restore-publication`, {}, {
+            onError: (errors) => {
+                console.error('Error:', errors);
+                alert('Error al restaurar la publicación');
             }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Error al restaurar la publicación');
-        }
+        });
     };
 
-    const handleDismissCase = async () => {
+    const handleDismissCase = () => {
         if (!notes.trim()) {
             alert('Debes proporcionar una razón para descartar el caso');
             return;
         }
 
-        try {
-            const response = await fetch(`/moderation/${caseItem.id}/dismiss`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                },
-                body: JSON.stringify({
-                    notes: notes,
-                }),
-            });
-
-            const data = await response.json();
-            
-            if (data.success) {
-                router.reload();
+        router.post(`/moderation/${caseItem.id}/dismiss`, {
+            notes: notes,
+        }, {
+            onSuccess: () => {
                 setShowDismissModal(false);
-            } else {
-                alert(data.message || 'Error al descartar el caso');
+            },
+            onError: (errors) => {
+                console.error('Error:', errors);
+                alert('Error al descartar el caso');
             }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Error al descartar el caso');
-        }
+        });
     };
 
     return (
@@ -385,19 +319,9 @@ export default function ModerationShow({ case: caseItem }: ModerationShowProps) 
                                     <div className="space-y-4">
                                         {caseItem.appeals.map((appeal) => (
                                             <div key={appeal.id} className="border border-gray-200 rounded-lg p-4">
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <div className="flex items-center gap-2">
-                                                        <MessageSquare className="w-4 h-4 text-gray-500" />
-                                                        <span className="font-medium text-gray-900">{appeal.appealer.name}</span>
-                                                    </div>
-                                                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                                        appeal.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                                        appeal.status === 'accepted' ? 'bg-green-100 text-green-800' :
-                                                        'bg-red-100 text-red-800'
-                                                    }`}>
-                                                        {appeal.status === 'pending' ? 'Pendiente' :
-                                                         appeal.status === 'accepted' ? 'Aceptada' : 'Rechazada'}
-                                                    </span>
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <MessageSquare className="w-4 h-4 text-gray-500" />
+                                                    <span className="font-medium text-gray-900">{appeal.appealer.name}</span>
                                                 </div>
                                                 <p className="text-gray-700 text-sm mb-2">{appeal.appeal_reason}</p>
                                                 {appeal.review_notes && (
@@ -421,16 +345,9 @@ export default function ModerationShow({ case: caseItem }: ModerationShowProps) 
                                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Acciones</h3>
                                 
                                 <div className="space-y-3">
-                                    <button
-                                        onClick={() => setShowStatusModal(true)}
-                                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition"
-                                    >
-                                        Cambiar Estado
-                                    </button>
-
                                     {!caseItem.publication.is_hidden ? (
                                         <button
-                                            onClick={handleHidePublication}
+                                            onClick={() => setShowHideModal(true)}
                                             className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-xl transition"
                                         >
                                             <EyeOff className="w-4 h-4 mr-2 inline" />
@@ -496,56 +413,6 @@ export default function ModerationShow({ case: caseItem }: ModerationShowProps) 
                 </div>
             </div>
 
-            {/* Modal para cambiar estado */}
-            {showStatusModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl shadow-lg max-w-md w-full p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Cambiar Estado</h3>
-                        
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Nuevo Estado</label>
-                            <select
-                                value={newStatus}
-                                onChange={(e) => setNewStatus(e.target.value)}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            >
-                                <option value="pending">Pendiente</option>
-                                <option value="triage">En triaje</option>
-                                <option value="in_review">En revisión</option>
-                                <option value="action_taken">Acción tomada</option>
-                                <option value="dismissed">Descartado</option>
-                                <option value="closed">Cerrado</option>
-                            </select>
-                        </div>
-
-                        <div className="mb-6">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Notas</label>
-                            <textarea
-                                value={notes}
-                                onChange={(e) => setNotes(e.target.value)}
-                                rows={3}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="Notas adicionales..."
-                            />
-                        </div>
-
-                        <div className="flex gap-3">
-                            <button
-                                onClick={handleStatusUpdate}
-                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition"
-                            >
-                                Actualizar
-                            </button>
-                            <button
-                                onClick={() => setShowStatusModal(false)}
-                                className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 font-semibold py-2 px-4 rounded-lg transition"
-                            >
-                                Cancelar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Modal para descartar caso */}
             {showDismissModal && (
@@ -582,6 +449,49 @@ export default function ModerationShow({ case: caseItem }: ModerationShowProps) 
                     </div>
                 </div>
             )}
+
+            {/* Modal para ocultar publicación */}
+            <GeneralModal
+                isOpen={showHideModal}
+                onClose={() => setShowHideModal(false)}
+                title="Ocultar Publicación"
+            >
+                <div className="space-y-4">
+                    <p className="text-gray-600">
+                        ¿Estás seguro de que quieres ocultar esta publicación? 
+                        Proporciona un motivo detallado para esta acción.
+                    </p>
+                    
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Motivo de ocultación
+                        </label>
+                        <textarea
+                            value={hideReason}
+                            onChange={(e) => setHideReason(e.target.value)}
+                            rows={4}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                            placeholder="Explica detalladamente por qué se oculta esta publicación..."
+                            required
+                        />
+                    </div>
+
+                    <div className="flex gap-3 pt-4">
+                        <button
+                            onClick={handleHidePublication}
+                            className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition"
+                        >
+                            Ocultar Publicación
+                        </button>
+                        <button
+                            onClick={() => setShowHideModal(false)}
+                            className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 font-semibold py-2 px-4 rounded-lg transition"
+                        >
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            </GeneralModal>
         </AppLayout>
     );
 }

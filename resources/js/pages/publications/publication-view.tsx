@@ -49,12 +49,12 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                             {/* Flecha de regreso - posicionada absolutamente */}
                             <Link
                                 href="/publication"
-                                className="absolute top-0 left-0 z-10 inline-flex items-center justify-center w-8 h-8 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
+                                className="absolute top-0 left-0 z-10 inline-flex items-center justify-center w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-gray-100 rounded-full transition-colors"
                             >
                                 <ArrowLeft className="h-4 w-4" />
                             </Link>
                             
-                            <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+                            <div className="bg-card rounded-2xl shadow-lg overflow-hidden">
                                 <div className="relative group">
                                     <img
                                         src={images[currentImageIndex]}
@@ -67,13 +67,13 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                                         <>
                                             <button
                                                 onClick={prevImage}
-                                                className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                                className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-card/80 hover:bg-card text-gray-800 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                                             >
                                                 <ChevronLeft className="h-4 w-4" />
                                             </button>
                                             <button
                                                 onClick={nextImage}
-                                                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-card/80 hover:bg-card text-gray-800 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                                             >
                                                 <ChevronRight className="h-4 w-4" />
                                             </button>
@@ -89,8 +89,8 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                                                     onClick={() => setCurrentImageIndex(index)}
                                                     className={`w-2 h-2 rounded-full transition-all duration-200 ${
                                                         index === currentImageIndex 
-                                                            ? 'bg-white' 
-                                                            : 'bg-white/50 hover:bg-white/75'
+                                                            ? 'bg-card' 
+                                                            : 'bg-card/50 hover:bg-card/75'
                                                     }`}
                                                 />
                                             ))}
@@ -98,7 +98,7 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                                     )}
                                     
                                     <div className="absolute top-4 left-4">
-                                        <span className="bg-white/90 backdrop-blur-sm text-gray-800 px-3 py-1 rounded-full text-sm font-medium shadow-lg">
+                                        <span className="bg-card/90 backdrop-blur-sm text-gray-800 px-3 py-1 rounded-full text-sm font-medium shadow-lg">
                                             {publication.category.name}
                                         </span>
                                     </div>
@@ -127,9 +127,9 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                         {/* Columna derecha - Información */}
                         <div className="flex flex-col space-y-6 justify-start">
                             {/* Card de precio */}
-                            <div className="bg-white rounded-2xl shadow-lg p-6">
+                            <div className="bg-card rounded-2xl shadow-lg p-6">
                                 <div className="text-center mb-6">
-                                    <div className="text-4xl font-bold text-gray-900 mb-2">
+                                    <div className="text-4xl font-bold text-foreground mb-2">
                                         ${publication.price}
                                     </div>
                                     <div className="text-sm text-gray-500">Precio final</div>
@@ -145,11 +145,11 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                             </div>
 
                             {/* Card de detalles */}
-                            <div className="bg-white rounded-2xl shadow-lg p-6 flex flex-col">
-                                <h3 className="font-bold text-gray-900 mb-4 text-lg">Detalles del Producto</h3>
+                            <div className="bg-card rounded-2xl shadow-lg p-6 flex flex-col">
+                                <h3 className="font-bold text-foreground mb-4 text-lg">Detalles del Producto</h3>
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-center py-2">
-                                        <span className="text-gray-600 text-sm font-medium">Tipo:</span>
+                                        <span className="text-muted-foreground text-sm font-medium">Tipo:</span>
                                         <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                                             publication.type === 'servicio' 
                                                 ? 'bg-green-100 text-green-800' 
@@ -159,20 +159,20 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                                         </span>
                                     </div>
                                     <div className="flex justify-between items-center py-2">
-                                        <span className="text-gray-600 text-sm font-medium">Código:</span>
-                                        <span className="text-gray-900 font-mono text-sm">{publication.code}</span>
+                                        <span className="text-muted-foreground text-sm font-medium">Código:</span>
+                                        <span className="text-foreground font-mono text-sm">{publication.code}</span>
                                     </div>
                                     {publication.horario && (
                                         <div className="flex justify-between items-center py-2">
-                                            <span className="text-gray-600 text-sm font-medium">Horario:</span>
-                                            <span className="text-gray-900 text-sm">
+                                            <span className="text-muted-foreground text-sm font-medium">Horario:</span>
+                                            <span className="text-foreground text-sm">
                                                 {publication.horario}
                                             </span>
                                         </div>
                                     )}
                                     <div className="flex justify-between items-center py-2">
-                                        <span className="text-gray-600 text-sm font-medium">Publicado:</span>
-                                        <span className="text-gray-900 text-sm">
+                                        <span className="text-muted-foreground text-sm font-medium">Publicado:</span>
+                                        <span className="text-foreground text-sm">
                                             {new Date(publication.published_at).toLocaleDateString()}
                                         </span>
                                     </div>
@@ -183,8 +183,8 @@ export default function PublicationView({ publication }: PublicationViewProps) {
 
                     {/* Sección de descripción - debajo de la imagen */}
                     <div className="mt-8">
-                        <div className="bg-white rounded-2xl shadow-lg p-6">
-                            <h2 className="text-lg font-semibold text-gray-900 mb-3">Descripción</h2>
+                        <div className="bg-card rounded-2xl shadow-lg p-6">
+                            <h2 className="text-lg font-semibold text-foreground mb-3">Descripción</h2>
                             <div className="prose prose-gray max-w-none">
                                 <p className="text-gray-700 leading-relaxed text-base">
                                     {publication.description}
@@ -196,8 +196,8 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                     {/* Mapa de ubicación */}
                     {publication.location_point && (
                         <div className="mt-8">
-                            <div className="bg-white rounded-2xl shadow-lg p-6">
-                                <h2 className="text-lg font-semibold text-gray-900 mb-4">Ubicación</h2>
+                            <div className="bg-card rounded-2xl shadow-lg p-6">
+                                <h2 className="text-lg font-semibold text-foreground mb-4">Ubicación</h2>
                                 <MiniMap
                                     lat={publication.location_point.lat}
                                     lng={publication.location_point.lng}
@@ -210,8 +210,8 @@ export default function PublicationView({ publication }: PublicationViewProps) {
 
                     {/* Información del vendedor - al final */}
                     <div className="mt-8">
-                        <div className="bg-white rounded-2xl shadow-lg p-6">
-                            <h2 className="text-lg font-semibold text-gray-900 mb-4">Información del Vendedor</h2>
+                        <div className="bg-card rounded-2xl shadow-lg p-6">
+                            <h2 className="text-lg font-semibold text-foreground mb-4">Información del Vendedor</h2>
                             <div className="flex items-center space-x-3">
                                 <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                                     <span className="text-blue-600 font-semibold text-lg">
@@ -219,7 +219,7 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                                     </span>
                                 </div>
                                 <div>
-                                    <div className="font-medium text-gray-900">{publication.user.name}</div>
+                                    <div className="font-medium text-foreground">{publication.user.name}</div>
                                     <div className="text-sm text-gray-500">Vendedor verificado</div>
                                     <div className="text-xs text-gray-400 mt-1">
                                         Miembro desde {new Date(publication.published_at).getFullYear()}

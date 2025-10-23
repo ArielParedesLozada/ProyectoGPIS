@@ -68,7 +68,7 @@ export default function ModeratorUsers({ moderators }: ModeratorUsersPageProps) 
                             <h1 className="text-3xl font-bold mb-2">Moderadores</h1>
                             <p className="text-blue-100 text-lg">Gestiona los moderadores del sistema</p>
                         </div>
-                        <Button variant="secondary" className="bg-white/20 text-white border-white/30 hover:bg-white/30" asChild>
+                        <Button variant="secondary" className="bg-white/20 text-white border-white/50 hover:bg-white/30 hover:border-white/70 shadow-lg" asChild>
                             <Link href="/admin/moderators/create">
                                 <Plus className="h-4 w-4 mr-2" />
                                 Crear Moderador
@@ -79,22 +79,22 @@ export default function ModeratorUsers({ moderators }: ModeratorUsersPageProps) 
 
                 {/* Stats Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 bg-white/95 backdrop-blur-sm border border-gray-200/50">
+                    <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 bg-card/95 backdrop-blur-sm ">
                         <CardHeader className="pb-3">
-                            <CardTitle className="text-sm font-semibold text-gray-700 flex items-center">
+                            <CardTitle className="text-sm font-semibold text-foreground flex items-center">
                                 <Users className="h-5 w-5 mr-2 text-blue-600" />
                                 Total Moderadores
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="text-3xl font-bold text-blue-600">{moderators.total}</div>
-                            <p className="text-sm text-gray-600 mt-1">Registrados en el sistema</p>
+                            <p className="text-sm text-muted-foreground mt-1">Registrados en el sistema</p>
                         </CardContent>
                     </Card>
                     
-                    <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-all duration-200 bg-white/95 backdrop-blur-sm border border-gray-200/50">
+                    <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-all duration-200 bg-card/95 backdrop-blur-sm ">
                         <CardHeader className="pb-3">
-                            <CardTitle className="text-sm font-semibold text-gray-700 flex items-center">
+                            <CardTitle className="text-sm font-semibold text-foreground flex items-center">
                                 <UserCheck className="h-5 w-5 mr-2 text-green-600" />
                                 Activos
                             </CardTitle>
@@ -103,13 +103,13 @@ export default function ModeratorUsers({ moderators }: ModeratorUsersPageProps) 
                             <div className="text-3xl font-bold text-green-600">
                                 {moderators.data.filter(moderator => moderator.is_active).length}
                             </div>
-                            <p className="text-sm text-gray-600 mt-1">Pueden acceder al sistema</p>
+                            <p className="text-sm text-muted-foreground mt-1">Pueden acceder al sistema</p>
                         </CardContent>
                     </Card>
                     
-                    <Card className="border-l-4 border-l-red-500 hover:shadow-lg transition-all duration-200 bg-white/95 backdrop-blur-sm border border-gray-200/50">
+                    <Card className="border-l-4 border-l-red-500 hover:shadow-lg transition-all duration-200 bg-card/95 backdrop-blur-sm ">
                         <CardHeader className="pb-3">
-                            <CardTitle className="text-sm font-semibold text-gray-700 flex items-center">
+                            <CardTitle className="text-sm font-semibold text-foreground flex items-center">
                                 <UserX className="h-5 w-5 mr-2 text-red-600" />
                                 Inactivos
                             </CardTitle>
@@ -118,37 +118,37 @@ export default function ModeratorUsers({ moderators }: ModeratorUsersPageProps) 
                             <div className="text-3xl font-bold text-red-600">
                                 {moderators.data.filter(moderator => !moderator.is_active).length}
                             </div>
-                            <p className="text-sm text-gray-600 mt-1">Acceso suspendido</p>
+                            <p className="text-sm text-muted-foreground mt-1">Acceso suspendido</p>
                         </CardContent>
                     </Card>
                 </div>
 
                 {/* Moderators Table */}
-                <div className="bg-white/95 backdrop-blur-sm border border-gray-200/50 rounded-lg shadow-lg">
-                    <div className="px-6 py-4 border-b border-gray-200">
-                        <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+                <div className="bg-card/95 backdrop-blur-sm  rounded-lg shadow-lg">
+                    <div className="px-6 py-4">
+                        <h2 className="text-lg font-semibold text-foreground flex items-center">
                             <Users className="h-5 w-5 mr-2 text-blue-600" />
                             Lista de Moderadores
                         </h2>
-                        <p className="text-sm text-gray-600 mt-1">
+                        <p className="text-sm text-muted-foreground mt-1">
                             Administra los permisos y estado de los moderadores del sistema
                         </p>
                     </div>
                     <div className="overflow-x-auto">
-                        <Table>
+                        <Table className="border border-border/20">
                             <TableHeader>
-                                <TableRow className="bg-gray-50">
-                                    <TableHead className="font-semibold text-gray-700">Nombre Completo</TableHead>
-                                    <TableHead className="font-semibold text-gray-700">Email</TableHead>
-                                    <TableHead className="font-semibold text-gray-700">Estado</TableHead>
-                                    <TableHead className="font-semibold text-gray-700">Fecha de Creación</TableHead>
-                                    <TableHead className="font-semibold text-gray-700 w-[50px]">Acciones</TableHead>
+                                <TableRow className="bg-muted/50 border-b border-border/30">
+                                    <TableHead className="font-semibold text-foreground border-r border-border/20 last:border-r-0">Nombre Completo</TableHead>
+                                    <TableHead className="font-semibold text-foreground border-r border-border/20 last:border-r-0">Email</TableHead>
+                                    <TableHead className="font-semibold text-foreground border-r border-border/20 last:border-r-0">Estado</TableHead>
+                                    <TableHead className="font-semibold text-foreground border-r border-border/20 last:border-r-0">Fecha de Creación</TableHead>
+                                    <TableHead className="font-semibold text-foreground w-[50px]">Acciones</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {moderators.data.map((moderator) => (
-                                    <TableRow key={moderator.id} className="hover:bg-gray-50 transition-colors">
-                                        <TableCell className="font-medium">
+                                    <TableRow key={moderator.id} className="hover:bg-muted/50 transition-colors border-b border-border/10">
+                                        <TableCell className="font-medium border-r border-border/20 last:border-r-0">
                                             <div className="flex items-center space-x-3">
                                                 <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                                                     <span className="text-blue-600 font-semibold text-sm">
@@ -156,14 +156,14 @@ export default function ModeratorUsers({ moderators }: ModeratorUsersPageProps) 
                                                     </span>
                                                 </div>
                                                 <div>
-                                                    <div className="font-medium text-gray-900">
+                                                    <div className="font-medium text-foreground">
                                                         {moderator.name} {moderator.surname}
                                                     </div>
                                                 </div>
                                             </div>
                                         </TableCell>
-                                        <TableCell className="text-gray-600">{moderator.email}</TableCell>
-                                        <TableCell>
+                                        <TableCell className="text-muted-foreground border-r border-border/20 last:border-r-0">{moderator.email}</TableCell>
+                                        <TableCell className="border-r border-border/20 last:border-r-0">
                                             <Badge 
                                                 variant={moderator.is_active ? "default" : "secondary"}
                                                 className={moderator.is_active 
@@ -174,8 +174,8 @@ export default function ModeratorUsers({ moderators }: ModeratorUsersPageProps) 
                                                 {moderator.is_active ? 'Activo' : 'Inactivo'}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell className="text-gray-600">{formatDate(moderator.created_at)}</TableCell>
-                                        <TableCell>
+                                        <TableCell className="text-muted-foreground border-r border-border/20 last:border-r-0">{formatDate(moderator.created_at)}</TableCell>
+                                        <TableCell className="border-r border-border/20 last:border-r-0">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
                                                     <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-gray-100">

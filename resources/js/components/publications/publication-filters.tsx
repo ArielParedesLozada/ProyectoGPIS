@@ -122,7 +122,7 @@ export default function PublicationFilters({
     };
 
     return (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+        <div className="bg-card rounded-lg shadow-sm p-4 mb-6">
             {/* Filtros principales */}
             <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1">
@@ -205,7 +205,7 @@ export default function PublicationFilters({
             {nearMe && (
                 <div className="border-t pt-4 mt-4">
                     <div className="flex items-center justify-between mb-3">
-                        <Label className="text-lg font-semibold text-gray-900">Filtrar por proximidad</Label>
+                        <Label className="text-lg font-semibold text-gray-700">Filtrar por proximidad</Label>
                         <Button
                             variant="outline"
                             size="sm"
@@ -241,7 +241,7 @@ export default function PublicationFilters({
             {showPriceFilter && (
                 <div className="border-t pt-4 mt-4">
                     <div className="max-w-sm">
-                        <Label className="text-lg font-semibold text-gray-900 mb-3 block">Filtrar por precio</Label>
+                        <Label className="text-lg font-semibold text-gray-700 mb-3 block">Filtrar por precio</Label>
                         <div className="grid grid-cols-2 gap-3 mb-3">
                             <div>
                                 <Label className="text-sm font-medium text-gray-700 mb-1 block">Precio mínimo</Label>

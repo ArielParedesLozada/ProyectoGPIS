@@ -14,7 +14,6 @@ class ModerationAppeal extends Model
         'moderation_case_id',
         'appealer_id',
         'reviewing_moderator_id',
-        'status',
         'appeal_reason',
         'review_notes',
         'reviewed_at',
@@ -39,14 +38,4 @@ class ModerationAppeal extends Model
         return $this->belongsTo(User::class, 'reviewing_moderator_id');
     }
 
-    // Scopes
-    public function scopePending($query)
-    {
-        return $query->where('status', 'pending');
-    }
-
-    public function scopeReviewed($query)
-    {
-        return $query->whereIn('status', ['accepted', 'rejected']);
-    }
 }

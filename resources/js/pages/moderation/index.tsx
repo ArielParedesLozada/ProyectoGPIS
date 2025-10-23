@@ -94,11 +94,6 @@ export default function ModerationIndex({ cases, stats, filters }: ModerationInd
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'pending': return 'bg-yellow-100 text-yellow-800';
-            case 'triage': return 'bg-blue-100 text-blue-800';
-            case 'in_review': return 'bg-purple-100 text-purple-800';
-            case 'action_taken': return 'bg-green-100 text-green-800';
-            case 'dismissed': return 'bg-gray-100 text-gray-800';
-            case 'appealed': return 'bg-red-100 text-red-800';
             case 'closed': return 'bg-gray-100 text-gray-800';
             default: return 'bg-gray-100 text-gray-800';
         }
@@ -107,11 +102,6 @@ export default function ModerationIndex({ cases, stats, filters }: ModerationInd
     const getStatusText = (status: string) => {
         switch (status) {
             case 'pending': return 'Pendiente';
-            case 'triage': return 'En triaje';
-            case 'in_review': return 'En revisión';
-            case 'action_taken': return 'Acción tomada';
-            case 'dismissed': return 'Descartado';
-            case 'appealed': return 'Apelado';
             case 'closed': return 'Cerrado';
             default: return status;
         }
@@ -216,11 +206,6 @@ export default function ModerationIndex({ cases, stats, filters }: ModerationInd
                                     >
                                         <option value="">Todos los estados</option>
                                         <option value="pending">Pendiente</option>
-                                        <option value="triage">En triaje</option>
-                                        <option value="in_review">En revisión</option>
-                                        <option value="action_taken">Acción tomada</option>
-                                        <option value="dismissed">Descartado</option>
-                                        <option value="appealed">Apelado</option>
                                         <option value="closed">Cerrado</option>
                                     </select>
                                 </div>

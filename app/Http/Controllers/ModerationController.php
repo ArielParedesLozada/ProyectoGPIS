@@ -143,83 +143,22 @@ class ModerationController extends Controller
         ]);
     }
 
+
     /**
-     * Cambiar estado del caso
+     * Ocultar publicación con motivo
      */
-    public function updateStatus(Request $request, $id)
+    public function hidePublication(Request $request, $id)
     {
         $this->checkModeratorPermissions();
         
         $request->validate([
-            'status' => 'required|in:pending,triage,in_review,action_taken,dismissed,closed',
-            'notes' => 'nullable|string|max:1000',
+            'reason' => 'required|string|max:1000',
         ]);
-
-        $case = ModerationCase::findOrFail($id);
         
-        // Verificar que el moderador tenga permisos para modificar este caso
-        if ($case->assigned_moderator_id && $case->assigned_moderator_id !== Auth::id()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No tienes permisos para modificar este caso'
-            ], 403);
-        }
-
-        DB::beginTransaction();
-
-        try {
-            $oldStatus = $case->status;
-            $case->update([
-                'status' => $request->status,
-                'resolution_notes' => $request->notes,
-                'resolved_at' => in_array($request->status, ['action_taken', 'dismissed', 'closed']) ? now() : null,
-            ]);
-
-            // Registrar la acción
-            ModerationAction::create([
-                'moderation_case_id' => $case->id,
-                'moderator_id' => Auth::id(),
-                'action_type' => 'status_change',
-                'action_description' => "Estado cambiado de '{$oldStatus}' a '{$request->status}'",
-                'metadata' => [
-                    'old_status' => $oldStatus,
-                    'new_status' => $request->status,
-                    'notes' => $request->notes,
-                ]
-            ]);
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Estado actualizado correctamente'
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error al actualizar estado del caso: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al actualizar el estado'
-            ], 500);
-        }
-    }
-
-    /**
-     * Ocultar publicación
-     */
-    public function hidePublication($id)
-    {
-        $this->checkModeratorPermissions();
-        
-        $case = ModerationCase::with('publication')->findOrFail($id);
+        $case = ModerationCase::with('publication.user')->findOrFail($id);
         
         if ($case->assigned_moderator_id && $case->assigned_moderator_id !== Auth::id()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No tienes permisos para modificar este caso'
-            ], 403);
+            return redirect()->back()->withErrors(['error' => 'No tienes permisos para modificar este caso']);
         }
 
         DB::beginTransaction();
@@ -230,7 +169,8 @@ class ModerationController extends Controller
 
             // Actualizar el caso
             $case->update([
-                'status' => 'action_taken',
+                'status' => 'closed',
+                'resolution_notes' => $request->reason,
                 'resolved_at' => now(),
             ]);
 
@@ -243,24 +183,22 @@ class ModerationController extends Controller
                 'metadata' => [
                     'publication_id' => $case->publication->id,
                     'publication_title' => $case->publication->title,
+                    'reason' => $request->reason,
                 ]
             ]);
 
+            // TODO: Enviar notificación al propietario de la publicación
+            // $case->publication->user->notify(new PublicationHiddenNotification($case, $request->reason));
+
             DB::commit();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Publicación ocultada correctamente'
-            ]);
+            return redirect()->back()->with('success', 'Publicación ocultada correctamente');
 
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al ocultar publicación: ' . $e->getMessage());
             
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al ocultar la publicación'
-            ], 500);
+            return redirect()->back()->withErrors(['error' => 'Error al ocultar la publicación']);
         }
     }
 
@@ -274,10 +212,7 @@ class ModerationController extends Controller
         $case = ModerationCase::with('publication')->findOrFail($id);
         
         if ($case->assigned_moderator_id && $case->assigned_moderator_id !== Auth::id()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No tienes permisos para modificar este caso'
-            ], 403);
+            return redirect()->back()->withErrors(['error' => 'No tienes permisos para modificar este caso']);
         }
 
         DB::beginTransaction();
@@ -306,19 +241,13 @@ class ModerationController extends Controller
 
             DB::commit();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Publicación restaurada correctamente'
-            ]);
+            return redirect()->back()->with('success', 'Publicación restaurada correctamente');
 
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al restaurar publicación: ' . $e->getMessage());
             
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al restaurar la publicación'
-            ], 500);
+            return redirect()->back()->withErrors(['error' => 'Error al restaurar la publicación']);
         }
     }
 
@@ -336,17 +265,14 @@ class ModerationController extends Controller
         $case = ModerationCase::findOrFail($id);
         
         if ($case->assigned_moderator_id && $case->assigned_moderator_id !== Auth::id()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No tienes permisos para modificar este caso'
-            ], 403);
+            return redirect()->back()->withErrors(['error' => 'No tienes permisos para modificar este caso']);
         }
 
         DB::beginTransaction();
 
         try {
             $case->update([
-                'status' => 'dismissed',
+                'status' => 'closed',
                 'resolution_notes' => $request->notes,
                 'resolved_at' => now(),
             ]);
@@ -364,19 +290,13 @@ class ModerationController extends Controller
 
             DB::commit();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Caso descartado correctamente'
-            ]);
+            return redirect()->back()->with('success', 'Caso descartado correctamente');
 
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al descartar caso: ' . $e->getMessage());
             
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al descartar el caso'
-            ], 500);
+            return redirect()->back()->withErrors(['error' => 'Error al descartar el caso']);
         }
     }
 
@@ -389,7 +309,6 @@ class ModerationController extends Controller
         
         $request->validate([
             'appeal_id' => 'required|exists:moderation_appeals,id',
-            'status' => 'required|in:accepted,rejected',
             'review_notes' => 'required|string|max:1000',
         ]);
 
@@ -405,54 +324,28 @@ class ModerationController extends Controller
                 ], 400);
             }
 
-            // Verificar que la apelación esté pendiente
-            if ($appeal->status !== 'pending') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Esta apelación ya ha sido revisada'
-                ], 400);
-            }
 
             DB::beginTransaction();
 
             // Actualizar la apelación
             $appeal->update([
-                'status' => $request->status,
                 'review_notes' => $request->review_notes,
                 'reviewing_moderator_id' => Auth::id(),
                 'reviewed_at' => now(),
             ]);
 
-            // Si la apelación es aceptada, restaurar la publicación
-            if ($request->status === 'accepted') {
-                $case->publication->update(['is_hidden' => false]);
-                
-                // Registrar la acción
-                ModerationAction::create([
-                    'moderation_case_id' => $case->id,
-                    'moderator_id' => Auth::id(),
-                    'action_type' => 'restore_publication',
-                    'action_description' => 'Publicación restaurada por apelación aceptada',
-                    'metadata' => [
-                        'appeal_id' => $appeal->id,
-                        'appeal_reason' => $appeal->appeal_reason,
-                        'review_notes' => $request->review_notes,
-                    ]
-                ]);
-            } else {
-                // Si es rechazada, mantener la acción
-                ModerationAction::create([
-                    'moderation_case_id' => $case->id,
-                    'moderator_id' => Auth::id(),
-                    'action_type' => 'dismiss_case',
-                    'action_description' => 'Apelación rechazada',
-                    'metadata' => [
-                        'appeal_id' => $appeal->id,
-                        'appeal_reason' => $appeal->appeal_reason,
-                        'review_notes' => $request->review_notes,
-                    ]
-                ]);
-            }
+            // Registrar la acción de revisión de apelación
+            ModerationAction::create([
+                'moderation_case_id' => $case->id,
+                'moderator_id' => Auth::id(),
+                'action_type' => 'review_appeal',
+                'action_description' => 'Apelación revisada',
+                'metadata' => [
+                    'appeal_id' => $appeal->id,
+                    'appeal_reason' => $appeal->appeal_reason,
+                    'review_notes' => $request->review_notes,
+                ]
+            ]);
 
             // Cerrar el caso
             $case->update([
@@ -464,9 +357,7 @@ class ModerationController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => $request->status === 'accepted' 
-                    ? 'Apelación aceptada y publicación restaurada' 
-                    : 'Apelación rechazada'
+                'message' => 'Apelación revisada correctamente'
             ]);
 
         } catch (\Exception $e) {

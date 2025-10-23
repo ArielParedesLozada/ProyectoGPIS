@@ -47,7 +47,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/', [ModerationController::class, 'index'])->name('moderation.index');
         Route::get('/{id}', [ModerationController::class, 'show'])->name('moderation.show');
         Route::post('/{id}/assign-to-me', [ModerationController::class, 'assignToMe'])->name('moderation.assign-to-me');
-        Route::patch('/{id}/status', [ModerationController::class, 'updateStatus'])->name('moderation.update-status');
         Route::post('/{id}/hide-publication', [ModerationController::class, 'hidePublication'])->name('moderation.hide-publication');
         Route::post('/{id}/restore-publication', [ModerationController::class, 'restorePublication'])->name('moderation.restore-publication');
         Route::post('/{id}/dismiss', [ModerationController::class, 'dismissCase'])->name('moderation.dismiss');

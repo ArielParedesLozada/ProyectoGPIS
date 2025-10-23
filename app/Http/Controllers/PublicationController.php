@@ -51,7 +51,8 @@ class PublicationController extends Controller
             );
         }
         
-        $query->where('status', StatusType::HABILITADO);
+        $query->where('status', StatusType::HABILITADO)
+              ->where('is_hidden', false);
 
         $publications = $query->paginate(6)->withQueryString();
 
@@ -80,7 +81,14 @@ class PublicationController extends Controller
         
         try {
             $query = Publication::query()
-                ->with(['category', 'images'])
+                ->with(['category', 'images', 'moderationCases' => function($query) {
+                    $query->where('status', 'closed')
+                          ->with(['actions' => function($actionQuery) {
+                              $actionQuery->where('action_type', 'hide_publication')
+                                         ->orderBy('created_at', 'desc')
+                                         ->limit(1);
+                          }]);
+                }])
                 ->where('created_by', $userId);
 
             if ($request->filled('status')) {
@@ -88,6 +96,21 @@ class PublicationController extends Controller
             }
 
             $publications = $query->orderBy('created_at', 'desc')->paginate(9)->withQueryString();
+            
+            // Agregar información de moderación a cada publicación
+            $publications->getCollection()->transform(function ($publication) {
+                if ($publication->is_hidden && $publication->moderationCases->isNotEmpty()) {
+                    $latestCase = $publication->moderationCases->first();
+                    $hideAction = $latestCase->actions->first();
+                    
+                    if ($hideAction && isset($hideAction->metadata['reason'])) {
+                        $publication->moderation_reason = $hideAction->metadata['reason'];
+                        $publication->moderation_date = $hideAction->created_at;
+                    }
+                }
+                return $publication;
+            });
+            
             $categories = Category::select('id', 'name')->get();
 
             return Inertia::render('publications/my-publications', [
@@ -495,6 +518,7 @@ class PublicationController extends Controller
      */
     public function appeal(Request $request, $id)
     {
+
         $request->validate([
             'reason' => 'required|string|max:1000',
         ]);
@@ -504,53 +528,33 @@ class PublicationController extends Controller
             
             // Verificar que el usuario sea el propietario de la publicación
             if ($publication->created_by !== Auth::id()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No tienes permisos para apelar esta publicación'
-                ], 403);
+                return redirect()->back()->withErrors(['error' => 'No tienes permisos para apelar esta publicación']);
             }
 
             // Verificar que la publicación esté oculta
             if (!$publication->is_hidden) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Solo puedes apelar publicaciones que han sido ocultadas por moderación'
-                ], 400);
+                return redirect()->back()->withErrors(['error' => 'Solo puedes apelar publicaciones que han sido ocultadas por moderación']);
             }
 
-            // Buscar el caso de moderación activo
-            $moderationCase = ModerationCase::where('publication_id', $id)
-                ->whereIn('status', ['action_taken', 'dismissed'])
-                ->first();
+            // Buscar el caso de moderación (cualquier status)
+            $moderationCase = ModerationCase::where('publication_id', $id)->first();
+
 
             if (!$moderationCase) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No se encontró un caso de moderación para esta publicación'
-                ], 404);
+                return redirect()->back()->withErrors(['error' => 'No se encontró un caso de moderación para esta publicación']);
             }
 
-            // Verificar si ya existe una apelación pendiente
-            $existingAppeal = ModerationAppeal::where('moderation_case_id', $moderationCase->id)
-                ->where('status', 'pending')
-                ->first();
-
-            if ($existingAppeal) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Ya tienes una apelación pendiente para esta publicación'
-                ], 400);
-            }
 
             DB::beginTransaction();
 
+
             // Crear la apelación
-            ModerationAppeal::create([
+            $appeal = ModerationAppeal::create([
                 'moderation_case_id' => $moderationCase->id,
                 'appealer_id' => Auth::id(),
-                'status' => 'pending',
                 'appeal_reason' => $request->reason,
             ]);
+
 
             // Actualizar el caso a estado "appealed" y desasignar al moderador anterior
             $moderationCase->update([
@@ -559,21 +563,15 @@ class PublicationController extends Controller
                 'assigned_at' => null,
             ]);
 
+
             DB::commit();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Apelación enviada correctamente. Otro moderador revisará tu caso.'
-            ]);
+            return redirect()->back()->with('success', 'Apelación enviada correctamente. Otro moderador revisará tu caso.');
 
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al enviar apelación: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al procesar la apelación. Inténtalo nuevamente.'
-            ], 500);
+            return redirect()->back()->withErrors(['error' => 'Error al enviar la apelación: ' . $e->getMessage()]);
         }
     }
 }
