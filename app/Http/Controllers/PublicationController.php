@@ -10,6 +10,7 @@ use App\Models\PublicationImage;
 use App\Services\GeocodingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -20,7 +21,7 @@ class PublicationController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Publication::query()->with('category');
+        $query = Publication::query()->with(['category', 'images']);
         if ($request->filled('category_id')) {
             $query->where('category_id', $request->category_id);
         }
@@ -49,6 +50,20 @@ class PublicationController extends Controller
         $query->where('status', StatusType::HABILITADO);
 
         $publications = $query->paginate(6)->withQueryString();
+        
+        // Extraer coordenadas para cada publicación
+        foreach ($publications as $publication) {
+            $coords = DB::selectOne("SELECT ST_X(location_point::geometry) as lng, ST_Y(location_point::geometry) as lat FROM publications WHERE id = ?", [$publication->id]);
+            
+            if ($coords) {
+                $publication->location_point = [
+                    'lat' => (float) $coords->lat,
+                    'lng' => (float) $coords->lng
+                ];
+            } else {
+                $publication->location_point = null;
+            }
+        }
 
         $categories = Category::select('id', 'name')->get();
 
@@ -83,6 +98,21 @@ class PublicationController extends Controller
             }
 
             $publications = $query->orderBy('created_at', 'desc')->paginate(9)->withQueryString();
+            
+            // Extraer coordenadas para cada publicación
+            foreach ($publications as $publication) {
+                $coords = DB::selectOne("SELECT ST_X(location_point::geometry) as lng, ST_Y(location_point::geometry) as lat FROM publications WHERE id = ?", [$publication->id]);
+                
+                if ($coords) {
+                    $publication->location_point = [
+                        'lat' => (float) $coords->lat,
+                        'lng' => (float) $coords->lng
+                    ];
+                } else {
+                    $publication->location_point = null;
+                }
+            }
+            
             $categories = Category::select('id', 'name')->get();
 
             return Inertia::render('publications/my-publications', [
@@ -149,8 +179,26 @@ class PublicationController extends Controller
 
             // Agregar coordenadas geográficas
             try {
+                // Validar coordenadas
+                $lat = floatval($request->lat);
+                $lng = floatval($request->lng);
+                
+                // Verificar que las coordenadas estén en rangos válidos
+                if ($lat < -90 || $lat > 90 || $lng < -180 || $lng > 180) {
+                    throw new \InvalidArgumentException('Coordenadas fuera de rango válido');
+                }
+                
+                // Redondear coordenadas para mayor precisión
+                $roundedLat = round($lat, 6);
+                $roundedLng = round($lng, 6);
+                
+                Log::info('Creating Point for publication', [
+                    'original' => ['lat' => $lat, 'lng' => $lng],
+                    'rounded' => ['lat' => $roundedLat, 'lng' => $roundedLng]
+                ]);
+                
                 // Crear Point sin dimensión Z (lng, lat) - PostGIS usa longitud primero
-                $publicationData['location_point'] = Point::make($request->lng, $request->lat);
+                $publicationData['location_point'] = Point::make($roundedLng, $roundedLat);
             } catch (\Exception $e) {
                 // Error creating Point - continue without location
                 Log::error('Error creating Point for publication', [
@@ -186,7 +234,7 @@ class PublicationController extends Controller
             ->findOrFail($id);
         
         // Extraer coordenadas del campo location_point si existe
-        $coords = \DB::selectOne("SELECT ST_X(location_point::geometry) as lng, ST_Y(location_point::geometry) as lat FROM publications WHERE id = ?", [$id]);
+        $coords = DB::selectOne("SELECT ST_X(location_point::geometry) as lng, ST_Y(location_point::geometry) as lat FROM publications WHERE id = ?", [$id]);
         
         if ($coords) {
             $publication->location_point = [
@@ -265,8 +313,26 @@ class PublicationController extends Controller
 
             // Actualizar coordenadas geográficas
             try {
+                // Validar coordenadas
+                $lat = floatval($request->lat);
+                $lng = floatval($request->lng);
+                
+                // Verificar que las coordenadas estén en rangos válidos
+                if ($lat < -90 || $lat > 90 || $lng < -180 || $lng > 180) {
+                    throw new \InvalidArgumentException('Coordenadas fuera de rango válido');
+                }
+                
+                // Redondear coordenadas para mayor precisión
+                $roundedLat = round($lat, 6);
+                $roundedLng = round($lng, 6);
+                
+                Log::info('Updating Point for publication', [
+                    'original' => ['lat' => $lat, 'lng' => $lng],
+                    'rounded' => ['lat' => $roundedLat, 'lng' => $roundedLng]
+                ]);
+                
                 // Crear Point sin dimensión Z (lng, lat) - PostGIS usa longitud primero
-                $updateData['location_point'] = Point::make($request->lng, $request->lat);
+                $updateData['location_point'] = Point::make($roundedLng, $roundedLat);
             } catch (\Exception $e) {
                 // Error creating Point - continue without location
                 Log::error('Error creating Point for publication update', [
@@ -289,14 +355,14 @@ class PublicationController extends Controller
                 $imagesToDelete = $publication->images()->whereNotIn('id', $keepImageIds)->get();
                 foreach ($imagesToDelete as $image) {
                     // Eliminar del storage
-                    \Storage::disk('public')->delete($image->image_url);
+                    Storage::disk('public')->delete($image->image_url);
                     // Eliminar de la base de datos
                     $image->delete();
                 }
             } else {
                 // Si no se envían existing_images, eliminar todas las imágenes existentes
                 foreach ($publication->images as $image) {
-                    \Storage::disk('public')->delete($image->image_url);
+                    Storage::disk('public')->delete($image->image_url);
                     $image->delete();
                 }
             }
@@ -353,6 +419,19 @@ class PublicationController extends Controller
     public function view($id)
     {
         $publication = Publication::with(['user', 'category', 'images'])->findOrFail($id);
+        
+        // Extraer coordenadas del campo location_point si existe
+        $coords = DB::selectOne("SELECT ST_X(location_point::geometry) as lng, ST_Y(location_point::geometry) as lat FROM publications WHERE id = ?", [$id]);
+        
+        if ($coords) {
+            $publication->location_point = [
+                'lat' => (float) $coords->lat,
+                'lng' => (float) $coords->lng
+            ];
+        } else {
+            $publication->location_point = null;
+        }
+        
         return Inertia::render('publications/publication-view', [
             'publication' => $publication
         ]);
@@ -370,7 +449,18 @@ class PublicationController extends Controller
             $publication = Publication::with(['category', 'images'])
                 ->where('created_by', $userId)
                 ->findOrFail($id);
-                
+            
+            // Extraer coordenadas del campo location_point si existe
+            $coords = DB::selectOne("SELECT ST_X(location_point::geometry) as lng, ST_Y(location_point::geometry) as lat FROM publications WHERE id = ?", [$id]);
+            
+            if ($coords) {
+                $publication->location_point = [
+                    'lat' => (float) $coords->lat,
+                    'lng' => (float) $coords->lng
+                ];
+            } else {
+                $publication->location_point = null;
+            }
                 
             return Inertia::render('publications/my-publication-view', [
                 'publication' => $publication

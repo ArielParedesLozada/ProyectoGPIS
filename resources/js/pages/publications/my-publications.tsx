@@ -10,7 +10,8 @@ import {
 import AppLayout from "@/layouts/app-layout";
 import { SharedData, Paginated, Publication, Category, BreadcrumbItem } from "@/types";
 import { usePage, router, Head, Link } from "@inertiajs/react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
     Plus, 
     MoreHorizontal, 
@@ -22,10 +23,12 @@ import {
     MapPin,
     DollarSign
 } from "lucide-react";
-import { useToast, ToastProvider } from "@/hooks/useToast";
-
-// Componente interno que usa useToast
+import DeleteConfirmationModal from "@/components/publications/delete-confirmation-modal";
 function MyPublicationsContent() {
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [publicationToDelete, setPublicationToDelete] = useState<Publication | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'Mis Publicaciones',
@@ -33,78 +36,41 @@ function MyPublicationsContent() {
         },
     ];
 
-    const { auth, publications, categories, flash } = usePage<SharedData & {
+    const { auth, publications, categories } = usePage<SharedData & {
         publications: Paginated<Publication>,
         categories: Category[],
-        flash?: {
-            success?: string;
-        };
     }>().props;
 
-    const { showToast } = useToast();
-
-    // Mostrar toast cuando hay mensajes flash
-    useEffect(() => {
-        if (flash?.success) {
-            showToast({
-                type: 'success',
-                title: 'Éxito',
-                message: flash.success
-            });
-        }
-    }, [flash?.success, showToast]);
-
     const handleDelete = (id: number) => {
-        // Mostrar toast de confirmación
-        showToast({
-            type: 'warning',
-            title: 'Confirmar eliminación',
-            message: '¿Estás seguro de que quieres eliminar esta publicación? Haz clic en "Eliminar" en el menú para confirmar.'
-        });
+        const publication = publications.data.find(p => p.id === id);
+        setPublicationToDelete(publication || null);
+        setDeleteModalOpen(true);
+    };
+
+    const handleConfirmDelete = () => {
+        if (!publicationToDelete) return;
         
-        // Usar confirm nativo como fallback
-        if (confirm('¿Estás seguro de que quieres eliminar esta publicación?')) {
-            router.delete(`/my-publications/${id}`, {
-                onSuccess: () => {
-                    showToast({
-                        type: 'success',
-                        title: 'Publicación eliminada',
-                        message: 'La publicación ha sido eliminada exitosamente.'
-                    });
-                },
-                onError: () => {
-                    showToast({
-                        type: 'error',
-                        title: 'Error al eliminar',
-                        message: 'No se pudo eliminar la publicación. Inténtalo de nuevo.'
-                    });
-                }
-            });
-        }
+        setIsDeleting(true);
+        router.delete(`/my-publications/${publicationToDelete.id}`, {
+            onSuccess: () => {
+                setDeleteModalOpen(false);
+                setPublicationToDelete(null);
+                setIsDeleting(false);
+            },
+            onError: () => {
+                setIsDeleting(false);
+            }
+        });
+    };
+
+    const handleCloseDeleteModal = () => {
+        setDeleteModalOpen(false);
+        setPublicationToDelete(null);
+        setIsDeleting(false);
     };
 
     const handleToggleStatus = (id: number) => {
-        const publication = publications.data.find(p => p.id === id);
-        const isCurrentlyEnabled = publication?.status === 1;
-        
-        router.patch(`/my-publications/${id}/toggle-status`, {}, {
-            onSuccess: () => {
-                showToast({
-                    type: 'success',
-                    title: isCurrentlyEnabled ? 'Publicación inhabilitada' : 'Publicación habilitada',
-                    message: isCurrentlyEnabled 
-                        ? 'La publicación ha sido inhabilitada exitosamente.'
-                        : 'La publicación ha sido habilitada exitosamente.'
-                });
-            },
-            onError: () => {
-                showToast({
-                    type: 'error',
-                    title: 'Error al cambiar estado',
-                    message: 'No se pudo cambiar el estado de la publicación. Inténtalo de nuevo.'
-                });
-            }
-        });
+        router.patch(`/my-publications/${id}/toggle-status`);
     };
 
     const getStatusBadge = (status: number) => {
@@ -132,7 +98,7 @@ function MyPublicationsContent() {
     };
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <>
             <Head title="Mis Publicaciones" />
             
             <div className="bg-gray-50 min-h-screen">
@@ -200,16 +166,23 @@ function MyPublicationsContent() {
                         {publications.data.map((publication) => (
                             <Card key={publication.id} className="group hover:shadow-lg transition-shadow">
                                 <CardHeader className="pb-3">
-                                    <div className="flex justify-between items-start">
-                                        <div className="flex-1">
-                                            <CardTitle className="text-lg line-clamp-2 mb-2">
-                                                {publication.title}
-                                            </CardTitle>
-                                            <div className="flex gap-2 mb-2">
-                                                {getStatusBadge(publication.status)}
-                                                {getTypeBadge(publication.type)}
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex-1 min-w-0">
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <CardTitle className="text-lg line-clamp-2 mb-2 cursor-help">
+                                                            {publication.title}
+                                                        </CardTitle>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p className="whitespace-normal break-words">{publication.title}</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                                <div className="flex gap-2 mb-2">
+                                                    {getStatusBadge(publication.status)}
+                                                    {getTypeBadge(publication.type)}
+                                                </div>
                                             </div>
-                                        </div>
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
                                                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -272,17 +245,35 @@ function MyPublicationsContent() {
                                         </div>
 
                                         {/* Description */}
-                                        <p className="text-sm text-muted-foreground line-clamp-2">
-                                            {publication.description}
-                                        </p>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <p className="text-sm text-gray-600 line-clamp-2 cursor-help">
+                                                    {publication.description}
+                                                </p>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p className="whitespace-normal break-words">{publication.description}</p>
+                                            </TooltipContent>
+                                        </Tooltip>
 
-                                        {/* Price and Location */}
-                                        <div className="flex justify-between items-center">
-                                            <div className="flex items-center text-sm text-gray-500">
-                                                <MapPin className="w-4 h-4 mr-1" />
-                                                <span className="truncate">{publication.location}</span>
-                                            </div>
-                                            <div className="text-xl font-bold text-foreground">
+                                        {/* Location */}
+                                        <div className="flex items-center text-sm text-gray-500 mb-2">
+                                            <MapPin className="w-4 h-4 mr-1 flex-shrink-0" />
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <span className="truncate cursor-help flex-1 min-w-0">
+                                                        {publication.location}
+                                                    </span>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p className="whitespace-normal break-words">{publication.location}</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </div>
+
+                                        {/* Price */}
+                                        <div className="mb-3">
+                                            <div className="text-xl font-bold text-gray-900">
                                                 ${publication.price}
                                             </div>
                                         </div>
@@ -352,15 +343,31 @@ function MyPublicationsContent() {
                 </div>
             </div>
 
-        </AppLayout>
+            {/* Modal de confirmación de eliminación */}
+            <DeleteConfirmationModal
+                isOpen={deleteModalOpen}
+                onClose={handleCloseDeleteModal}
+                onConfirm={handleConfirmDelete}
+                isDeleting={isDeleting}
+                publicationTitle={publicationToDelete?.title}
+            />
+        </>
     );
 }
 
-// Componente principal que envuelve con ToastProvider
+// Layout estático de Inertia
+MyPublications.layout = (page: React.ReactNode) => (
+    <AppLayout breadcrumbs={[
+        {
+            title: 'Mis Publicaciones',
+            href: '/my-publications',
+        },
+    ]}>
+        {page}
+    </AppLayout>
+);
+
 export default function MyPublications() {
-    return (
-        <ToastProvider>
-            <MyPublicationsContent />
-        </ToastProvider>
-    );
+    return <MyPublicationsContent />;
 }
+

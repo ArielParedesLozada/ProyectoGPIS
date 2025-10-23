@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -11,6 +12,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Eliminar el constraint existente si existe
+        DB::statement('ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;');
+        
+        // Recrear la columna role con el constraint correcto
         Schema::table('users', function (Blueprint $table) {
             $table->dropColumn('role');
         });
@@ -27,6 +32,9 @@ return new class extends Migration
      */
     public function down(): void
     {
+        // Eliminar el constraint
+        DB::statement('ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;');
+        
         Schema::table('users', function (Blueprint $table) {
             $table->dropColumn('role');
         });
