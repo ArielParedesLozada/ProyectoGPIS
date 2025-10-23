@@ -7,18 +7,10 @@ import {
     DropdownMenuItem, 
     DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { 
-    Dialog, 
-    DialogContent, 
-    DialogHeader, 
-    DialogTitle, 
-    DialogDescription,
-    DialogTrigger 
-} from "@/components/ui/dialog";
 import AppLayout from "@/layouts/app-layout";
 import { SharedData, Paginated, Publication, Category, BreadcrumbItem } from "@/types";
 import { usePage, router, Head, Link } from "@inertiajs/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
     Plus, 
     MoreHorizontal, 
@@ -30,9 +22,10 @@ import {
     MapPin,
     DollarSign
 } from "lucide-react";
-import CreatePublicationModal from "@/components/publications/create-publication-modal";
+import { useToast, ToastProvider } from "@/hooks/useToast";
 
-export default function MyPublications() {
+// Componente interno que usa useToast
+function MyPublicationsContent() {
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'Mis Publicaciones',
@@ -48,16 +41,70 @@ export default function MyPublications() {
         };
     }>().props;
 
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const { showToast } = useToast();
+
+    // Mostrar toast cuando hay mensajes flash
+    useEffect(() => {
+        if (flash?.success) {
+            showToast({
+                type: 'success',
+                title: 'Éxito',
+                message: flash.success
+            });
+        }
+    }, [flash?.success, showToast]);
 
     const handleDelete = (id: number) => {
+        // Mostrar toast de confirmación
+        showToast({
+            type: 'warning',
+            title: 'Confirmar eliminación',
+            message: '¿Estás seguro de que quieres eliminar esta publicación? Haz clic en "Eliminar" en el menú para confirmar.'
+        });
+        
+        // Usar confirm nativo como fallback
         if (confirm('¿Estás seguro de que quieres eliminar esta publicación?')) {
-            router.delete(`/my-publications/${id}`);
+            router.delete(`/my-publications/${id}`, {
+                onSuccess: () => {
+                    showToast({
+                        type: 'success',
+                        title: 'Publicación eliminada',
+                        message: 'La publicación ha sido eliminada exitosamente.'
+                    });
+                },
+                onError: () => {
+                    showToast({
+                        type: 'error',
+                        title: 'Error al eliminar',
+                        message: 'No se pudo eliminar la publicación. Inténtalo de nuevo.'
+                    });
+                }
+            });
         }
     };
 
     const handleToggleStatus = (id: number) => {
-        router.patch(`/my-publications/${id}/toggle-status`);
+        const publication = publications.data.find(p => p.id === id);
+        const isCurrentlyEnabled = publication?.status === 1;
+        
+        router.patch(`/my-publications/${id}/toggle-status`, {}, {
+            onSuccess: () => {
+                showToast({
+                    type: 'success',
+                    title: isCurrentlyEnabled ? 'Publicación inhabilitada' : 'Publicación habilitada',
+                    message: isCurrentlyEnabled 
+                        ? 'La publicación ha sido inhabilitada exitosamente.'
+                        : 'La publicación ha sido habilitada exitosamente.'
+                });
+            },
+            onError: () => {
+                showToast({
+                    type: 'error',
+                    title: 'Error al cambiar estado',
+                    message: 'No se pudo cambiar el estado de la publicación. Inténtalo de nuevo.'
+                });
+            }
+        });
     };
 
     const getStatusBadge = (status: number) => {
@@ -96,27 +143,18 @@ export default function MyPublications() {
                             <div>
                                 <h1 className="text-3xl font-bold text-gray-900 mb-2">Mis Publicaciones</h1>
                                 <p className="text-gray-600">Gestiona tus productos y servicios</p>
+                                {publications.data.length > 0 && (
+                                    <p className="text-sm text-gray-500 mt-2">
+                                        Mostrando {publications.data.length} publicaciones
+                                    </p>
+                                )}
                             </div>
-                            <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-                                <DialogTrigger asChild>
-                                    <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                                        <Plus className="w-4 h-4 mr-2" />
-                                        Crear Publicación
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent className="max-w-[98vw] max-h-[98vh] overflow-y-auto">
-                                    <DialogHeader>
-                                        <DialogTitle className="text-2xl font-bold">Crear Nueva Publicación</DialogTitle>
-                                        <DialogDescription className="text-gray-600">
-                                            Completa la información de tu producto o servicio
-                                        </DialogDescription>
-                                    </DialogHeader>
-                                    <CreatePublicationModal 
-                                        categories={categories}
-                                        onClose={() => setIsCreateModalOpen(false)}
-                                    />
-                                </DialogContent>
-                            </Dialog>
+                            <Link href="/my-publications/create">
+                                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    Crear Publicación
+                                </Button>
+                            </Link>
                         </div>
                     </div>
                 </div>
@@ -262,29 +300,7 @@ export default function MyPublications() {
                         ))}
                     </div>
 
-                    {/* Empty State */}
-                    {publications.data.length === 0 && (
-                        <div className="text-center py-12">
-                            <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                                <Plus className="w-12 h-12 text-gray-400" />
-                            </div>
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">
-                                No tienes publicaciones
-                            </h3>
-                            <p className="text-gray-500 mb-6">
-                                Comienza creando tu primera publicación
-                            </p>
-                            <Button 
-                                onClick={() => setIsCreateModalOpen(true)}
-                                className="bg-blue-600 hover:bg-blue-700 text-white"
-                            >
-                                <Plus className="w-4 h-4 mr-2" />
-                                Crear Primera Publicación
-                            </Button>
-                        </div>
-                    )}
-
-                    {/* Pagination */}
+                    {/* Paginación - Siempre visible */}
                     {publications.links.length > 3 && (
                         <div className="flex justify-center mt-8">
                             <div className="flex items-center gap-2">
@@ -311,15 +327,40 @@ export default function MyPublications() {
                             </div>
                         </div>
                     )}
+
+                    {/* Empty State */}
+                    {publications.data.length === 0 && (
+                        <div className="text-center py-12">
+                            <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                                <Plus className="w-12 h-12 text-gray-400" />
+                            </div>
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">
+                                No tienes publicaciones
+                            </h3>
+                            <p className="text-gray-500 mb-6">
+                                Comienza creando tu primera publicación
+                            </p>
+                            <Link href="/my-publications/create">
+                                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    Crear Primera Publicación
+                                </Button>
+                            </Link>
+                        </div>
+                    )}
+
                 </div>
             </div>
 
-            {/* Success Message */}
-            {flash?.success && (
-                <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50">
-                    {flash.success}
-                </div>
-            )}
         </AppLayout>
+    );
+}
+
+// Componente principal que envuelve con ToastProvider
+export default function MyPublications() {
+    return (
+        <ToastProvider>
+            <MyPublicationsContent />
+        </ToastProvider>
     );
 }

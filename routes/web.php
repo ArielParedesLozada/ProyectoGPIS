@@ -30,6 +30,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Rutas para Mis Publicaciones
     Route::prefix('my-publications')->group(function () {
         Route::get('/', [PublicationController::class, 'myPublications'])->name('my-publications');
+        Route::get('/create', [PublicationController::class, 'create'])->name('publications.create');
         Route::post('/', [PublicationController::class, 'store'])->name('publications.store');
         Route::get('/{id}/edit', [PublicationController::class, 'edit'])->name('publications.edit');
         Route::patch('/{id}/toggle-status', [PublicationController::class, 'toggleStatus'])->name('publications.toggle-status');

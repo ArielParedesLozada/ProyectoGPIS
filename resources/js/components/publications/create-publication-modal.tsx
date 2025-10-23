@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { useForm } from "@inertiajs/react";
+import { useForm, router } from "@inertiajs/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,9 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Upload, X, AlertCircle } from "lucide-react";
 import { Category } from "@/types";
+import MapPicker from "./MapPicker";
+import ServiceSchedule from "./ServiceSchedule";
+import { useToast } from "@/hooks/useToast";
 
 interface CreatePublicationModalProps {
     categories: Category[];
@@ -24,6 +27,7 @@ export default function CreatePublicationModal({ categories, onClose }: CreatePu
     const [selectedImages, setSelectedImages] = useState<File[]>([]);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const { showToast } = useToast();
 
     const { data, setData, post, processing, errors } = useForm({
         title: '',
@@ -31,15 +35,44 @@ export default function CreatePublicationModal({ categories, onClose }: CreatePu
         price: '',
         category_id: '',
         type: '',
-        location: '',
+        lat: '',
+        lng: '',
+        horario: '',
         images: [] as File[]
     });
 
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         
+        // Validar número máximo de imágenes
         if (selectedImages.length + files.length > 5) {
-            alert('Máximo 5 imágenes permitidas');
+            showToast({
+                type: 'error',
+                title: 'Demasiadas imágenes',
+                message: 'No se pueden subir más de 5 imágenes.'
+            });
+            return;
+        }
+
+        // Validar tamaño de cada archivo (5MB máximo) y archivos corruptos
+        const oversizedFiles = files.filter(file => file.size > 5 * 1024 * 1024);
+        if (oversizedFiles.length > 0) {
+            showToast({
+                type: 'error',
+                title: 'Archivo demasiado grande',
+                message: 'Las imágenes no pueden superar los 5MB cada una.'
+            });
+            return;
+        }
+
+        // Validar archivos vacíos (ser más permisivo con tipos)
+        const emptyFiles = files.filter(file => file.size === 0);
+        if (emptyFiles.length > 0) {
+            showToast({
+                type: 'error',
+                title: 'Archivo vacío',
+                message: 'Algunos archivos están vacíos.'
+            });
             return;
         }
 
@@ -61,11 +94,62 @@ export default function CreatePublicationModal({ categories, onClose }: CreatePu
         setData('images', newImages);
     };
 
+    const handleLocationChange = (lat: number, lng: number) => {
+        setData('lat', lat.toString());
+        setData('lng', lng.toString());
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        post('/my-publications', {
+        
+        // Validar que se haya seleccionado una ubicación en el mapa
+        if (!data.lat || !data.lng || data.lat === '' || data.lng === '') {
+            showToast({
+                type: 'error',
+                title: 'Ubicación requerida',
+                message: 'Por favor selecciona una ubicación en el mapa.'
+            });
+            return;
+        }
+        
+        // Crear FormData manualmente para asegurar que los archivos se envíen
+        const formData = new FormData();
+        formData.append('title', data.title);
+        formData.append('description', data.description);
+        formData.append('price', data.price);
+        formData.append('category_id', data.category_id);
+        formData.append('type', data.type);
+        formData.append('lat', data.lat);
+        formData.append('lng', data.lng);
+        formData.append('horario', data.horario || '');
+        
+        // Agregar imágenes como images[]
+        selectedImages.forEach((image) => {
+            formData.append('images[]', image);
+        });
+        
+        // Enviar FormData directamente
+        router.post('/my-publications', formData, {
+            forceFormData: true,
             onSuccess: () => {
+                showToast({
+                    type: 'success',
+                    title: 'Publicación creada',
+                    message: 'Tu publicación ha sido creada exitosamente.'
+                });
                 onClose();
+            },
+            onError: (errors) => {
+                // Mostrar errores específicos con toast
+                Object.keys(errors).forEach(key => {
+                    const errorValue = errors[key];
+                    const errorMessage = Array.isArray(errorValue) ? errorValue[0] : errorValue;
+                    showToast({
+                        type: 'error',
+                        title: 'Error de validación',
+                        message: errorMessage
+                    });
+                });
             }
         });
     };
@@ -157,6 +241,18 @@ export default function CreatePublicationModal({ categories, onClose }: CreatePu
                                 </div>
                             )}
                         </div>
+
+                        {/* Horario de atención (solo para servicios) */}
+                        {data.type === 'servicio' && (
+                            <div>
+                                <ServiceSchedule
+                                    value={data.horario}
+                                    onChange={(value) => setData('horario', value)}
+                                    error={errors.horario}
+                                    required={true}
+                                />
+                            </div>
+                        )}
                     </div>
                 </CardContent>
             </Card>
@@ -165,7 +261,7 @@ export default function CreatePublicationModal({ categories, onClose }: CreatePu
             <Card className="bg-white shadow-sm">
                 <CardContent className="pt-8 pb-8">
                     <h3 className="text-xl font-semibold mb-6 text-gray-900">Información comercial</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-4">
                         {/* Precio */}
                         <div>
                             <Label htmlFor="price">Precio *</Label>
@@ -189,26 +285,29 @@ export default function CreatePublicationModal({ categories, onClose }: CreatePu
                                 </div>
                             )}
                         </div>
-
-                        {/* Ubicación */}
-                        <div>
-                            <Label htmlFor="location">Ubicación *</Label>
-                            <Input
-                                id="location"
-                                type="text"
-                                placeholder="Ciudad, País"
-                                value={data.location}
-                                onChange={(e) => setData('location', e.target.value)}
-                                className={errors.location ? 'border-red-500' : ''}
-                            />
-                            {errors.location && (
-                                <div className="flex items-center gap-1 mt-1 text-red-500 text-sm">
-                                    <AlertCircle className="w-4 h-4" />
-                                    {errors.location}
-                                </div>
-                            )}
-                        </div>
                     </div>
+                </CardContent>
+            </Card>
+
+            {/* Mapa de Ubicación */}
+            <Card className="bg-white shadow-sm">
+                <CardContent className="pt-8 pb-8">
+                    <h3 className="text-xl font-semibold mb-6 text-gray-900">Ubicación en el mapa *</h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                        Selecciona la ubicación exacta de tu producto o servicio en el mapa
+                    </p>
+                    <MapPicker
+                        lat={data.lat ? parseFloat(data.lat) : -0.2299}
+                        lng={data.lng ? parseFloat(data.lng) : -78.5249}
+                        onLocationChange={handleLocationChange}
+                        className="h-64 w-full"
+                    />
+                    {(!data.lat || !data.lng || data.lat === '' || data.lng === '') && (
+                        <p className="text-sm text-amber-600 mt-2 flex items-center gap-1">
+                            <AlertCircle className="w-4 h-4" />
+                            Por favor selecciona una ubicación en el mapa
+                        </p>
+                    )}
                 </CardContent>
             </Card>
 

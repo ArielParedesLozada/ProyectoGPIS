@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { router } from '@inertiajs/react';
-import { Filter } from 'lucide-react';
+import { Filter, MapPin, X } from 'lucide-react';
 
 interface PublicationFiltersProps {
     categories: Array<{ id: number; name: string }>;
@@ -12,6 +12,9 @@ interface PublicationFiltersProps {
     selectedType?: string;
     selectedMinPrice?: number;
     selectedMaxPrice?: number;
+    nearLat?: number;
+    nearLng?: number;
+    radiusKm?: number;
 }
 
 export default function PublicationFilters({ 
@@ -19,24 +22,59 @@ export default function PublicationFilters({
     selectedCategory, 
     selectedType,
     selectedMinPrice,
-    selectedMaxPrice
+    selectedMaxPrice,
+    nearLat,
+    nearLng,
+    radiusKm
 }: PublicationFiltersProps) {
     const [category, setCategory] = useState(selectedCategory?.toString() || 'all');
     const [type, setType] = useState(selectedType || 'all');
     const [minPrice, setMinPrice] = useState(selectedMinPrice?.toString() || '');
     const [maxPrice, setMaxPrice] = useState(selectedMaxPrice?.toString() || '');
     const [showPriceFilter, setShowPriceFilter] = useState(false);
+    const [nearMe, setNearMe] = useState(!!nearLat && !!nearLng);
+    const [radius, setRadius] = useState(radiusKm?.toString() || '10');
+    const [isGettingLocation, setIsGettingLocation] = useState(false);
 
-    const handleFilterChange = (newCategory: string, newType: string) => {
-        setCategory(newCategory);
-        setType(newType);
-        
+    const getCurrentLocation = () => {
+        if (!navigator.geolocation) {
+            alert('Geolocalización no está soportada por este navegador.');
+            return;
+        }
+
+        setIsGettingLocation(true);
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const { latitude, longitude } = position.coords;
+                setNearMe(true);
+                applyFilters(category, type, minPrice, maxPrice, latitude, longitude, radius);
+                setIsGettingLocation(false);
+            },
+            (error) => {
+                console.error('Error obteniendo ubicación:', error);
+                alert('No se pudo obtener tu ubicación actual.');
+                setIsGettingLocation(false);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 300000, // 5 minutos
+            }
+        );
+    };
+
+    const applyFilters = (cat: string, typ: string, min: string, max: string, lat?: number, lng?: number, rad?: string) => {
         const query: Record<string, string | null> = {};
         
-        if (newCategory !== 'all') query.category_id = newCategory;
-        if (newType !== 'all') query.type = newType;
-        if (minPrice) query.min_price = minPrice;
-        if (maxPrice) query.max_price = maxPrice;
+        if (cat !== 'all') query.category_id = cat;
+        if (typ !== 'all') query.type = typ;
+        if (min) query.min_price = min;
+        if (max) query.max_price = max;
+        if (lat && lng && rad) {
+            query.near_lat = lat.toString();
+            query.near_lng = lng.toString();
+            query.radius_km = rad;
+        }
 
         router.get('/publication', query, {
             preserveState: true,
@@ -44,18 +82,30 @@ export default function PublicationFilters({
         });
     };
 
-    const handlePriceFilter = () => {
-        const query: Record<string, string | null> = {};
-        
-        if (category !== 'all') query.category_id = category;
-        if (type !== 'all') query.type = type;
-        if (minPrice) query.min_price = minPrice;
-        if (maxPrice) query.max_price = maxPrice;
+    const handleFilterChange = (newCategory: string, newType: string) => {
+        setCategory(newCategory);
+        setType(newType);
+        applyFilters(newCategory, newType, minPrice, maxPrice);
+    };
 
-        router.get('/publication', query, {
-            preserveState: true,
-            replace: true,
-        });
+    const handlePriceFilter = () => {
+        applyFilters(category, type, minPrice, maxPrice);
+    };
+
+    const handleNearMeToggle = () => {
+        if (nearMe) {
+            setNearMe(false);
+            applyFilters(category, type, minPrice, maxPrice);
+        } else {
+            getCurrentLocation();
+        }
+    };
+
+    const handleRadiusChange = (newRadius: string) => {
+        setRadius(newRadius);
+        if (nearMe && nearLat && nearLng) {
+            applyFilters(category, type, minPrice, maxPrice, nearLat, nearLng, newRadius);
+        }
     };
 
     const clearFilters = () => {
@@ -63,6 +113,8 @@ export default function PublicationFilters({
         setType('all');
         setMinPrice('');
         setMaxPrice('');
+        setNearMe(false);
+        setRadius('10');
         router.get('/publication', {}, {
             preserveState: true,
             replace: true,
@@ -111,6 +163,28 @@ export default function PublicationFilters({
                 <div className="flex items-end gap-2">
                     <Button
                         variant="outline"
+                        onClick={handleNearMeToggle}
+                        disabled={isGettingLocation}
+                        className={`flex items-center gap-2 ${
+                            nearMe 
+                                ? 'bg-blue-100 text-blue-700 border-blue-300 hover:bg-blue-200' 
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        }`}
+                    >
+                        {isGettingLocation ? (
+                            <>
+                                <div className="animate-spin h-4 w-4 border-2 border-gray-400 border-t-transparent rounded-full"></div>
+                                Obteniendo...
+                            </>
+                        ) : (
+                            <>
+                                <MapPin className="h-4 w-4" />
+                                {nearMe ? 'Cerca de mí' : 'Cerca de mí'}
+                            </>
+                        )}
+                    </Button>
+                    <Button
+                        variant="outline"
                         onClick={() => setShowPriceFilter(!showPriceFilter)}
                         className="flex items-center gap-2 bg-gray-200 text-gray-700 hover:bg-gray-300"
                     >
@@ -126,6 +200,42 @@ export default function PublicationFilters({
                     </Button>
                 </div>
             </div>
+
+            {/* Filtro de ubicación - visible cuando está activo */}
+            {nearMe && (
+                <div className="border-t pt-4 mt-4">
+                    <div className="flex items-center justify-between mb-3">
+                        <Label className="text-lg font-semibold text-gray-900">Filtrar por proximidad</Label>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setNearMe(false)}
+                            className="text-gray-500 hover:text-gray-700"
+                        >
+                            <X className="h-4 w-4" />
+                        </Button>
+                    </div>
+                    <div className="max-w-sm">
+                        <Label className="text-sm font-medium text-gray-700 mb-2 block">Radio de búsqueda</Label>
+                        <div className="flex items-center gap-3">
+                            <input
+                                type="range"
+                                min="1"
+                                max="50"
+                                value={radius}
+                                onChange={(e) => handleRadiusChange(e.target.value)}
+                                className="flex-1"
+                            />
+                            <span className="text-sm font-medium text-gray-700 min-w-[3rem]">
+                                {radius} km
+                            </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Mostrando publicaciones dentro de {radius} km de tu ubicación
+                        </p>
+                    </div>
+                </div>
+            )}
 
             {/* Filtro de precio - oculto por defecto */}
             {showPriceFilter && (

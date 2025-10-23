@@ -3,6 +3,7 @@ import { BreadcrumbItem, Publication } from "@/types";
 import { Head, Link, router } from "@inertiajs/react";
 import { ArrowLeft, Edit, Eye, EyeOff, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState, useEffect } from "react";
+import MiniMap from "@/components/publications/MiniMap";
 
 interface MyPublicationViewProps {
     publication: Publication;
@@ -208,7 +209,7 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
                                         <div className="flex justify-between items-center py-2">
                                             <span className="text-gray-600 text-sm font-medium">Horario:</span>
                                             <span className="text-gray-900 text-sm">
-                                                {new Date(publication.horario).toLocaleDateString()}
+                                                {publication.horario}
                                             </span>
                                         </div>
                                     )}
@@ -246,6 +247,21 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
                             </div>
                         </div>
                     </div>
+
+                    {/* Mapa de ubicación */}
+                    {publication.location_point && (
+                        <div className="mt-8">
+                            <div className="bg-white rounded-2xl shadow-lg p-6">
+                                <h2 className="text-lg font-semibold text-gray-900 mb-4">Ubicación</h2>
+                                <MiniMap
+                                    lat={publication.location_point.lat}
+                                    lng={publication.location_point.lng}
+                                    location={publication.location}
+                                    className="h-64 w-full"
+                                />
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </AppLayout>

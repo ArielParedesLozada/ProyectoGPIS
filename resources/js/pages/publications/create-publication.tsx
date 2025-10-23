@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Upload, X, AlertCircle, ArrowLeft } from "lucide-react";
-import { Category, Publication } from "@/types";
+import { Category } from "@/types";
 import AppLayout from "@/layouts/app-layout";
 import { Head, Link, router } from "@inertiajs/react";
 import { BreadcrumbItem } from "@/types";
@@ -21,18 +21,14 @@ import MapPicker from "@/components/publications/MapPicker";
 import ServiceSchedule from "@/components/publications/ServiceSchedule";
 import { useToast, ToastProvider } from "@/hooks/useToast";
 
-interface EditPublicationProps {
-    publication: Publication & {
-        images: Array<{ id: number; image_url: string; }>;
-    };
+interface CreatePublicationProps {
     categories: Category[];
 }
 
 // Componente interno que usa useToast
-function EditPublicationContent({ publication, categories }: EditPublicationProps) {
+function CreatePublicationContent({ categories }: CreatePublicationProps) {
     const [selectedImages, setSelectedImages] = useState<File[]>([]);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-    const [existingImages, setExistingImages] = useState(publication.images || []);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { showToast } = useToast();
 
@@ -42,24 +38,22 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
             href: '/my-publications',
         },
         {
-            title: 'Editar Publicación',
-            href: `/my-publications/${publication.id}/edit`,
+            title: 'Crear Publicación',
+            href: '/my-publications/create',
         },
     ];
 
-    const { data, setData, put, processing, errors } = useForm({
-        title: publication.title,
-        description: publication.description || '',
-        price: publication.price.toString(),
-        category_id: publication.category_id.toString(),
-        type: publication.type,
-        lat: publication.location_point?.lat?.toString() || '',
-        lng: publication.location_point?.lng?.toString() || '',
-        horario: publication.horario || '',
+    const { data, setData, post, processing, errors } = useForm({
+        title: '',
+        description: '',
+        price: '',
+        category_id: '',
+        type: '',
+        lat: '',
+        lng: '',
+        horario: '',
         images: [] as File[]
     });
-
-
 
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
@@ -70,6 +64,17 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
                 type: 'error',
                 title: 'Demasiadas imágenes',
                 message: 'No se pueden subir más de 5 imágenes.'
+            });
+            return;
+        }
+
+        // Validar tamaño de cada archivo (5MB máximo) y archivos corruptos
+        const oversizedFiles = files.filter(file => file.size > 5 * 1024 * 1024);
+        if (oversizedFiles.length > 0) {
+            showToast({
+                type: 'error',
+                title: 'Archivo demasiado grande',
+                message: 'Las imágenes no pueden superar los 5MB cada una.'
             });
             return;
         }
@@ -85,31 +90,13 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
             return;
         }
 
-        // Validar tamaño de cada archivo (5MB máximo)
-        const oversizedFiles = files.filter(file => file.size > 5 * 1024 * 1024);
-        if (oversizedFiles.length > 0) {
-            showToast({
-                type: 'error',
-                title: 'Archivo demasiado grande',
-                message: 'Las imágenes no pueden superar los 5MB cada una.'
-            });
-            return;
-        }
-
         const newImages = [...selectedImages, ...files];
         setSelectedImages(newImages);
-        
-        // Actualizar el form data con las imágenes
         setData('images', newImages);
 
         // Create previews
         const newPreviews = files.map(file => URL.createObjectURL(file));
         setImagePreviews([...imagePreviews, ...newPreviews]);
-        
-        // Limpiar el input para permitir seleccionar el mismo archivo otra vez
-        if (e.target) {
-            e.target.value = '';
-        }
     };
 
     const removeImage = (index: number) => {
@@ -119,10 +106,6 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
         setSelectedImages(newImages);
         setImagePreviews(newPreviews);
         setData('images', newImages);
-    };
-
-    const removeExistingImage = (index: number) => {
-        setExistingImages(existingImages.filter((_, i) => i !== index));
     };
 
     const handleLocationChange = (lat: number, lng: number) => {
@@ -159,26 +142,17 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
             formData.append('images[]', image);
         });
         
-        // Agregar IDs de imágenes existentes que se mantienen
-        existingImages.forEach((image) => {
-            formData.append('existing_images[]', image.id.toString());
-        });
-        
-        // Agregar método PUT
-        formData.append('_method', 'PUT');
-        
         // Enviar FormData directamente
-        router.post(`/my-publications/${publication.id}`, formData, {
+        router.post('/my-publications', formData, {
             forceFormData: true,
             onSuccess: () => {
                 showToast({
                     type: 'success',
-                    title: 'Publicación actualizada',
-                    message: 'Tu publicación ha sido actualizada exitosamente.'
+                    title: 'Publicación creada',
+                    message: 'Tu publicación ha sido creada exitosamente.'
                 });
-                // Limpiar imágenes seleccionadas después del éxito
-                setSelectedImages([]);
-                setImagePreviews([]);
+                // Redirigir a Mis Publicaciones
+                router.visit('/my-publications');
             },
             onError: (errors) => {
                 // Mostrar errores específicos con toast
@@ -197,7 +171,7 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Editar Publicación" />
+            <Head title="Crear Publicación" />
             
             <div className="bg-gray-50 min-h-screen py-8">
                 <div className="max-w-4xl mx-auto px-6">
@@ -213,7 +187,7 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
                     </div>
 
                     <div className="bg-white rounded-lg shadow-sm p-8">
-                        <h1 className="text-2xl font-bold text-gray-900 mb-6">Editar Publicación</h1>
+                        <h1 className="text-2xl font-bold text-gray-900 mb-6">Crear Nueva Publicación</h1>
 
                         <form onSubmit={handleSubmit} className="space-y-6">
                             {/* Información Básica */}
@@ -317,12 +291,11 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
                                 </CardContent>
                             </Card>
 
-                            {/* Precio de venta */}
+                            {/* Precio */}
                             <Card>
                                 <CardContent className="pt-6">
                                     <h3 className="text-lg font-semibold mb-4">Precio de venta</h3>
                                     <div className="space-y-4">
-                                        {/* Precio */}
                                         <div>
                                             <Label htmlFor="price">Precio *</Label>
                                             <div className="relative">
@@ -357,8 +330,8 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
                                         Selecciona la ubicación exacta de tu producto o servicio en el mapa
                                     </p>
                                     <MapPicker
-                                        lat={data.lat && data.lat !== '' ? parseFloat(data.lat) : undefined}
-                                        lng={data.lng && data.lng !== '' ? parseFloat(data.lng) : undefined}
+                                        lat={data.lat ? parseFloat(data.lat) : -0.2299}
+                                        lng={data.lng ? parseFloat(data.lng) : -78.5249}
                                         onLocationChange={handleLocationChange}
                                         className="h-64 w-full"
                                     />
@@ -371,41 +344,12 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
                                 </CardContent>
                             </Card>
 
-                            {/* Imágenes Existentes */}
-                            {existingImages.length > 0 && (
-                                <Card>
-                                    <CardContent className="pt-6">
-                                        <h3 className="text-lg font-semibold mb-4">Imágenes Actuales</h3>
-                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                            {existingImages.map((image, index) => (
-                                                <div key={image.id} className="relative">
-                                                    <img
-                                                        src={`/storage/${image.image_url}`}
-                                                        alt={`Imagen ${index + 1}`}
-                                                        className="w-full h-32 object-cover rounded-lg"
-                                                    />
-                                                    <Button
-                                                        type="button"
-                                                        variant="destructive"
-                                                        size="sm"
-                                                        className="absolute -top-2 -right-2 w-6 h-6 p-0 rounded-full"
-                                                        onClick={() => removeExistingImage(index)}
-                                                    >
-                                                        <X className="w-4 h-4" />
-                                                    </Button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            )}
-
-                            {/* Nuevas Imágenes */}
+                            {/* Imágenes */}
                             <Card>
                                 <CardContent className="pt-6">
-                                    <h3 className="text-lg font-semibold mb-4">Agregar Nuevas Imágenes</h3>
+                                    <h3 className="text-lg font-semibold mb-4">Imágenes</h3>
                                     <p className="text-sm text-gray-600 mb-4">
-                                        Agrega hasta 5 imágenes adicionales (máximo 5MB cada una)
+                                        Agrega hasta 5 imágenes de tu producto (máximo 5MB cada una)
                                     </p>
 
                                     {/* Upload Area */}
@@ -473,7 +417,7 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
                                     disabled={processing}
                                     className="bg-blue-600 hover:bg-blue-700"
                                 >
-                                    {processing ? 'Guardando...' : 'Guardar Cambios'}
+                                    {processing ? 'Creando...' : 'Crear Publicación'}
                                 </Button>
                             </div>
                         </form>
@@ -485,10 +429,10 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
 }
 
 // Componente principal que envuelve con ToastProvider
-export default function EditPublication({ publication, categories }: EditPublicationProps) {
+export default function CreatePublication({ categories }: CreatePublicationProps) {
     return (
         <ToastProvider>
-            <EditPublicationContent publication={publication} categories={categories} />
+            <CreatePublicationContent categories={categories} />
         </ToastProvider>
     );
 }
