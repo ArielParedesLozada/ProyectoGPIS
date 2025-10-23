@@ -18,17 +18,17 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         User::firstOrCreate(
-            ['email' => 'test@example.com'],
+            ['email' => 'superadmin@proyectogpis.com'],
             [
                 'cedula' => '1850283001',
-                'name' => 'Test User',
-                'surname' => 'Test Surname', // Campo requerido
+                'name' => 'Super',
+                'surname' => 'Administrador', // Campo requerido
                 'phone' => '123456789', // Campo único y requerido
-                'address' => 'Test Address', // Campo requerido
+                'address' => 'Dirección del Super Admin', // Campo requerido
                 'gender' => GenderType::HOMBRE->value, // Campo requerido con enum
-                'role' => RoleType::ADMIN->value, // Campo requerido con enum
+                'role' => RoleType::SUPER_ADMIN->value, // Campo requerido con enum
                 'status' => StatusType::HABILITADO->value, // Campo requerido con enum
-                'password' => Hash::make('password'),
+                'password' => Hash::make('Admin123@'),
                 'email_verified_at' => now(),
             ]
         );
