@@ -63,7 +63,7 @@ export default function AdminDashboard({ stats }: AdminDashboardProps) {
                 </div>
 
                 {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {auth.user.role === 'super_admin' && (
                         <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 bg-white/95 backdrop-blur-sm border border-gray-200/50">
                             <CardHeader className="pb-3">
@@ -82,6 +82,20 @@ export default function AdminDashboard({ stats }: AdminDashboardProps) {
                                 <p className="text-sm text-gray-600 mb-4">
                                     {stats.activeAdmins} activos
                                 </p>
+                                <div className="space-y-2 mb-4">
+                                    <div className="flex justify-between text-xs">
+                                        <span className="text-gray-500">Último acceso</span>
+                                        <span className="font-medium">Hoy</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                        <span className="text-gray-500">Permisos</span>
+                                        <span className="font-medium">Completos</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                        <span className="text-gray-500">Estado</span>
+                                        <span className="font-medium text-green-600">Activo</span>
+                                    </div>
+                                </div>
                                 <Button size="sm" className="w-full" asChild>
                                     <Link href="/admin/admins">Gestionar</Link>
                                 </Button>
@@ -106,44 +120,60 @@ export default function AdminDashboard({ stats }: AdminDashboardProps) {
                             <p className="text-sm text-gray-600 mb-4">
                                 {stats.activeModerators} activos
                             </p>
+                            <div className="space-y-2 mb-4">
+                                <div className="flex justify-between text-xs">
+                                    <span className="text-gray-500">Última actividad</span>
+                                    <span className="font-medium">Hace 2h</span>
+                                </div>
+                                <div className="flex justify-between text-xs">
+                                    <span className="text-gray-500">Tareas pendientes</span>
+                                    <span className="font-medium">3</span>
+                                </div>
+                                <div className="flex justify-between text-xs">
+                                    <span className="text-gray-500">Estado</span>
+                                    <span className="font-medium text-green-600">Activo</span>
+                                </div>
+                            </div>
                             <Button size="sm" className="w-full" asChild>
                                 <Link href="/admin/moderators">Gestionar</Link>
                             </Button>
                         </CardContent>
                     </Card>
 
+                    {/* Publicaciones Overview Card */}
                     <Card className="border-l-4 border-l-purple-500 hover:shadow-lg transition-all duration-200 bg-white/95 backdrop-blur-sm border border-gray-200/50">
                         <CardHeader className="pb-3">
-                            <CardTitle className="text-sm font-semibold text-gray-700 flex items-center">
-                                <UserPlus className="h-5 w-5 mr-2 text-purple-600" />
-                                Crear Usuario
-                            </CardTitle>
+                            <div className="flex items-center justify-between">
+                                <CardTitle className="text-sm font-semibold text-gray-700 flex items-center">
+                                    <Activity className="h-5 w-5 mr-2 text-purple-600" />
+                                    Publicaciones
+                                </CardTitle>
+                                <Badge variant="outline" className="text-xs">
+                                    Total
+                                </Badge>
+                            </div>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-bold text-purple-600 mb-2">+</div>
+                            <div className="text-3xl font-bold text-purple-600 mb-2">0</div>
                             <p className="text-sm text-gray-600 mb-4">
-                                Nuevo usuario
+                                Publicaciones en el sistema
                             </p>
+                            <div className="space-y-2 mb-4">
+                                <div className="flex justify-between text-xs">
+                                    <span className="text-gray-500">Pendientes</span>
+                                    <span className="font-medium">0</span>
+                                </div>
+                                <div className="flex justify-between text-xs">
+                                    <span className="text-gray-500">Aprobadas</span>
+                                    <span className="font-medium">0</span>
+                                </div>
+                                <div className="flex justify-between text-xs">
+                                    <span className="text-gray-500">Rechazadas</span>
+                                    <span className="font-medium">0</span>
+                                </div>
+                            </div>
                             <Button size="sm" className="w-full" asChild>
-                                <Link href="/admin/moderators/create">Crear</Link>
-                            </Button>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-l-4 border-l-orange-500 hover:shadow-lg transition-all duration-200 bg-white/95 backdrop-blur-sm border border-gray-200/50">
-                        <CardHeader className="pb-3">
-                            <CardTitle className="text-sm font-semibold text-gray-700 flex items-center">
-                                <Activity className="h-5 w-5 mr-2 text-orange-600" />
-                                Actividad
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-3xl font-bold text-orange-600 mb-2">{stats.recentActivity.length}</div>
-                            <p className="text-sm text-gray-600 mb-4">
-                                Eventos recientes
-                            </p>
-                            <Button size="sm" variant="outline" className="w-full">
-                                Ver Actividad
+                                <Link href="/publication">Gestionar</Link>
                             </Button>
                         </CardContent>
                     </Card>
@@ -232,72 +262,6 @@ export default function AdminDashboard({ stats }: AdminDashboardProps) {
                     </Card>
                 </div>
 
-                {/* Quick Links */}
-                <Card className="bg-white/95 backdrop-blur-sm border border-gray-200/50 shadow-lg">
-                    <CardHeader>
-                        <CardTitle>Accesos Rápidos</CardTitle>
-                        <CardDescription>
-                            Enlaces directos a las funciones más utilizadas
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <Button variant="outline" className="h-auto p-4 justify-start" asChild>
-                                <Link href="/admin/moderators">
-                                    <Users className="h-5 w-5 mr-3" />
-                                    <div className="text-left">
-                                        <div className="font-medium">Gestionar Moderadores</div>
-                                        <div className="text-sm text-gray-500">Ver y administrar moderadores</div>
-                                    </div>
-                                </Link>
-                            </Button>
-
-                            <Button variant="outline" className="h-auto p-4 justify-start" asChild>
-                                <Link href="/admin/moderators/create">
-                                    <UserPlus className="h-5 w-5 mr-3" />
-                                    <div className="text-left">
-                                        <div className="font-medium">Crear Moderador</div>
-                                        <div className="text-sm text-gray-500">Registrar nuevo moderador</div>
-                                    </div>
-                                </Link>
-                            </Button>
-
-                            {auth.user.role === 'super_admin' && (
-                                <>
-                                    <Button variant="outline" className="h-auto p-4 justify-start" asChild>
-                                        <Link href="/admin/admins">
-                                            <Shield className="h-5 w-5 mr-3" />
-                                            <div className="text-left">
-                                                <div className="font-medium">Gestionar Administradores</div>
-                                                <div className="text-sm text-gray-500">Ver y administrar administradores</div>
-                                            </div>
-                                        </Link>
-                                    </Button>
-
-                                    <Button variant="outline" className="h-auto p-4 justify-start" asChild>
-                                        <Link href="/admin/admins/create">
-                                            <UserPlus className="h-5 w-5 mr-3" />
-                                            <div className="text-left">
-                                                <div className="font-medium">Crear Administrador</div>
-                                                <div className="text-sm text-gray-500">Registrar nuevo administrador</div>
-                                            </div>
-                                        </Link>
-                                    </Button>
-                                </>
-                            )}
-
-                            <Button variant="outline" className="h-auto p-4 justify-start" asChild>
-                                <Link href="/settings">
-                                    <Settings className="h-5 w-5 mr-3" />
-                                    <div className="text-left">
-                                        <div className="font-medium">Configuración</div>
-                                        <div className="text-sm text-gray-500">Ajustes del sistema</div>
-                                    </div>
-                                </Link>
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
             </div>
         </AppLayout>
     );
