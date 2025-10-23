@@ -263,7 +263,7 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
             <div className="bg-white rounded-2xl shadow-lg p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-3">Descripción</h2>
               <div className="prose prose-gray max-w-none">
-                <p className="text-gray-700 leading-relaxed text-base">
+                <p className="text-gray-700 leading-relaxed text-base break-words whitespace-pre-wrap">
                   {publication.description}
                 </p>
               </div>
@@ -271,16 +271,26 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
           </div>
 
           {/* Mapa de ubicación */}
-          {publication.location_point && (
+          {(publication.location_point || publication.location) && (
             <div className="mt-8">
               <div className="bg-white rounded-2xl shadow-lg p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Ubicación</h2>
-                <MiniMap
-                  lat={publication.location_point.lat}
-                  lng={publication.location_point.lng}
-                  location={publication.location}
-                  className="h-64 w-full"
-                />
+                {publication.location_point ? (
+                  <MiniMap
+                    lat={publication.location_point.lat}
+                    lng={publication.location_point.lng}
+                    location={publication.location}
+                    className="h-64 w-full"
+                  />
+                ) : (
+                  <div className="h-64 w-full bg-gray-100 rounded-lg flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="text-4xl text-gray-400 mb-2">📍</div>
+                      <p className="text-gray-600 font-medium">{publication.location}</p>
+                      <p className="text-gray-400 text-sm">Ubicación sin coordenadas específicas</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

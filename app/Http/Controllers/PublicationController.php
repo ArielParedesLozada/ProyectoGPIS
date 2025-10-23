@@ -50,6 +50,20 @@ class PublicationController extends Controller
         $query->where('status', StatusType::HABILITADO);
 
         $publications = $query->paginate(6)->withQueryString();
+        
+        // Extraer coordenadas para cada publicación
+        foreach ($publications as $publication) {
+            $coords = DB::selectOne("SELECT ST_X(location_point::geometry) as lng, ST_Y(location_point::geometry) as lat FROM publications WHERE id = ?", [$publication->id]);
+            
+            if ($coords) {
+                $publication->location_point = [
+                    'lat' => (float) $coords->lat,
+                    'lng' => (float) $coords->lng
+                ];
+            } else {
+                $publication->location_point = null;
+            }
+        }
 
         $categories = Category::select('id', 'name')->get();
 
@@ -84,6 +98,21 @@ class PublicationController extends Controller
             }
 
             $publications = $query->orderBy('created_at', 'desc')->paginate(9)->withQueryString();
+            
+            // Extraer coordenadas para cada publicación
+            foreach ($publications as $publication) {
+                $coords = DB::selectOne("SELECT ST_X(location_point::geometry) as lng, ST_Y(location_point::geometry) as lat FROM publications WHERE id = ?", [$publication->id]);
+                
+                if ($coords) {
+                    $publication->location_point = [
+                        'lat' => (float) $coords->lat,
+                        'lng' => (float) $coords->lng
+                    ];
+                } else {
+                    $publication->location_point = null;
+                }
+            }
+            
             $categories = Category::select('id', 'name')->get();
 
             return Inertia::render('publications/my-publications', [
@@ -390,6 +419,19 @@ class PublicationController extends Controller
     public function view($id)
     {
         $publication = Publication::with(['user', 'category', 'images'])->findOrFail($id);
+        
+        // Extraer coordenadas del campo location_point si existe
+        $coords = DB::selectOne("SELECT ST_X(location_point::geometry) as lng, ST_Y(location_point::geometry) as lat FROM publications WHERE id = ?", [$id]);
+        
+        if ($coords) {
+            $publication->location_point = [
+                'lat' => (float) $coords->lat,
+                'lng' => (float) $coords->lng
+            ];
+        } else {
+            $publication->location_point = null;
+        }
+        
         return Inertia::render('publications/publication-view', [
             'publication' => $publication
         ]);
@@ -407,7 +449,18 @@ class PublicationController extends Controller
             $publication = Publication::with(['category', 'images'])
                 ->where('created_by', $userId)
                 ->findOrFail($id);
-                
+            
+            // Extraer coordenadas del campo location_point si existe
+            $coords = DB::selectOne("SELECT ST_X(location_point::geometry) as lng, ST_Y(location_point::geometry) as lat FROM publications WHERE id = ?", [$id]);
+            
+            if ($coords) {
+                $publication->location_point = [
+                    'lat' => (float) $coords->lat,
+                    'lng' => (float) $coords->lng
+                ];
+            } else {
+                $publication->location_point = null;
+            }
                 
             return Inertia::render('publications/my-publication-view', [
                 'publication' => $publication
