@@ -176,12 +176,13 @@ export default function EditPublication({ publication, categories }: EditPublica
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         
-        // Validar número máximo de imágenes
-        if (selectedImages.length + files.length > 5) {
+        // Validar número máximo de imágenes (considerando existentes + nuevas)
+        const totalImages = existingImages.length + selectedImages.length + files.length;
+        if (totalImages > 5) {
             showToast({
                 type: 'error',
                 title: 'Demasiadas imágenes',
-                message: 'No se pueden subir más de 5 imágenes.'
+                message: `No se pueden tener más de 5 imágenes. Actualmente tienes ${existingImages.length} existentes y estás agregando ${selectedImages.length + files.length} nuevas.`
             });
             return;
         }
@@ -516,14 +517,22 @@ export default function EditPublication({ publication, categories }: EditPublica
                             <Card>
                                 <CardContent className="pt-6">
                                     <h3 className="text-lg font-semibold mb-4">Agregar Nuevas Imágenes</h3>
-                                    <p className="text-sm text-muted-foreground mb-4">
-                                        Agrega hasta 5 imágenes adicionales (máximo 5MB cada una)
+                                    <p className="text-sm text-gray-600 mb-4">
+                                        Agrega hasta {5 - existingImages.length} imágenes adicionales (máximo 5 imágenes en total, 5MB cada una)
                                     </p>
 
                                     {/* Upload Area */}
                                     <div
-                                        className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors cursor-pointer"
-                                        onClick={() => fileInputRef.current?.click()}
+                                        className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                                            existingImages.length >= 5 
+                                                ? 'border-gray-200 bg-gray-50 cursor-not-allowed' 
+                                                : 'border-gray-300 hover:border-gray-400 cursor-pointer'
+                                        }`}
+                                        onClick={() => {
+                                            if (existingImages.length < 5) {
+                                                fileInputRef.current?.click();
+                                            }
+                                        }}
                                     >
                                         <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                                         <p className="text-muted-foreground mb-2">Subir imágenes</p>

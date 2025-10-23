@@ -172,13 +172,21 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
                 </div>
 
                 {/* BOTONES: ahora con separación real */}
-                <div className="flex flex-col gap-6">
+                <div className="flex flex-col gap-3">
                   <Link href={`/my-publications/${publication.id}/edit`}>
                     <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition">
                       <Edit className="w-4 h-4 mr-2 inline" />
                       Editar Publicación
                     </button>
                   </Link>
+
+                  <button
+                    onClick={handleDelete}
+                    className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-xl transition"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2 inline" />
+                    Eliminar Publicación
+                  </button>
 
                   <button
                     onClick={handleToggleStatus}
@@ -223,12 +231,6 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
                     <span className="text-gray-600 text-sm font-medium">Código:</span>
                     <span className="text-gray-900 font-mono text-sm">{publication.code}</span>
                   </div>
-                  {publication.location && (
-                    <div className="flex justify-between items-center py-2">
-                      <span className="text-gray-600 text-sm font-medium">Ubicación:</span>
-                      <span className="text-gray-900 text-sm">{publication.location}</span>
-                    </div>
-                  )}
                   {publication.horario && (
                     <div className="flex justify-between items-center py-2">
                       <span className="text-gray-600 text-sm font-medium">Horario:</span>
@@ -244,17 +246,6 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
                 </div>
               </div>
 
-              {/* Card de acciones peligrosas */}
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h3 className="font-bold text-gray-900 mb-4 text-lg">Acciones Peligrosas</h3>
-                <button
-                  onClick={handleDelete}
-                  className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-xl transition"
-                >
-                  <Trash2 className="w-4 h-4 mr-2 inline" />
-                  Eliminar Publicación
-                </button>
-              </div>
             </div>
           </div>
 
