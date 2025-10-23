@@ -17,6 +17,9 @@ import { Category, Publication } from "@/types";
 import AppLayout from "@/layouts/app-layout";
 import { Head, Link, router } from "@inertiajs/react";
 import { BreadcrumbItem } from "@/types";
+import MapPicker from "@/components/publications/MapPicker";
+import ServiceSchedule from "@/components/publications/ServiceSchedule";
+import { useToast, ToastProvider } from "@/hooks/useToast";
 
 interface EditPublicationProps {
     publication: Publication & {
@@ -25,11 +28,13 @@ interface EditPublicationProps {
     categories: Category[];
 }
 
-export default function EditPublication({ publication, categories }: EditPublicationProps) {
+// Componente interno que usa useToast
+function EditPublicationContent({ publication, categories }: EditPublicationProps) {
     const [selectedImages, setSelectedImages] = useState<File[]>([]);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
     const [existingImages, setExistingImages] = useState(publication.images || []);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const { showToast } = useToast();
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -48,15 +53,46 @@ export default function EditPublication({ publication, categories }: EditPublica
         price: publication.price.toString(),
         category_id: publication.category_id.toString(),
         type: publication.type,
-        location: publication.location || '',
+        lat: publication.location_point?.lat?.toString() || '',
+        lng: publication.location_point?.lng?.toString() || '',
+        horario: publication.horario || '',
         images: [] as File[]
     });
+
+
 
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         
+        // Validar número máximo de imágenes
         if (selectedImages.length + files.length > 5) {
-            alert('Máximo 5 imágenes permitidas');
+            showToast({
+                type: 'error',
+                title: 'Demasiadas imágenes',
+                message: 'No se pueden subir más de 5 imágenes.'
+            });
+            return;
+        }
+
+        // Validar archivos vacíos (ser más permisivo con tipos)
+        const emptyFiles = files.filter(file => file.size === 0);
+        if (emptyFiles.length > 0) {
+            showToast({
+                type: 'error',
+                title: 'Archivo vacío',
+                message: 'Algunos archivos están vacíos.'
+            });
+            return;
+        }
+
+        // Validar tamaño de cada archivo (5MB máximo)
+        const oversizedFiles = files.filter(file => file.size > 5 * 1024 * 1024);
+        if (oversizedFiles.length > 0) {
+            showToast({
+                type: 'error',
+                title: 'Archivo demasiado grande',
+                message: 'Las imágenes no pueden superar los 5MB cada una.'
+            });
             return;
         }
 
@@ -89,8 +125,23 @@ export default function EditPublication({ publication, categories }: EditPublica
         setExistingImages(existingImages.filter((_, i) => i !== index));
     };
 
+    const handleLocationChange = (lat: number, lng: number) => {
+        setData('lat', lat.toString());
+        setData('lng', lng.toString());
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        
+        // Validar que se haya seleccionado una ubicación en el mapa
+        if (!data.lat || !data.lng || data.lat === '' || data.lng === '') {
+            showToast({
+                type: 'error',
+                title: 'Ubicación requerida',
+                message: 'Por favor selecciona una ubicación en el mapa.'
+            });
+            return;
+        }
         
         // Crear FormData manualmente para asegurar que los archivos se envíen
         const formData = new FormData();
@@ -99,25 +150,47 @@ export default function EditPublication({ publication, categories }: EditPublica
         formData.append('price', data.price);
         formData.append('category_id', data.category_id);
         formData.append('type', data.type);
-        formData.append('location', data.location);
+        formData.append('lat', data.lat);
+        formData.append('lng', data.lng);
+        formData.append('horario', data.horario || '');
         
-        // Agregar imágenes si las hay
-        if (selectedImages.length > 0) {
-            selectedImages.forEach((image, index) => {
-                formData.append(`images[${index}]`, image);
-            });
-        }
+        // Agregar imágenes como images[]
+        selectedImages.forEach((image) => {
+            formData.append('images[]', image);
+        });
         
-        // Enviar con router.post usando FormData
-        router.post(`/my-publications/${publication.id}`, {
-            _method: 'PUT',
-            ...Object.fromEntries(formData.entries())
-        }, {
+        // Agregar IDs de imágenes existentes que se mantienen
+        existingImages.forEach((image) => {
+            formData.append('existing_images[]', image.id.toString());
+        });
+        
+        // Agregar método PUT
+        formData.append('_method', 'PUT');
+        
+        // Enviar FormData directamente
+        router.post(`/my-publications/${publication.id}`, formData, {
             forceFormData: true,
             onSuccess: () => {
+                showToast({
+                    type: 'success',
+                    title: 'Publicación actualizada',
+                    message: 'Tu publicación ha sido actualizada exitosamente.'
+                });
                 // Limpiar imágenes seleccionadas después del éxito
                 setSelectedImages([]);
                 setImagePreviews([]);
+            },
+            onError: (errors) => {
+                // Mostrar errores específicos con toast
+                Object.keys(errors).forEach(key => {
+                    const errorValue = errors[key];
+                    const errorMessage = Array.isArray(errorValue) ? errorValue[0] : errorValue;
+                    showToast({
+                        type: 'error',
+                        title: 'Error de validación',
+                        message: errorMessage
+                    });
+                });
             }
         });
     };
@@ -132,15 +205,15 @@ export default function EditPublication({ publication, categories }: EditPublica
                     <div className="flex items-center gap-4 mb-8">
                         <Link 
                             href="/my-publications"
-                            className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+                            className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
                         >
                             <ArrowLeft className="w-4 h-4" />
                             Volver a Mis Publicaciones
                         </Link>
                     </div>
 
-                    <div className="bg-white rounded-lg shadow-sm p-8">
-                        <h1 className="text-2xl font-bold text-gray-900 mb-6">Editar Publicación</h1>
+                    <div className="bg-card rounded-lg shadow-sm p-8">
+                        <h1 className="text-2xl font-bold text-foreground mb-6">Editar Publicación</h1>
 
                         <form onSubmit={handleSubmit} className="space-y-6">
                             {/* Información Básica */}
@@ -212,7 +285,7 @@ export default function EditPublication({ publication, categories }: EditPublica
                                         {/* Tipo */}
                                         <div>
                                             <Label htmlFor="type">Tipo *</Label>
-                                            <Select value={data.type} onValueChange={(value) => setData('type', value)}>
+                                            <Select value={data.type} onValueChange={(value: "servicio" | "producto") => setData('type', value)}>
                                                 <SelectTrigger className={errors.type ? 'border-red-500' : ''}>
                                                     <SelectValue placeholder="Selecciona el tipo" />
                                                 </SelectTrigger>
@@ -228,15 +301,27 @@ export default function EditPublication({ publication, categories }: EditPublica
                                                 </div>
                                             )}
                                         </div>
+
+                                        {/* Horario de atención (solo para servicios) */}
+                                        {data.type === 'servicio' && (
+                                            <div>
+                                                <ServiceSchedule
+                                                    value={data.horario}
+                                                    onChange={(value: string) => setData('horario', value)}
+                                                    error={errors.horario}
+                                                    required={true}
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                 </CardContent>
                             </Card>
 
-                            {/* Precio y Ubicación */}
+                            {/* Precio de venta */}
                             <Card>
                                 <CardContent className="pt-6">
-                                    <h3 className="text-lg font-semibold mb-4">Precio y Ubicación</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <h3 className="text-lg font-semibold mb-4">Precio de venta</h3>
+                                    <div className="space-y-4">
                                         {/* Precio */}
                                         <div>
                                             <Label htmlFor="price">Precio *</Label>
@@ -260,26 +345,29 @@ export default function EditPublication({ publication, categories }: EditPublica
                                                 </div>
                                             )}
                                         </div>
-
-                                        {/* Ubicación */}
-                                        <div>
-                                            <Label htmlFor="location">Ubicación *</Label>
-                                            <Input
-                                                id="location"
-                                                type="text"
-                                                placeholder="Ciudad, País"
-                                                value={data.location}
-                                                onChange={(e) => setData('location', e.target.value)}
-                                                className={errors.location ? 'border-red-500' : ''}
-                                            />
-                                            {errors.location && (
-                                                <div className="flex items-center gap-1 mt-1 text-red-500 text-sm">
-                                                    <AlertCircle className="w-4 h-4" />
-                                                    {errors.location}
-                                                </div>
-                                            )}
-                                        </div>
                                     </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Mapa de Ubicación */}
+                            <Card>
+                                <CardContent className="pt-6">
+                                    <h3 className="text-lg font-semibold mb-4">Ubicación en el mapa *</h3>
+                                    <p className="text-sm text-muted-foreground mb-4">
+                                        Selecciona la ubicación exacta de tu producto o servicio en el mapa
+                                    </p>
+                                    <MapPicker
+                                        lat={data.lat && data.lat !== '' ? parseFloat(data.lat) : undefined}
+                                        lng={data.lng && data.lng !== '' ? parseFloat(data.lng) : undefined}
+                                        onLocationChange={handleLocationChange}
+                                        className="h-64 w-full"
+                                    />
+                                    {(!data.lat || !data.lng || data.lat === '' || data.lng === '') && (
+                                        <p className="text-sm text-amber-600 mt-2 flex items-center gap-1">
+                                            <AlertCircle className="w-4 h-4" />
+                                            Por favor selecciona una ubicación en el mapa
+                                        </p>
+                                    )}
                                 </CardContent>
                             </Card>
 
@@ -316,7 +404,7 @@ export default function EditPublication({ publication, categories }: EditPublica
                             <Card>
                                 <CardContent className="pt-6">
                                     <h3 className="text-lg font-semibold mb-4">Agregar Nuevas Imágenes</h3>
-                                    <p className="text-sm text-gray-600 mb-4">
+                                    <p className="text-sm text-muted-foreground mb-4">
                                         Agrega hasta 5 imágenes adicionales (máximo 5MB cada una)
                                     </p>
 
@@ -326,7 +414,7 @@ export default function EditPublication({ publication, categories }: EditPublica
                                         onClick={() => fileInputRef.current?.click()}
                                     >
                                         <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                                        <p className="text-gray-600 mb-2">Subir imágenes</p>
+                                        <p className="text-muted-foreground mb-2">Subir imágenes</p>
                                         <p className="text-sm text-gray-500">
                                             Arrastra y suelta o haz clic para seleccionar
                                         </p>
@@ -393,5 +481,14 @@ export default function EditPublication({ publication, categories }: EditPublica
                 </div>
             </div>
         </AppLayout>
+    );
+}
+
+// Componente principal que envuelve con ToastProvider
+export default function EditPublication({ publication, categories }: EditPublicationProps) {
+    return (
+        <ToastProvider>
+            <EditPublicationContent publication={publication} categories={categories} />
+        </ToastProvider>
     );
 }

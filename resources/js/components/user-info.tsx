@@ -11,6 +11,21 @@ export function UserInfo({
 }) {
     const getInitials = useInitials();
 
+    const getRoleDisplayName = (role: string) => {
+        switch (role) {
+            case 'super_admin':
+                return 'Super Administrador';
+            case 'admin':
+                return 'Administrador';
+            case 'moderator':
+                return 'Moderador';
+            case 'user':
+                return 'Usuario';
+            default:
+                return role;
+        }
+    };
+
     return (
         <>
             <Avatar className="h-8 w-8 overflow-hidden rounded-full">
@@ -22,9 +37,14 @@ export function UserInfo({
             <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user.name}</span>
                 {showEmail && (
-                    <span className="truncate text-xs text-muted-foreground">
-                        {user.email}
-                    </span>
+                    <>
+                        <span className="truncate text-xs text-muted-foreground">
+                            {user.email}
+                        </span>
+                        <span className="truncate text-xs font-medium text-blue-600 dark:text-blue-400">
+                            {getRoleDisplayName(user.role as string)}
+                        </span>
+                    </>
                 )}
             </div>
         </>

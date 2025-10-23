@@ -33,3 +33,11 @@ sonar-project.properties
 /docker/sonarqube/sonarqube
 /owasp-zap
 /.scannerwork
+
+# Composer local
+composer.phar
+
+# Configuración y binarios locales
+*.bat
+*.sh
+*.log

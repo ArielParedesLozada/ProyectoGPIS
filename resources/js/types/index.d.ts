@@ -54,13 +54,18 @@ export interface Publication {
     type: "servicio" | "producto";
     status: 1 | 2;
     disponibility: boolean;
-    horario: Date;
-    published_at: Date;
+    horario: string | null;
+    published_at: string;
     title: string;
     price: number;
     image?: string;
     description?: string;
     location?: string;
+    location_point?: {
+        lat: number;
+        lng: number;
+    };
+    category_id: number;
     user: User,
     category: Category;
     images?: Array<{
@@ -71,10 +76,17 @@ export interface Publication {
 
 export interface Paginated<T> {
     data: T[];
+    total: number;
     links: {
         url: string | null;
         label: string;
         active: boolean;
     }[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    from: number;
+    to: number;
 }
 

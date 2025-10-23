@@ -16,6 +16,7 @@ class Publication extends Model
         'description',
         'price',
         'location',
+        'location_point',
         'disponibility',
         'category_id',
         'created_by',
@@ -24,6 +25,12 @@ class Publication extends Model
         'type',
         'horario'
     ];
+
+    protected $casts = [
+        'status' => \App\Enums\StatusType::class,
+        'published_at' => 'datetime',
+    ];
+
 
     public function category(): BelongsTo
     {
@@ -35,5 +42,28 @@ class Publication extends Model
     }
     public function images(): HasMany {
         return $this->hasMany(PublicationImage::class, 'publication_id', 'id');
+    }
+
+    // Accessor para convertir location_point a formato JSON
+    public function getLocationPointAttribute($value)
+    {
+        if (!$value) {
+            return null;
+        }
+
+        // Si ya es un array, devolverlo tal como está
+        if (is_array($value)) {
+            return $value;
+        }
+
+        // Si es un objeto Point de Magellan, extraer lat y lng
+        if (is_object($value) && method_exists($value, 'getLat') && method_exists($value, 'getLng')) {
+            return [
+                'lat' => $value->getLat(),
+                'lng' => $value->getLng()
+            ];
+        }
+
+        return null;
     }
 }

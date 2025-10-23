@@ -1,5 +1,5 @@
 import RegisteredUserController from '@/actions/App/Http/Controllers/Auth/RegisteredUserController';
-import { login } from '@/routes';
+import { login } from '@/routes/index';
 import { Form, Head } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
 
@@ -41,22 +41,23 @@ export default function Register() {
 
             {/* Welcome message */}
             <div className="text-center mb-6 sm:mb-8">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Bienvenido</h1>
-                <p className="text-sm sm:text-base text-gray-600">Inicia sesión o crea una cuenta para continuar</p>
+                <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">Bienvenido</h1>
+                <p className="text-sm sm:text-base text-muted-foreground">Inicia sesión o crea una cuenta para continuar</p>
             </div>
 
             {/* Auth tabs */}
             <AuthTabs activeTab="register" />
 
             {/* Register form card */}
-            <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 lg:p-8">
+            <div className="bg-card rounded-xl shadow-lg p-4 sm:p-6 lg:p-8 border border-border">
                 <div className="mb-4 sm:mb-6">
-                    <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Crear Cuenta</h2>
-                    <p className="text-gray-600 text-xs sm:text-sm">Completa el formulario para registrarte</p>
+                    <h2 className="text-lg sm:text-xl font-semibold text-card-foreground mb-2">Crear Cuenta</h2>
+                    <p className="text-muted-foreground text-xs sm:text-sm">Completa el formulario para registrarte</p>
                 </div>
 
                 <Form
-                    {...RegisteredUserController.store.form()}
+                    action={RegisteredUserController.store().url}
+                    method={RegisteredUserController.store().method}
                     resetOnSuccess={['password', 'password_confirmation']}
                     disableWhileProcessing
                     className="space-y-6"
@@ -65,15 +66,15 @@ export default function Register() {
                         <>
                             <div className="space-y-3 sm:space-y-4">
                                 {errors.general && (
-                                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-                                        <p className="text-red-600 text-md">Ocurrio un error inesperado al registrar al usuario</p>
-                                        <p className='text-red-700 text-sm'>{errors.general}</p>
+                                    <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 mb-4">
+                                        <p className="text-destructive text-md">Ocurrio un error inesperado al registrar al usuario</p>
+                                        <p className='text-destructive text-sm'>{errors.general}</p>
                                     </div>
                                 )}
 
                                 {/* Grid para campos en pantallas grandes */}
                                 <div>
-                                    <Label htmlFor="cedula" className="text-xs sm:text-sm font-medium text-gray-700 mb-2 block">
+                                    <Label htmlFor="cedula" className="text-xs sm:text-sm font-medium text-foreground mb-2 block">
                                         Cédula
                                     </Label>
                                     <Input
@@ -93,7 +94,7 @@ export default function Register() {
                                             }
                                         }}
                                         onBlur={(e) => markFieldAsTouched('cedula', e.target.value)}
-                                        className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
+                                        className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background"
                                     />
                                     <CustomError
                                         message={getErrorMessage('cedula', errors.cedula, fieldValues.cedula)}
@@ -102,7 +103,7 @@ export default function Register() {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                     {/* Nombre */}
                                     <div>
-                                        <Label htmlFor="name" className="text-xs sm:text-sm font-medium text-gray-700 mb-2 block">
+                                        <Label htmlFor="name" className="text-xs sm:text-sm font-medium text-foreground mb-2 block">
                                             Nombre
                                         </Label>
                                         <Input
@@ -113,7 +114,7 @@ export default function Register() {
                                             autoComplete="given-name"
                                             name="name"
                                             placeholder="Juan"
-                                            className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
+                                            className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background"
                                             value={fieldValues.name}
                                             onChange={(e) => setFieldValues(prev => ({ ...prev, name: e.target.value }))}
                                             onBlur={(e) => markFieldAsTouched('name', e.target.value)}
@@ -126,7 +127,7 @@ export default function Register() {
 
                                     {/* Apellido */}
                                     <div>
-                                        <Label htmlFor="surname" className="text-xs sm:text-sm font-medium text-gray-700 mb-2 block">
+                                        <Label htmlFor="surname" className="text-xs sm:text-sm font-medium text-foreground mb-2 block">
                                             Apellido
                                         </Label>
                                         <Input
@@ -136,7 +137,7 @@ export default function Register() {
                                             autoComplete="family-name"
                                             name="surname"
                                             placeholder="Pérez"
-                                            className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
+                                            className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background"
                                             value={fieldValues.surname}
                                             onChange={(e) => setFieldValues(prev => ({ ...prev, surname: e.target.value }))}
                                             onBlur={(e) => markFieldAsTouched('surname', e.target.value)}
@@ -150,7 +151,7 @@ export default function Register() {
 
                                 {/* Teléfono */}
                                 <div>
-                                    <Label htmlFor="phone" className="text-xs sm:text-sm font-medium text-gray-700 mb-2 block">
+                                    <Label htmlFor="phone" className="text-xs sm:text-sm font-medium text-foreground mb-2 block">
                                         Teléfono
                                     </Label>
                                     <Input
@@ -170,7 +171,7 @@ export default function Register() {
                                             }
                                         }}
                                         onBlur={(e) => markFieldAsTouched('phone', e.target.value)}
-                                        className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
+                                        className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background"
                                     />
                                     <CustomError
                                         message={getErrorMessage('phone', errors.phone, fieldValues.phone)}
@@ -179,7 +180,7 @@ export default function Register() {
 
                                 {/* Dirección */}
                                 <div>
-                                    <Label htmlFor="address" className="text-xs sm:text-sm font-medium text-gray-700 mb-2 block">
+                                    <Label htmlFor="address" className="text-xs sm:text-sm font-medium text-foreground mb-2 block">
                                         Dirección
                                     </Label>
                                     <Input
@@ -189,7 +190,7 @@ export default function Register() {
                                         autoComplete="street-address"
                                         name="address"
                                         placeholder="Calle Principal 123, Ciudad"
-                                        className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
+                                        className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background"
                                         value={fieldValues.address}
                                         onChange={(e) => setFieldValues(prev => ({ ...prev, address: e.target.value }))}
                                         onBlur={(e) => markFieldAsTouched('address', e.target.value)}
@@ -204,7 +205,7 @@ export default function Register() {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                     {/* Género */}
                                     <div>
-                                        <Label htmlFor="gender" className="text-xs sm:text-sm font-medium text-gray-700 mb-2 block">
+                                        <Label htmlFor="gender" className="text-xs sm:text-sm font-medium text-foreground mb-2 block">
                                             Género
                                         </Label>
                                         <Select
@@ -217,14 +218,14 @@ export default function Register() {
                                         >
                                             <SelectTrigger
                                                 tabIndex={6}
-                                                className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
+                                                className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background"
                                                 onBlur={() => markSelectAsTouched('gender', fieldValues.gender)}
                                             >
                                                 <SelectValue placeholder="Selecciona tu género" />
                                             </SelectTrigger>
-                                            <SelectContent className="bg-white border border-gray-300 rounded-lg shadow-lg">
-                                                <SelectItem value="hombre" className="text-gray-900 hover:bg-gray-100">Hombre</SelectItem>
-                                                <SelectItem value="mujer" className="text-gray-900 hover:bg-gray-100">Mujer</SelectItem>
+                                            <SelectContent className="bg-popover border border-border rounded-lg shadow-lg">
+                                                <SelectItem value="hombre" className="text-popover-foreground hover:bg-accent">Hombre</SelectItem>
+                                                <SelectItem value="mujer" className="text-popover-foreground hover:bg-accent">Mujer</SelectItem>
                                             </SelectContent>
                                         </Select>
                                         <CustomError
@@ -235,7 +236,7 @@ export default function Register() {
 
                                     {/* Rol */}
                                     <div>
-                                        <Label htmlFor="role" className="text-xs sm:text-sm font-medium text-gray-700 mb-2 block">
+                                        <Label htmlFor="role" className="text-xs sm:text-sm font-medium text-foreground mb-2 block">
                                             Rol
                                         </Label>
                                         <Select
@@ -248,14 +249,14 @@ export default function Register() {
                                         >
                                             <SelectTrigger
                                                 tabIndex={7}
-                                                className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
+                                                className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background"
                                                 onBlur={() => markSelectAsTouched('role', fieldValues.role)}
                                             >
                                                 <SelectValue placeholder="Selecciona tu rol" />
                                             </SelectTrigger>
-                                            <SelectContent className="bg-white border border-gray-300 rounded-lg shadow-lg">
-                                                <SelectItem value="comprador" className="text-gray-900 hover:bg-gray-100">Comprador/Visualizador</SelectItem>
-                                                <SelectItem value="vendedor" className="text-gray-900 hover:bg-gray-100">Vendedor</SelectItem>
+                                            <SelectContent className="bg-popover border border-border rounded-lg shadow-lg">
+                                                <SelectItem value="comprador" className="text-popover-foreground hover:bg-accent">Comprador/Visualizador</SelectItem>
+                                                <SelectItem value="vendedor" className="text-popover-foreground hover:bg-accent">Vendedor</SelectItem>
                                             </SelectContent>
                                         </Select>
                                         <CustomError
@@ -267,7 +268,7 @@ export default function Register() {
 
                                 {/* Email */}
                                 <div>
-                                    <Label htmlFor="email" className="text-xs sm:text-sm font-medium text-gray-700 mb-2 block">
+                                    <Label htmlFor="email" className="text-xs sm:text-sm font-medium text-foreground mb-2 block">
                                         Email
                                     </Label>
                                     <Input
@@ -277,7 +278,7 @@ export default function Register() {
                                         autoComplete="email"
                                         name="email"
                                         placeholder="tu@email.com"
-                                        className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
+                                        className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background"
                                         value={fieldValues.email}
                                         onChange={(e) => setFieldValues(prev => ({ ...prev, email: e.target.value }))}
                                         onBlur={(e) => markFieldAsTouched('email', e.target.value)}
@@ -292,7 +293,7 @@ export default function Register() {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                     {/* Contraseña */}
                                     <div>
-                                        <Label htmlFor="password" className="text-xs sm:text-sm font-medium text-gray-700 mb-2 block">
+                                        <Label htmlFor="password" className="text-xs sm:text-sm font-medium text-foreground mb-2 block">
                                             Contraseña
                                         </Label>
                                         <PasswordInput
@@ -300,7 +301,7 @@ export default function Register() {
                                             tabIndex={9}
                                             autoComplete="new-password"
                                             name="password"
-                                            className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
+                                            className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background"
                                             value={fieldValues.password}
                                             onChange={(e) => setFieldValues(prev => ({ ...prev, password: e.target.value }))}
                                             onBlur={(e) => {
@@ -314,7 +315,7 @@ export default function Register() {
 
                                     {/* Confirmar Contraseña */}
                                     <div>
-                                        <Label htmlFor="password_confirmation" className="text-xs sm:text-sm font-medium text-gray-700 mb-2 block">
+                                        <Label htmlFor="password_confirmation" className="text-xs sm:text-sm font-medium text-foreground mb-2 block">
                                             Confirmar Contraseña
                                         </Label>
                                         <PasswordInput
@@ -322,7 +323,7 @@ export default function Register() {
                                             tabIndex={10}
                                             autoComplete="new-password"
                                             name="password_confirmation"
-                                            className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
+                                            className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background"
                                             value={fieldValues.password_confirmation}
                                             onChange={(e) => setFieldValues(prev => ({ ...prev, password_confirmation: e.target.value }))}
                                             onBlur={(e) => {
@@ -336,19 +337,19 @@ export default function Register() {
                                 </div>
 
                                 {/* Terms and Privacy */}
-                                <div className="text-xs sm:text-sm text-gray-600">
+                                <div className="text-xs sm:text-sm text-muted-foreground">
                                     Al registrarte, aceptas nuestros{' '}
-                                    <a href="#" className="text-blue-600 hover:text-blue-800">
+                                    <a href="#" className="text-primary hover:text-primary/80">
                                         Términos de Servicio
                                     </a>{' '}
                                     y{' '}
-                                    <a href="#" className="text-blue-600 hover:text-blue-800">
+                                    <a href="#" className="text-primary hover:text-primary/80">
                                         Política de Privacidad
                                     </a>
                                 </div>
                                 <Button
                                     type="submit"
-                                    className="mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white"
+                                    className="mt-2 w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                                     tabIndex={5}
                                     data-test="register-user-button"
                                 >

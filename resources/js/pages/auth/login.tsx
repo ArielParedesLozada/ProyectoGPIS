@@ -28,34 +28,37 @@ export default function Login({ status, canResetPassword }: LoginProps) {
       <MarketplaceLogo />
 
       <div className="text-center mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Bienvenido</h1>
-        <p className="text-sm sm:text-base text-gray-600">Inicia sesión o crea una cuenta para continuar</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">Bienvenido</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">Inicia sesión o crea una cuenta para continuar</p>
       </div>
 
       <AuthTabs activeTab="login" />
 
-      <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 lg:p-8">
+      <div className="bg-card rounded-xl shadow-lg p-4 sm:p-6 lg:p-8 border border-border">
         <div className="mb-4 sm:mb-6">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Iniciar Sesión</h2>
-          <p className="text-gray-600 text-xs sm:text-sm">Ingresa tus credenciales para acceder a tu cuenta</p>
+          <h2 className="text-lg sm:text-xl font-semibold text-card-foreground mb-2">Iniciar Sesión</h2>
+          <p className="text-muted-foreground text-xs sm:text-sm">Ingresa tus credenciales para acceder a tu cuenta</p>
         </div>
 
         <Form
-          {...AuthenticatedSessionController.store.form()}
+          action={AuthenticatedSessionController.store().url}
+          method={AuthenticatedSessionController.store().method}
           resetOnSuccess={['password']}
           className="space-y-6"
         >
           {({ processing, errors }) => (
             <>
               {(errors.email || errors.password) && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-                  <p className="text-red-600 text-sm">Las credenciales no coinciden con nuestros registros.</p>
+                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 mb-4">
+                  <p className="text-destructive text-sm">
+                    {errors.email || errors.password || 'Las credenciales no coinciden con nuestros registros.'}
+                  </p>
                 </div>
               )}
 
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="email" className="text-xs sm:text-sm font-medium text-gray-700 mb-2 block">
+                  <Label htmlFor="email" className="text-xs sm:text-sm font-medium text-foreground mb-2 block">
                     Email
                   </Label>
                   <Input
@@ -66,7 +69,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                     tabIndex={1}
                     autoComplete="email"
                     placeholder="tu@email.com"
-                    className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
+                    className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background"
                     value={fieldValues.email}
                     onChange={(e) => setFieldValues(prev => ({ ...prev, email: e.target.value }))}
                     onBlur={(e) => markFieldAsTouched('email', e.target.value)}
@@ -78,7 +81,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                 </div>
 
                 <div>
-                  <Label htmlFor="password" className="text-xs sm:text-sm font-medium text-gray-700 mb-2 block">
+                  <Label htmlFor="password" className="text-xs sm:text-sm font-medium text-foreground mb-2 block">
                     Contraseña
                   </Label>
                   <PasswordInput
@@ -86,7 +89,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                     name="password"
                     tabIndex={2}
                     autoComplete="current-password"
-                    className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
+                    className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background"
                     value={fieldValues.password}
                     onChange={(e) => setFieldValues(prev => ({ ...prev, password: e.target.value }))}
                     onBlur={(e) => markFieldAsTouched('password', e.target.value)}
@@ -100,7 +103,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                 {canResetPassword && (
                   <div className="text-left">
                     {/* 👇 ahora pasamos string */}
-                    <Link href={request().url} className="text-xs sm:text-sm text-blue-600 hover:text-blue-800">
+                    <Link href={request().url} className="text-xs sm:text-sm text-primary hover:text-primary/80">
                       ¿Olvidaste tu contraseña?
                     </Link>
                   </div>
@@ -108,7 +111,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
 
                 <Button
                   type="submit"
-                  className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-all duration-200"
+                  className="w-full bg-primary text-primary-foreground py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-all duration-200"
                   tabIndex={3}
                   disabled={processing}
                   data-test="login-button"
@@ -122,7 +125,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
         </Form>
 
         {status && (
-          <div className="mt-4 text-center text-sm font-medium text-green-600">
+          <div className="mt-4 text-center text-sm font-medium text-green-600 dark:text-green-400">
             {status}
           </div>
         )}

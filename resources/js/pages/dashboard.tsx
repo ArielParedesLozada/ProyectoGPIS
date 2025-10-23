@@ -22,8 +22,8 @@ export default function Dashboard() {
                         <span className="text-white font-bold text-6xl">M</span>
                     </div>
                     <div className="text-center">
-                        <h1 className="text-3xl font-bold text-gray-800 mb-2">Marketplace</h1>
-                        <p className="text-gray-600">Tu plataforma de productos favorita</p>
+                        <h1 className="text-3xl font-bold text-foreground mb-2">Marketplace</h1>
+                        <p className="text-muted-foreground">Tu plataforma de productos favorita</p>
                     </div>
                 </div>
                 

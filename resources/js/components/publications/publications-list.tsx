@@ -10,6 +10,9 @@ interface PublicationListProps {
     selectedType?: string;
     selectedMinPrice?: number;
     selectedMaxPrice?: number;
+    nearLat?: number;
+    nearLng?: number;
+    radiusKm?: number;
 }
 
 export default function PublicationList({ 
@@ -18,27 +21,30 @@ export default function PublicationList({
     selectedCategory, 
     selectedType,
     selectedMinPrice,
-    selectedMaxPrice
+    selectedMaxPrice,
+    nearLat,
+    nearLng,
+    radiusKm
 }: PublicationListProps) {
     return (
-        <div className="bg-gray-50 min-h-screen">
+        <div className="bg-background min-h-screen">
             {/* Header con título y contador */}
-            <div className="bg-white border-b border-gray-200 px-6 py-8">
+            <div className="bg-card border-b border-border px-6 py-8">
                 <div className="max-w-7xl mx-auto">
                     <div className="flex justify-between items-start">
                         <div>
-                            <h1 className="text-3xl font-bold text-gray-900 mb-2">Marketplace</h1>
-                            <p className="text-gray-600">Descubre productos y servicios de múltiples vendedores</p>
+                            <h1 className="text-3xl font-bold text-foreground mb-2">Marketplace</h1>
+                            <p className="text-muted-foreground">Descubre productos y servicios de múltiples vendedores</p>
                         </div>
                         <div className="text-right">
-                            <p className="text-sm text-gray-500">{publications.data.length} productos encontrados</p>
+                            <p className="text-sm text-muted-foreground">{publications.data.length} productos encontrados</p>
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Filtros unificados */}
-            <div className="bg-white border-b border-gray-200 px-6 py-4">
+            <div className="bg-card border-b border-border px-6 py-4">
                 <div className="max-w-7xl mx-auto">
                     <PublicationFilters 
                         categories={categories}
@@ -46,6 +52,9 @@ export default function PublicationList({
                         selectedType={selectedType}
                         selectedMinPrice={selectedMinPrice}
                         selectedMaxPrice={selectedMaxPrice}
+                        nearLat={nearLat}
+                        nearLng={nearLng}
+                        radiusKm={radiusKm}
                     />
                 </div>
             </div>
@@ -68,15 +77,15 @@ export default function PublicationList({
                                     href={link.url}
                                     className={`px-4 py-2 border rounded-lg text-sm font-medium transition-colors ${
                                         link.active 
-                                            ? "bg-blue-600 text-white border-blue-600" 
-                                            : "text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400"
+                                            ? "bg-primary text-primary-foreground border-primary" 
+                                            : "text-foreground border-border hover:bg-muted hover:border-border"
                                     }`}
                                     dangerouslySetInnerHTML={{ __html: link.label }}
                                 />
                             ) : (
                                 <span
                                     key={i}
-                                    className="px-4 py-2 text-gray-400 cursor-not-allowed text-sm"
+                                    className="px-4 py-2 text-muted-foreground cursor-not-allowed text-sm"
                                     dangerouslySetInnerHTML={{ __html: link.label }}
                                 />
                             )
