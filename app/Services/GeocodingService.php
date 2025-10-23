@@ -9,6 +9,7 @@ class GeocodingService
 {
     /**
      * Obtiene la dirección legible a partir de coordenadas usando Nominatim
+     * Formato: <parroquia/sector>, <ciudad>, <país>
      */
     public static function reverseGeocode(float $lat, float $lng): string
     {
@@ -32,7 +33,7 @@ class GeocodingService
                     'lon' => $roundedLng,
                     'zoom' => 18,
                     'addressdetails' => 1,
-                    'accept-language' => 'es,en',
+                    'accept-language' => 'es',
                     'extratags' => 1,
                     'namedetails' => 1
                 ]);
@@ -43,37 +44,54 @@ class GeocodingService
                 if (isset($data['address'])) {
                     $address = $data['address'];
                     
-                    // Construir dirección más precisa
+                    // Extraer componentes según jerarquía
+                    $sector = $address['suburb'] ?? 
+                             $address['neighbourhood'] ?? 
+                             $address['quarter'] ?? 
+                             $address['city_district'] ?? 
+                             $address['borough'] ?? 
+                             $address['hamlet'] ?? 
+                             null;
+                    
+                    $ciudad = $address['city'] ?? 
+                             $address['town'] ?? 
+                             $address['village'] ?? 
+                             $address['municipality'] ?? 
+                             null;
+                    
+                    $provincia = $address['state'] ?? 
+                                $address['county'] ?? 
+                                null;
+                    
+                    $pais = $address['country'] ?? null;
+                    
+                    // Construir ubicación según reglas de fallback
                     $locationParts = [];
                     
-                    // Agregar calle si está disponible
-                    if (isset($address['road']) && !empty($address['road'])) {
-                        $locationParts[] = $address['road'];
-                    }
-                    
-                    // Prioridad: ciudad > pueblo > municipio > estado
-                    $mainLocation = $address['city'] ?? 
-                                   $address['town'] ?? 
-                                   $address['village'] ?? 
-                                   $address['municipality'] ?? 
-                                   $address['state'] ?? 
-                                   $address['county'] ?? 
-                                   null;
-                    
-                    if ($mainLocation) {
-                        $locationParts[] = $mainLocation;
-                    }
-                    
-                    // Agregar país si está disponible
-                    if (isset($address['country']) && !empty($address['country'])) {
-                        $locationParts[] = $address['country'];
+                    if ($sector && $ciudad && $pais) {
+                        // Caso 1: sector+ciudad+país → "Ingahurco, Ambato, Ecuador"
+                        $locationParts = [$sector, $ciudad, $pais];
+                    } elseif ($ciudad && $pais) {
+                        // Caso 2: sin sector → "Ambato, Ecuador"
+                        $locationParts = [$ciudad, $pais];
+                    } elseif ($provincia && $pais) {
+                        // Caso 3: sin ciudad pero con provincia → "Tungurahua, Ecuador"
+                        $locationParts = [$provincia, $pais];
+                    } elseif ($pais) {
+                        // Caso 4: solo país → "Ecuador"
+                        $locationParts = [$pais];
                     }
                     
                     $location = !empty($locationParts) ? implode(', ', $locationParts) : 'Ubicación no disponible';
                     
                     Log::info('Reverse geocoding result', [
                         'coordinates' => ['lat' => $roundedLat, 'lng' => $roundedLng],
-                        'address' => $address,
+                        'components' => [
+                            'sector' => $sector,
+                            'ciudad' => $ciudad,
+                            'provincia' => $provincia,
+                            'pais' => $pais
+                        ],
                         'result' => $location
                     ]);
                     
