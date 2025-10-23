@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useForm } from "@inertiajs/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +28,7 @@ interface CreatePublicationProps {
 export default function CreatePublication({ categories }: CreatePublicationProps) {
     const [selectedImages, setSelectedImages] = useState<File[]>([]);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+    const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { showToast } = useToast();
 
@@ -53,6 +54,101 @@ export default function CreatePublication({ categories }: CreatePublicationProps
         horario: '',
         images: [] as File[]
     });
+
+    // Función para validar campos en tiempo real
+    const validateField = (field: string, value: string | number) => {
+        const newErrors = { ...validationErrors };
+        
+        switch (field) {
+            case 'title':
+                if (!value || (typeof value === 'string' && value.trim().length === 0)) {
+                    newErrors.title = 'El título es requerido';
+                } else if (typeof value === 'string' && value.trim().length < 3) {
+                    newErrors.title = 'El título debe tener al menos 3 caracteres';
+                } else {
+                    delete newErrors.title;
+                }
+                break;
+                
+            case 'description':
+                if (!value || (typeof value === 'string' && value.trim().length === 0)) {
+                    newErrors.description = 'La descripción es requerida';
+                } else if (typeof value === 'string' && value.trim().length < 10) {
+                    newErrors.description = 'La descripción debe tener al menos 10 caracteres';
+                } else {
+                    delete newErrors.description;
+                }
+                break;
+                
+            case 'price':
+                if (!value || value === '') {
+                    newErrors.price = 'El precio es requerido';
+                } else if (isNaN(Number(value)) || Number(value) <= 0) {
+                    newErrors.price = 'El precio debe ser un número válido mayor a 0';
+                } else {
+                    delete newErrors.price;
+                }
+                break;
+                
+            case 'category_id':
+                if (!value || value === '') {
+                    newErrors.category_id = 'La categoría es requerida';
+                } else {
+                    delete newErrors.category_id;
+                }
+                break;
+                
+            case 'type':
+                if (!value || value === '') {
+                    newErrors.type = 'El tipo es requerido';
+                } else {
+                    delete newErrors.type;
+                }
+                break;
+                
+            case 'horario':
+                if (data.type === 'servicio' && (!value || value === '')) {
+                    newErrors.horario = 'El horario es requerido para servicios';
+                } else {
+                    delete newErrors.horario;
+                }
+                break;
+        }
+        
+        setValidationErrors(newErrors);
+    };
+
+    // Validar ubicación
+    const validateLocation = () => {
+        const newErrors = { ...validationErrors };
+        if (!data.lat || !data.lng || data.lat === '' || data.lng === '') {
+            newErrors.location = 'Debes seleccionar una ubicación en el mapa';
+        } else {
+            delete newErrors.location;
+        }
+        setValidationErrors(newErrors);
+    };
+
+    // Validar imágenes
+    const validateImages = () => {
+        const newErrors = { ...validationErrors };
+        if (selectedImages.length === 0) {
+            newErrors.images = 'Debes subir al menos una imagen';
+        } else {
+            delete newErrors.images;
+        }
+        setValidationErrors(newErrors);
+    };
+
+    // Efecto para validar ubicación cuando cambie
+    useEffect(() => {
+        validateLocation();
+    }, [data.lat, data.lng]);
+
+    // Efecto para validar imágenes cuando cambien
+    useEffect(() => {
+        validateImages();
+    }, [selectedImages]);
 
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
@@ -115,12 +211,25 @@ export default function CreatePublication({ categories }: CreatePublicationProps
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         
-        // Validar que se haya seleccionado una ubicación en el mapa
-        if (!data.lat || !data.lng || data.lat === '' || data.lng === '') {
+        // Validar todos los campos antes de enviar
+        validateField('title', data.title);
+        validateField('description', data.description);
+        validateField('price', data.price);
+        validateField('category_id', data.category_id);
+        validateField('type', data.type);
+        if (data.type === 'servicio') {
+            validateField('horario', data.horario);
+        }
+        validateLocation();
+        validateImages();
+        
+        // Verificar si hay errores de validación
+        const hasErrors = Object.keys(validationErrors).length > 0;
+        if (hasErrors) {
             showToast({
                 type: 'error',
-                title: 'Ubicación requerida',
-                message: 'Por favor selecciona una ubicación en el mapa.'
+                title: 'Formulario incompleto',
+                message: 'Por favor completa todos los campos requeridos correctamente.'
             });
             return;
         }
@@ -193,13 +302,16 @@ export default function CreatePublication({ categories }: CreatePublicationProps
                                                 type="text"
                                                 placeholder="Ej: Laptop Dell XPS 15 2024"
                                                 value={data.title}
-                                                onChange={(e) => setData('title', e.target.value)}
-                                                className={errors.title ? 'border-red-500' : ''}
+                                                onChange={(e) => {
+                                                    setData('title', e.target.value);
+                                                    validateField('title', e.target.value);
+                                                }}
+                                                className={errors.title || validationErrors.title ? 'border-red-500' : ''}
                                             />
-                                            {errors.title && (
+                                            {(errors.title || validationErrors.title) && (
                                                 <div className="flex items-center gap-1 mt-1 text-red-500 text-sm">
                                                     <AlertCircle className="w-4 h-4" />
-                                                    {errors.title}
+                                                    {errors.title || validationErrors.title}
                                                 </div>
                                             )}
                                         </div>
@@ -211,14 +323,17 @@ export default function CreatePublication({ categories }: CreatePublicationProps
                                                 id="description"
                                                 placeholder="Describe tu producto o servicio en detalle..."
                                                 value={data.description}
-                                                onChange={(e) => setData('description', e.target.value)}
+                                                onChange={(e) => {
+                                                    setData('description', e.target.value);
+                                                    validateField('description', e.target.value);
+                                                }}
                                                 rows={4}
-                                                className={errors.description ? 'border-red-500' : ''}
+                                                className={errors.description || validationErrors.description ? 'border-red-500' : ''}
                                             />
-                                            {errors.description && (
+                                            {(errors.description || validationErrors.description) && (
                                                 <div className="flex items-center gap-1 mt-1 text-red-500 text-sm">
                                                     <AlertCircle className="w-4 h-4" />
-                                                    {errors.description}
+                                                    {errors.description || validationErrors.description}
                                                 </div>
                                             )}
                                         </div>
@@ -226,8 +341,11 @@ export default function CreatePublication({ categories }: CreatePublicationProps
                                         {/* Categoría */}
                                         <div>
                                             <Label htmlFor="category_id">Categoría *</Label>
-                                            <Select value={data.category_id} onValueChange={(value) => setData('category_id', value)}>
-                                                <SelectTrigger className={errors.category_id ? 'border-red-500' : ''}>
+                                            <Select value={data.category_id} onValueChange={(value) => {
+                                                setData('category_id', value);
+                                                validateField('category_id', value);
+                                            }}>
+                                                <SelectTrigger className={errors.category_id || validationErrors.category_id ? 'border-red-500' : ''}>
                                                     <SelectValue placeholder="Selecciona una categoría" />
                                                 </SelectTrigger>
                                                 <SelectContent>
@@ -238,10 +356,10 @@ export default function CreatePublication({ categories }: CreatePublicationProps
                                                     ))}
                                                 </SelectContent>
                                             </Select>
-                                            {errors.category_id && (
+                                            {(errors.category_id || validationErrors.category_id) && (
                                                 <div className="flex items-center gap-1 mt-1 text-red-500 text-sm">
                                                     <AlertCircle className="w-4 h-4" />
-                                                    {errors.category_id}
+                                                    {errors.category_id || validationErrors.category_id}
                                                 </div>
                                             )}
                                         </div>
@@ -249,8 +367,11 @@ export default function CreatePublication({ categories }: CreatePublicationProps
                                         {/* Tipo */}
                                         <div>
                                             <Label htmlFor="type">Tipo *</Label>
-                                            <Select value={data.type} onValueChange={(value: "servicio" | "producto") => setData('type', value)}>
-                                                <SelectTrigger className={errors.type ? 'border-red-500' : ''}>
+                                            <Select value={data.type} onValueChange={(value: "servicio" | "producto") => {
+                                                setData('type', value);
+                                                validateField('type', value);
+                                            }}>
+                                                <SelectTrigger className={errors.type || validationErrors.type ? 'border-red-500' : ''}>
                                                     <SelectValue placeholder="Selecciona el tipo" />
                                                 </SelectTrigger>
                                                 <SelectContent>
@@ -258,10 +379,10 @@ export default function CreatePublication({ categories }: CreatePublicationProps
                                                     <SelectItem value="servicio">Servicio</SelectItem>
                                                 </SelectContent>
                                             </Select>
-                                            {errors.type && (
+                                            {(errors.type || validationErrors.type) && (
                                                 <div className="flex items-center gap-1 mt-1 text-red-500 text-sm">
                                                     <AlertCircle className="w-4 h-4" />
-                                                    {errors.type}
+                                                    {errors.type || validationErrors.type}
                                                 </div>
                                             )}
                                         </div>
@@ -271,8 +392,11 @@ export default function CreatePublication({ categories }: CreatePublicationProps
                                             <div>
                                                 <ServiceSchedule
                                                     value={data.horario}
-                                                    onChange={(value: string) => setData('horario', value)}
-                                                    error={errors.horario}
+                                                    onChange={(value: string) => {
+                                                        setData('horario', value);
+                                                        validateField('horario', value);
+                                                    }}
+                                                    error={errors.horario || validationErrors.horario}
                                                     required={true}
                                                 />
                                             </div>
@@ -295,16 +419,19 @@ export default function CreatePublication({ categories }: CreatePublicationProps
                                                     type="number"
                                                     placeholder="0.00"
                                                     value={data.price}
-                                                    onChange={(e) => setData('price', e.target.value)}
-                                                    className={`pl-8 ${errors.price ? 'border-red-500' : ''}`}
+                                                    onChange={(e) => {
+                                                        setData('price', e.target.value);
+                                                        validateField('price', e.target.value);
+                                                    }}
+                                                    className={`pl-8 ${errors.price || validationErrors.price ? 'border-red-500' : ''}`}
                                                     step="0.01"
                                                     min="0"
                                                 />
                                             </div>
-                                            {errors.price && (
+                                            {(errors.price || validationErrors.price) && (
                                                 <div className="flex items-center gap-1 mt-1 text-red-500 text-sm">
                                                     <AlertCircle className="w-4 h-4" />
-                                                    {errors.price}
+                                                    {errors.price || validationErrors.price}
                                                 </div>
                                             )}
                                         </div>
@@ -325,11 +452,11 @@ export default function CreatePublication({ categories }: CreatePublicationProps
                                         onLocationChange={handleLocationChange}
                                         className="h-64 w-full"
                                     />
-                                    {(!data.lat || !data.lng || data.lat === '' || data.lng === '') && (
-                                        <p className="text-sm text-amber-600 mt-2 flex items-center gap-1">
+                                    {validationErrors.location && (
+                                        <div className="flex items-center gap-1 mt-2 text-red-500 text-sm">
                                             <AlertCircle className="w-4 h-4" />
-                                            Por favor selecciona una ubicación en el mapa
-                                        </p>
+                                            {validationErrors.location}
+                                        </div>
                                     )}
                                 </CardContent>
                             </Card>
@@ -386,10 +513,10 @@ export default function CreatePublication({ categories }: CreatePublicationProps
                                         </div>
                                     )}
 
-                                    {errors.images && (
+                                    {(errors.images || validationErrors.images) && (
                                         <div className="flex items-center gap-1 mt-2 text-red-500 text-sm">
                                             <AlertCircle className="w-4 h-4" />
-                                            {errors.images}
+                                            {errors.images || validationErrors.images}
                                         </div>
                                     )}
                                 </CardContent>

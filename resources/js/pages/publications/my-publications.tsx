@@ -10,7 +10,7 @@ import {
 import AppLayout from "@/layouts/app-layout";
 import { SharedData, Paginated, Publication, Category, BreadcrumbItem } from "@/types";
 import { usePage, router, Head, Link } from "@inertiajs/react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { 
     Plus, 
     MoreHorizontal, 
@@ -22,9 +22,6 @@ import {
     MapPin,
     DollarSign
 } from "lucide-react";
-import { useToast, ToastProvider } from "@/hooks/useToast";
-
-// Componente interno que usa useToast
 function MyPublicationsContent() {
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -33,78 +30,20 @@ function MyPublicationsContent() {
         },
     ];
 
-    const { auth, publications, categories, flash } = usePage<SharedData & {
+    const { auth, publications, categories } = usePage<SharedData & {
         publications: Paginated<Publication>,
         categories: Category[],
-        flash?: {
-            success?: string;
-        };
     }>().props;
 
-    const { showToast } = useToast();
-
-    // Mostrar toast cuando hay mensajes flash
-    useEffect(() => {
-        if (flash?.success) {
-            showToast({
-                type: 'success',
-                title: 'Éxito',
-                message: flash.success
-            });
-        }
-    }, [flash?.success, showToast]);
-
     const handleDelete = (id: number) => {
-        // Mostrar toast de confirmación
-        showToast({
-            type: 'warning',
-            title: 'Confirmar eliminación',
-            message: '¿Estás seguro de que quieres eliminar esta publicación? Haz clic en "Eliminar" en el menú para confirmar.'
-        });
-        
-        // Usar confirm nativo como fallback
+        // Usar confirm nativo para confirmación
         if (confirm('¿Estás seguro de que quieres eliminar esta publicación?')) {
-            router.delete(`/my-publications/${id}`, {
-                onSuccess: () => {
-                    showToast({
-                        type: 'success',
-                        title: 'Publicación eliminada',
-                        message: 'La publicación ha sido eliminada exitosamente.'
-                    });
-                },
-                onError: () => {
-                    showToast({
-                        type: 'error',
-                        title: 'Error al eliminar',
-                        message: 'No se pudo eliminar la publicación. Inténtalo de nuevo.'
-                    });
-                }
-            });
+            router.delete(`/my-publications/${id}`);
         }
     };
 
     const handleToggleStatus = (id: number) => {
-        const publication = publications.data.find(p => p.id === id);
-        const isCurrentlyEnabled = publication?.status === 1;
-        
-        router.patch(`/my-publications/${id}/toggle-status`, {}, {
-            onSuccess: () => {
-                showToast({
-                    type: 'success',
-                    title: isCurrentlyEnabled ? 'Publicación inhabilitada' : 'Publicación habilitada',
-                    message: isCurrentlyEnabled 
-                        ? 'La publicación ha sido inhabilitada exitosamente.'
-                        : 'La publicación ha sido habilitada exitosamente.'
-                });
-            },
-            onError: () => {
-                showToast({
-                    type: 'error',
-                    title: 'Error al cambiar estado',
-                    message: 'No se pudo cambiar el estado de la publicación. Inténtalo de nuevo.'
-                });
-            }
-        });
+        router.patch(`/my-publications/${id}/toggle-status`);
     };
 
     const getStatusBadge = (status: number) => {
@@ -132,7 +71,7 @@ function MyPublicationsContent() {
     };
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <>
             <Head title="Mis Publicaciones" />
             
             <div className="bg-gray-50 min-h-screen">
@@ -351,16 +290,23 @@ function MyPublicationsContent() {
 
                 </div>
             </div>
-
-        </AppLayout>
+        </>
     );
 }
 
-// Componente principal que envuelve con ToastProvider
+// Layout estático de Inertia
+MyPublications.layout = (page: React.ReactNode) => (
+    <AppLayout breadcrumbs={[
+        {
+            title: 'Mis Publicaciones',
+            href: '/my-publications',
+        },
+    ]}>
+        {page}
+    </AppLayout>
+);
+
 export default function MyPublications() {
-    return (
-        <ToastProvider>
-            <MyPublicationsContent />
-        </ToastProvider>
-    );
+    return <MyPublicationsContent />;
 }
+

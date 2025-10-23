@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { usePage } from '@inertiajs/react';
 import { useToast } from './useToast';
 
@@ -22,9 +22,19 @@ export const useFlashToasts = () => {
     const { showToast } = useToast();
     const { props } = usePage<PageProps>();
     const flash = props.flash;
+    const processedFlash = useRef<string>('');
 
     useEffect(() => {
         if (!flash) return;
+
+        // Crear una clave única para este flash
+        const flashKey = JSON.stringify(flash);
+        
+        // Si ya procesamos este flash, no hacer nada
+        if (processedFlash.current === flashKey) return;
+        
+        // Marcar como procesado
+        processedFlash.current = flashKey;
 
         // Mostrar toast de éxito
         if (flash.success) {
