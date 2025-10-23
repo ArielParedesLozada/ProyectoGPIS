@@ -96,6 +96,15 @@ class PublicationController extends Controller
         }
     }
 
+    public function create()
+    {
+        $categories = Category::select('id', 'name')->get();
+        
+        return Inertia::render('publications/create-publication', [
+            'categories' => $categories,
+        ]);
+    }
+
     public function store(Request $request)
     {
         try {

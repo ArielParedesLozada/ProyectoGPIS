@@ -7,14 +7,6 @@ import {
     DropdownMenuItem, 
     DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { 
-    Dialog, 
-    DialogContent, 
-    DialogHeader, 
-    DialogTitle, 
-    DialogDescription,
-    DialogTrigger 
-} from "@/components/ui/dialog";
 import AppLayout from "@/layouts/app-layout";
 import { SharedData, Paginated, Publication, Category, BreadcrumbItem } from "@/types";
 import { usePage, router, Head, Link } from "@inertiajs/react";
@@ -30,7 +22,6 @@ import {
     MapPin,
     DollarSign
 } from "lucide-react";
-import CreatePublicationModal from "@/components/publications/create-publication-modal";
 import { useToast, ToastProvider } from "@/hooks/useToast";
 
 // Componente interno que usa useToast
@@ -50,7 +41,6 @@ function MyPublicationsContent() {
         };
     }>().props;
 
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const { showToast } = useToast();
 
     // Mostrar toast cuando hay mensajes flash
@@ -159,26 +149,12 @@ function MyPublicationsContent() {
                                     </p>
                                 )}
                             </div>
-                            <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-                                <DialogTrigger asChild>
-                                    <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                                        <Plus className="w-4 h-4 mr-2" />
-                                        Crear Publicación
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent className="max-w-[98vw] max-h-[98vh] overflow-y-auto">
-                                    <DialogHeader>
-                                        <DialogTitle className="text-2xl font-bold">Crear Nueva Publicación</DialogTitle>
-                                        <DialogDescription className="text-gray-600">
-                                            Completa la información de tu producto o servicio
-                                        </DialogDescription>
-                                    </DialogHeader>
-                                    <CreatePublicationModal 
-                                        categories={categories}
-                                        onClose={() => setIsCreateModalOpen(false)}
-                                    />
-                                </DialogContent>
-                            </Dialog>
+                            <Link href="/my-publications/create">
+                                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    Crear Publicación
+                                </Button>
+                            </Link>
                         </div>
                     </div>
                 </div>
@@ -364,13 +340,12 @@ function MyPublicationsContent() {
                             <p className="text-gray-500 mb-6">
                                 Comienza creando tu primera publicación
                             </p>
-                            <Button 
-                                onClick={() => setIsCreateModalOpen(true)}
-                                className="bg-blue-600 hover:bg-blue-700 text-white"
-                            >
-                                <Plus className="w-4 h-4 mr-2" />
-                                Crear Primera Publicación
-                            </Button>
+                            <Link href="/my-publications/create">
+                                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    Crear Primera Publicación
+                                </Button>
+                            </Link>
                         </div>
                     )}
 
