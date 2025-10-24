@@ -159,29 +159,56 @@ const ServiceSchedule: React.FC<ServiceScheduleProps> = ({
     const schedule = generateSchedule();
     if (schedule.length === 0) return '';
     
-    const dayGroups: { [key: number]: { day: number; open: string; close: string }[] } = {};
-    schedule.forEach(item => {
-      if (!dayGroups[item.day]) {
-        dayGroups[item.day] = [];
-      }
-      dayGroups[item.day].push(item);
-    });
-
     const dayLabels: { [key: number]: string } = {
       1: 'Lun', 2: 'Mar', 3: 'Mié', 4: 'Jue', 5: 'Vie', 6: 'Sáb', 7: 'Dom'
     };
 
-    const formatDayGroup = (day: number, items: { day: number; open: string; close: string }[]) => {
-      const dayLabel = dayLabels[day];
-      const timeRanges = items.map(item => `${item.open}-${item.close}`).join(', ');
-      return `${dayLabel} ${timeRanges}`;
+    // Agrupar por horario
+    const scheduleByTime: { [key: string]: number[] } = {};
+    schedule.forEach(item => {
+      const timeKey = `${item.open}-${item.close}`;
+      if (!scheduleByTime[timeKey]) {
+        scheduleByTime[timeKey] = [];
+      }
+      scheduleByTime[timeKey].push(item.day);
+    });
+
+    // Formatear cada grupo de horario
+    const formatTimeGroup = (timeKey: string, days: number[]) => {
+      const sortedDays = days.sort((a, b) => a - b);
+      
+      // Agrupar días consecutivos
+      const ranges: string[] = [];
+      let start = sortedDays[0];
+      let end = start;
+      
+      for (let i = 1; i < sortedDays.length; i++) {
+        if (sortedDays[i] === end + 1) {
+          end = sortedDays[i];
+        } else {
+          // Finalizar rango actual
+          if (start === end) {
+            ranges.push(dayLabels[start]);
+          } else {
+            ranges.push(`${dayLabels[start]} - ${dayLabels[end]}`);
+          }
+          start = sortedDays[i];
+          end = start;
+        }
+      }
+      
+      // Agregar último rango
+      if (start === end) {
+        ranges.push(dayLabels[start]);
+      } else {
+        ranges.push(`${dayLabels[start]} - ${dayLabels[end]}`);
+      }
+      
+      return `${ranges.join(', ')}/${timeKey}`;
     };
 
-    // Ordenar por día de la semana
-    return Object.keys(dayGroups)
-      .map(Number)
-      .sort((a, b) => a - b)
-      .map(day => formatDayGroup(day, dayGroups[day]))
+    return Object.keys(scheduleByTime)
+      .map(timeKey => formatTimeGroup(timeKey, scheduleByTime[timeKey]))
       .join(', ');
   };
 
