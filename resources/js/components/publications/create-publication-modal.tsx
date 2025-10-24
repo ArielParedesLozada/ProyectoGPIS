@@ -37,7 +37,7 @@ export default function CreatePublicationModal({ categories, onClose }: CreatePu
         type: '',
         lat: '',
         lng: '',
-        horario: '',
+        schedule: [] as { day: number; open: string; close: string }[],
         images: [] as File[]
     });
 
@@ -121,7 +121,7 @@ export default function CreatePublicationModal({ categories, onClose }: CreatePu
         formData.append('type', data.type);
         formData.append('lat', data.lat);
         formData.append('lng', data.lng);
-        formData.append('horario', data.horario || '');
+        formData.append('schedule', JSON.stringify(data.schedule));
         
         // Agregar imágenes como images[]
         selectedImages.forEach((image) => {
@@ -246,9 +246,9 @@ export default function CreatePublicationModal({ categories, onClose }: CreatePu
                         {data.type === 'servicio' && (
                             <div>
                                 <ServiceSchedule
-                                    value={data.horario}
-                                    onChange={(value) => setData('horario', value)}
-                                    error={errors.horario}
+                                    value={data.schedule}
+                                    onChange={(value: { day: number; open: string; close: string }[]) => setData('schedule', value.map(i => ({ ...i })))}
+                                    error={errors.schedule}
                                     required={true}
                                 />
                             </div>

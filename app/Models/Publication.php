@@ -22,8 +22,7 @@ class Publication extends Model
         'created_by',
         'published_at',
         'status',
-        'type',
-        'horario'
+        'type'
     ];
 
     protected $casts = [
@@ -42,6 +41,11 @@ class Publication extends Model
     }
     public function images(): HasMany {
         return $this->hasMany(PublicationImage::class, 'publication_id', 'id');
+    }
+
+    public function serviceHours(): HasMany
+    {
+        return $this->hasMany(PublicationServiceHour::class, 'publication_id', 'id');
     }
 
     // Accessor para convertir location_point a formato JSON

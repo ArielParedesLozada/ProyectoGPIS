@@ -162,12 +162,24 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                                         <span className="text-gray-600 text-sm font-medium">Código:</span>
                                         <span className="text-gray-900 font-mono text-sm">{publication.code}</span>
                                     </div>
-                                    {publication.horario && (
-                                        <div className="flex justify-between items-center py-2">
+                                    {publication.serviceHours && publication.serviceHours.length > 0 ? (
+                                        <div className="flex justify-between items-start py-2">
                                             <span className="text-gray-600 text-sm font-medium">Horario:</span>
-                                            <span className="text-gray-900 text-sm">
-                                                {publication.horario}
-                                            </span>
+                                            <div className="text-gray-900 text-sm text-right max-w-xs">
+                                                {(() => {
+                                                    const dayNames = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+                                                    return publication.serviceHours.map(hour => 
+                                                        `${dayNames[hour.day_of_week]} ${hour.open_time.slice(0, 5)}-${hour.close_time.slice(0, 5)}`
+                                                    ).join(', ');
+                                                })()}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="flex justify-between items-start py-2">
+                                            <span className="text-gray-600 text-sm font-medium">Horario:</span>
+                                            <div className="text-gray-900 text-sm text-right max-w-xs">
+                                                No especificado
+                                            </div>
                                         </div>
                                     )}
                                     <div className="flex justify-between items-center py-2">
