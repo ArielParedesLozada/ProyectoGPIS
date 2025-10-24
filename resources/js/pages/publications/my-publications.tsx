@@ -20,9 +20,12 @@ import {
     EyeOff,
     Calendar,
     MapPin,
-    DollarSign
+    DollarSign,
+    AlertTriangle,
+    MessageSquare
 } from "lucide-react";
 import { useToast, ToastProvider } from "@/hooks/useToast";
+import GeneralModal from "@/components/ui/general-modal";
 
 // Componente interno que usa useToast
 function MyPublicationsContent() {
@@ -42,6 +45,9 @@ function MyPublicationsContent() {
     }>().props;
 
     const { showToast } = useToast();
+    const [showAppealModal, setShowAppealModal] = useState(false);
+    const [selectedPublication, setSelectedPublication] = useState<Publication | null>(null);
+    const [appealReason, setAppealReason] = useState('');
 
     // Mostrar toast cuando hay mensajes flash
     useEffect(() => {
@@ -107,8 +113,57 @@ function MyPublicationsContent() {
         });
     };
 
-    const getStatusBadge = (status: number) => {
-        return status === 1 ? (
+    const handleAppeal = (publication: Publication) => {
+        setSelectedPublication(publication);
+        setShowAppealModal(true);
+    };
+
+    const handleSubmitAppeal = () => {
+        if (!appealReason.trim()) {
+            showToast({
+                type: 'error',
+                title: 'Error',
+                message: 'Debes proporcionar un motivo para la apelación.'
+            });
+            return;
+        }
+
+        if (!selectedPublication) return;
+
+        router.post(`/my-publications/${selectedPublication.id}/appeal`, {
+            reason: appealReason
+        }, {
+            onSuccess: () => {
+                showToast({
+                    type: 'success',
+                    title: 'Apelación enviada',
+                    message: 'Tu apelación ha sido enviada y será revisada por un moderador.'
+                });
+                setShowAppealModal(false);
+                setAppealReason('');
+                setSelectedPublication(null);
+            },
+            onError: () => {
+                showToast({
+                    type: 'error',
+                    title: 'Error al enviar apelación',
+                    message: 'No se pudo enviar la apelación. Inténtalo de nuevo.'
+                });
+            }
+        });
+    };
+
+    const getStatusBadge = (publication: Publication) => {
+        if (publication.is_hidden) {
+            return (
+                <Badge variant="destructive" className="bg-red-100 text-red-800">
+                    <AlertTriangle className="w-3 h-3 mr-1" />
+                    Oculto por Moderación
+                </Badge>
+            );
+        }
+        
+        return publication.status === 1 ? (
             <Badge variant="default" className="bg-green-100 text-green-800">
                 Habilitado
             </Badge>
@@ -161,7 +216,7 @@ function MyPublicationsContent() {
 
                 {/* Stats Cards */}
                 <div className="max-w-7xl mx-auto px-6 py-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium">Total Publicaciones</CardTitle>
@@ -193,6 +248,17 @@ function MyPublicationsContent() {
                                 </div>
                             </CardContent>
                         </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Ocultas por Moderación</CardTitle>
+                                <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">
+                                    {publications.data.filter(p => p.is_hidden).length}
+                                </div>
+                            </CardContent>
+                        </Card>
                     </div>
 
                     {/* Publications Grid */}
@@ -206,7 +272,7 @@ function MyPublicationsContent() {
                                                 {publication.title}
                                             </CardTitle>
                                             <div className="flex gap-2 mb-2">
-                                                {getStatusBadge(publication.status)}
+                                                {getStatusBadge(publication)}
                                                 {getTypeBadge(publication.type)}
                                             </div>
                                         </div>
@@ -223,27 +289,40 @@ function MyPublicationsContent() {
                                                         Ver
                                                     </Link>
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem asChild>
-                                                    <Link href={`/my-publications/${publication.id}/edit`}>
-                                                        <Edit className="mr-2 h-4 w-4" />
-                                                        Editar
-                                                    </Link>
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem 
-                                                    onClick={() => handleToggleStatus(publication.id)}
-                                                >
-                                                    {publication.status === 1 ? (
-                                                        <>
-                                                            <EyeOff className="mr-2 h-4 w-4" />
-                                                            Inhabilitar
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <Eye className="mr-2 h-4 w-4" />
-                                                            Habilitar
-                                                        </>
-                                                    )}
-                                                </DropdownMenuItem>
+                                                {!publication.is_hidden && (
+                                                    <DropdownMenuItem asChild>
+                                                        <Link href={`/my-publications/${publication.id}/edit`}>
+                                                            <Edit className="mr-2 h-4 w-4" />
+                                                            Editar
+                                                        </Link>
+                                                    </DropdownMenuItem>
+                                                )}
+                                                {!publication.is_hidden && (
+                                                    <DropdownMenuItem 
+                                                        onClick={() => handleToggleStatus(publication.id)}
+                                                    >
+                                                        {publication.status === 1 ? (
+                                                            <>
+                                                                <EyeOff className="mr-2 h-4 w-4" />
+                                                                Inhabilitar
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Eye className="mr-2 h-4 w-4" />
+                                                                Habilitar
+                                                            </>
+                                                        )}
+                                                    </DropdownMenuItem>
+                                                )}
+                                                {publication.is_hidden && (
+                                                    <DropdownMenuItem 
+                                                        onClick={() => handleAppeal(publication)}
+                                                        className="text-orange-600"
+                                                    >
+                                                        <MessageSquare className="mr-2 h-4 w-4" />
+                                                        Apelar Moderación
+                                                    </DropdownMenuItem>
+                                                )}
                                                 <DropdownMenuItem 
                                                     onClick={() => handleDelete(publication.id)}
                                                     className="text-red-600"
@@ -275,6 +354,28 @@ function MyPublicationsContent() {
                                         <p className="text-sm text-muted-foreground line-clamp-2">
                                             {publication.description}
                                         </p>
+
+                                        {/* Moderation reason for hidden publications */}
+                                        {publication.is_hidden && publication.moderation_reason && (
+                                            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mt-2">
+                                                <div className="flex items-start gap-2">
+                                                    <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
+                                                    <div className="flex-1">
+                                                        <h4 className="text-sm font-medium text-red-800 mb-1">
+                                                            Motivo de ocultación:
+                                                        </h4>
+                                                        <p className="text-sm text-red-700">
+                                                            {publication.moderation_reason}
+                                                        </p>
+                                                        {publication.moderation_date && (
+                                                            <p className="text-xs text-red-600 mt-1">
+                                                                Oculto el {new Date(publication.moderation_date).toLocaleDateString()}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
 
                                         {/* Price and Location */}
                                         <div className="flex justify-between items-center">
@@ -351,6 +452,64 @@ function MyPublicationsContent() {
 
                 </div>
             </div>
+
+            {/* Modal de Apelación */}
+            <GeneralModal
+                isOpen={showAppealModal}
+                onClose={() => {
+                    setShowAppealModal(false);
+                    setAppealReason('');
+                    setSelectedPublication(null);
+                }}
+                title="Apelar Moderación"
+            >
+                <div className="space-y-4">
+                    <p className="text-gray-600">
+                        Si crees que tu publicación fue ocultada incorrectamente, puedes apelar esta decisión.
+                        Proporciona un motivo detallado para tu apelación.
+                    </p>
+                    
+                    {selectedPublication && (
+                        <div className="bg-gray-50 rounded-lg p-3">
+                            <h4 className="font-medium text-gray-900 mb-1">Publicación:</h4>
+                            <p className="text-sm text-gray-600">{selectedPublication.title}</p>
+                        </div>
+                    )}
+                    
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Motivo de la apelación
+                        </label>
+                        <textarea
+                            value={appealReason}
+                            onChange={(e) => setAppealReason(e.target.value)}
+                            rows={4}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                            placeholder="Explica por qué crees que tu publicación debería ser restaurada..."
+                            required
+                        />
+                    </div>
+
+                    <div className="flex gap-3 pt-4">
+                        <button
+                            onClick={handleSubmitAppeal}
+                            className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 px-4 rounded-lg transition"
+                        >
+                            Enviar Apelación
+                        </button>
+                        <button
+                            onClick={() => {
+                                setShowAppealModal(false);
+                                setAppealReason('');
+                                setSelectedPublication(null);
+                            }}
+                            className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 font-semibold py-2 px-4 rounded-lg transition"
+                        >
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            </GeneralModal>
 
         </AppLayout>
     );

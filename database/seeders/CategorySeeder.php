@@ -13,6 +13,24 @@ class CategorySeeder extends Seeder
      */
     public function run(): void
     {
-        Category::factory(3)->create();
+        $categories = [
+            'Electrónicos',
+            'Ropa y Accesorios',
+            'Hogar y Jardín',
+            'Automotriz',
+            'Productos para Mascotas',
+            'Inmuebles y Propiedades',
+            'Deportes y Ocio',
+            'Oficina y Negocios',
+            'Salud y Belleza',
+            'Otros / Misceláneos',
+        ];
+
+        foreach ($categories as $categoryName) {
+            Category::firstOrCreate(
+                ['name' => $categoryName],
+                ['banned' => false]
+            );
+        }
     }
 }

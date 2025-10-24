@@ -13,7 +13,7 @@ import {
 import { publicationIndex, myPublications } from '@/routes/index';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { LayoutGrid, User, Shield, Users, UserPlus, Settings } from 'lucide-react';
+import { LayoutGrid, User, Shield, Users, UserPlus, Settings, AlertTriangle } from 'lucide-react';
 import MarketplaceLogo from './marketplace-logo';
 import { SharedData } from '@/types';
 
@@ -34,6 +34,15 @@ export function AppSidebar() {
             title: 'Mis Publicaciones',
             href: myPublications(),
             icon: User,
+        });
+    }
+
+    // Moderadores ven la opción de moderación
+    if (auth.user.role === 'moderador') {
+        mainNavItems.push({
+            title: 'Moderación',
+            href: '/moderation',
+            icon: AlertTriangle,
         });
     }
 
