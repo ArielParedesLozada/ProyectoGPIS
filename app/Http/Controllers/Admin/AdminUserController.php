@@ -6,11 +6,13 @@ use App\Enums\RoleType;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\HandlesMiddleware;
 use App\Http\Requests\Admin\CreateAdminRequest;
+use App\Mail\AdminUserWelcomeEmail;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 
 class AdminUserController extends Controller
@@ -70,6 +72,27 @@ class AdminUserController extends Controller
                 'is_active' => true,
                 'email_verified_at' => now(),
             ]);
+
+            // Enviar correo de bienvenida automáticamente
+            try {
+                Mail::to($admin->email)->send(
+                    new AdminUserWelcomeEmail($admin, $request->password, 'admin')
+                );
+                
+                Log::info('Correo de bienvenida enviado al administrador', [
+                    'admin_id' => $admin->id,
+                    'email' => $admin->email,
+                    'created_by' => Auth::id(),
+                ]);
+            } catch (\Exception $emailException) {
+                // Log el error del email pero no interrumpir el flujo
+                Log::error('Error al enviar correo de bienvenida al administrador', [
+                    'admin_id' => $admin->id,
+                    'email' => $admin->email,
+                    'error' => $emailException->getMessage(),
+                    'created_by' => Auth::id(),
+                ]);
+            }
 
             Log::info('Admin creado exitosamente', [
                 'admin_id' => $admin->id,
