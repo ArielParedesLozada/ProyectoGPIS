@@ -11,6 +11,9 @@ CREDENCIALES DE ACCESO:
 IMPORTANTE:
 Por razones de seguridad, te recomendamos cambiar tu contraseña temporal en tu primer inicio de sesión.
 
+VERIFICACIÓN DE EMAIL:
+Al iniciar sesión por primera vez, se te enviará automáticamente un correo de verificación para completar el proceso de registro y acceder a todas las funcionalidades de la plataforma.
+
 Para acceder a la plataforma, visita: {{ $loginUrl }}
 
 FUNCIONALIDADES DISPONIBLES COMO {{ strtoupper($roleName) }}:

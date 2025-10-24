@@ -70,7 +70,7 @@ class AdminUserController extends Controller
                 'role' => RoleType::ADMIN->value,
                 'status' => 1, // HABILITADO
                 'is_active' => true,
-                'email_verified_at' => now(),
+                'email_verified_at' => null, // No verificar automáticamente para enviar correo de verificación al primer login
             ]);
 
             // Enviar correo de bienvenida automáticamente

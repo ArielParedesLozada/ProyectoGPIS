@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bienvenido como {{ $roleName }} - Plataforma GPIS</title>
+    <title>Verificar Email - Plataforma GPIS</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -34,7 +34,7 @@
         }
         .button {
             display: inline-block;
-            background-color: #2563eb;
+            background-color: #16a34a;
             color: white;
             padding: 12px 24px;
             text-decoration: none;
@@ -58,49 +58,58 @@
 </head>
 <body>
     <div class="header">
-        <h1>¡Bienvenido a la Plataforma GPIS!</h1>
-        <p>Tu cuenta como {{ $roleName }} ha sido creada exitosamente</p>
+        <h1>¡Verifica tu Email!</h1>
+        <p>Completa tu registro en la Plataforma GPIS</p>
     </div>
     
     <div class="content">
         <h2>Hola {{ $user->name }} {{ $user->surname }},</h2>
         
-        <p>Te damos la bienvenida a la Plataforma GPIS como <strong>{{ $roleName }}</strong>. Tu cuenta ha sido creada exitosamente y ya puedes acceder al sistema.</p>
+        <p>¡Gracias por registrarte en la Plataforma GPIS! Para completar tu registro y acceder a todas las funcionalidades, necesitas verificar tu dirección de email.</p>
         
         <div class="credentials">
-            <h3>📧 Credenciales de Acceso:</h3>
+            <h3>📧 Información de tu cuenta:</h3>
             <p><strong>Email:</strong> {{ $user->email }}</p>
-            <p><strong>Contraseña temporal:</strong> {{ $password }}</p>
+            <p><strong>Rol:</strong> {{ ucfirst($user->role) }}</p>
         </div>
         
         <div class="warning">
             <h4>⚠️ Importante:</h4>
-            <p>Por razones de seguridad, te recomendamos cambiar tu contraseña temporal en tu primer inicio de sesión.</p>
+            <p>Este enlace de verificación expirará en 60 minutos por razones de seguridad.</p>
         </div>
+        
+        <p>Haz clic en el siguiente botón para verificar tu email:</p>
+        
+        <a href="{{ $verificationUrl }}" class="button">Verificar mi Email</a>
         
         <div class="credentials">
-            <h3>📧 Verificación de Email:</h3>
-            <p>Al iniciar sesión por primera vez, se te enviará automáticamente un correo de verificación para completar el proceso de registro y acceder a todas las funcionalidades de la plataforma.</p>
+            <h3>🔗 ¿No puedes hacer clic en el botón?</h3>
+            <p>Copia y pega el siguiente enlace en tu navegador:</p>
+            <p style="word-break: break-all; background-color: #f1f5f9; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px;">
+                {{ $verificationUrl }}
+            </p>
         </div>
         
-        <p>Puedes acceder a la plataforma haciendo clic en el siguiente botón:</p>
-        
-        <a href="{{ $loginUrl }}" class="button">Acceder a la Plataforma</a>
-        
-        <h3>🎯 Funcionalidades disponibles como {{ $roleName }}:</h3>
+        <h3>🎯 Después de verificar tu email podrás:</h3>
         <ul>
-            @if($role === 'admin')
-                <li>Gestión completa de usuarios</li>
-                <li>Administración de moderadores</li>
-                <li>Supervisión de publicaciones</li>
-                <li>Acceso a reportes y estadísticas</li>
+            @if($user->role === 'admin')
+                <li>Gestionar usuarios del sistema</li>
+                <li>Administrar moderadores</li>
+                <li>Supervisar publicaciones</li>
+                <li>Acceder a reportes y estadísticas</li>
+            @elseif($user->role === 'moderador')
+                <li>Moderar publicaciones</li>
+                <li>Gestionar usuarios básicos</li>
+                <li>Revisar contenido</li>
+                <li>Acceder a herramientas de moderación</li>
             @else
-                <li>Moderación de publicaciones</li>
-                <li>Gestión de usuarios básicos</li>
-                <li>Revisión de contenido</li>
-                <li>Acceso a herramientas de moderación</li>
+                <li>Crear y gestionar publicaciones</li>
+                <li>Contactar con otros usuarios</li>
+                <li>Acceder a todas las funcionalidades de la plataforma</li>
             @endif
         </ul>
+        
+        <p>Si no creaste una cuenta en la Plataforma GPIS, puedes ignorar este correo de forma segura.</p>
         
         <p>Si tienes alguna pregunta o necesitas ayuda, no dudes en contactar al equipo de soporte.</p>
         
