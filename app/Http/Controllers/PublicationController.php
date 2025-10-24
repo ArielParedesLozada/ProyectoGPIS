@@ -13,6 +13,8 @@ use App\Models\ModerationAppeal;
 use App\Models\ModerationAction;
 use App\Models\User;
 use App\Services\GeocodingService;
+use App\Services\ProfanityService;
+use App\Exceptions\ProfanityDetectedException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -154,6 +156,59 @@ class PublicationController extends Controller
             // Validar horario requerido para servicios
             if ($request->type === 'servicio' && empty($request->horario)) {
                 return redirect()->back()->withErrors(['horario' => 'El horario es obligatorio para servicios.']);
+            }
+
+            // Validar contenido inapropiado (versión optimizada)
+            try {
+                $profanityService = new ProfanityService();
+                
+                // Log para debugging
+                Log::info('Profanity validation started', [
+                    'enabled' => config('profanity.enabled', true),
+                    'user_id' => Auth::id(),
+                ]);
+                
+                // Validar solo campos no vacíos para optimizar
+                $fieldsToValidate = [];
+                if (!empty($request->title)) {
+                    $fieldsToValidate['title'] = $request->title;
+                }
+                if (!empty($request->description)) {
+                    $fieldsToValidate['description'] = $request->description;
+                }
+                if (!empty($request->horario)) {
+                    $fieldsToValidate['horario'] = $request->horario;
+                }
+                
+                Log::info('Fields to validate', [
+                    'fields' => $fieldsToValidate,
+                    'user_id' => Auth::id(),
+                ]);
+                
+                if (!empty($fieldsToValidate)) {
+                    $profanityService->validateFields($fieldsToValidate);
+                }
+                
+                Log::info('Profanity validation passed', [
+                    'user_id' => Auth::id(),
+                ]);
+                
+            } catch (ProfanityDetectedException $e) {
+                Log::warning('Profanity detected', [
+                    'message' => $e->getMessage(),
+                    'detected_words' => $e->getDetectedWords(),
+                    'user_id' => Auth::id(),
+                ]);
+                
+                return redirect()->back()->withErrors([
+                    'content' => $e->getMessage()
+                ])->withInput();
+            } catch (\Exception $e) {
+                // Si hay error en la validación, continuar sin validar
+                Log::warning('Profanity validation failed', [
+                    'error' => $e->getMessage(),
+                    'user_id' => Auth::id(),
+                ]);
             }
 
             $userId = Auth::id();
