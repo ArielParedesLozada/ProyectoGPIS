@@ -36,4 +36,8 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::get('/moderators/deleted', [ModeratorUserController::class, 'deleted'])->name('moderators.deleted');
     Route::patch('/moderators/{id}/restore', [ModeratorUserController::class, 'restore'])->name('moderators.restore');
     Route::delete('/moderators/{id}/force-delete', [ModeratorUserController::class, 'forceDelete'])->name('moderators.force-delete');
+    
+    // Rutas para reasignación de casos de moderadores inactivos
+    Route::post('/moderators/{moderator}/reassign-cases', [ModeratorUserController::class, 'reassignCases'])->name('moderators.reassign-cases');
+    Route::get('/moderators/inactive-with-cases', [ModeratorUserController::class, 'getInactiveModeratorsWithCases'])->name('moderators.inactive-with-cases');
 });

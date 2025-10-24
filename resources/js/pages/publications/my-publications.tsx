@@ -314,13 +314,22 @@ function MyPublicationsContent() {
                                                         )}
                                                     </DropdownMenuItem>
                                                 )}
-                                                {publication.is_hidden && (
+                                                {publication.is_hidden && publication.can_appeal && (
                                                     <DropdownMenuItem 
                                                         onClick={() => handleAppeal(publication)}
                                                         className="text-orange-600"
                                                     >
                                                         <MessageSquare className="mr-2 h-4 w-4" />
                                                         Apelar Moderación
+                                                    </DropdownMenuItem>
+                                                )}
+                                                {publication.is_hidden && !publication.can_appeal && (
+                                                    <DropdownMenuItem 
+                                                        disabled
+                                                        className="text-gray-400 cursor-not-allowed"
+                                                    >
+                                                        <MessageSquare className="mr-2 h-4 w-4" />
+                                                        Apelar Moderación (No disponible)
                                                     </DropdownMenuItem>
                                                 )}
                                                 <DropdownMenuItem 

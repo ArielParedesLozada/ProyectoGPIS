@@ -85,8 +85,7 @@ class PublicationController extends Controller
         try {
             $query = Publication::query()
                 ->with(['category', 'images', 'moderationCases' => function($query) {
-                    $query->where('status', 'closed')
-                          ->with(['actions' => function($actionQuery) {
+                    $query->with(['actions' => function($actionQuery) {
                               $actionQuery->where('action_type', 'hide_publication')
                                          ->orderBy('created_at', 'desc')
                                          ->limit(1);
@@ -110,6 +109,13 @@ class PublicationController extends Controller
                         $publication->moderation_reason = $hideAction->metadata['reason'];
                         $publication->moderation_date = $hideAction->created_at;
                     }
+                    
+                    // Agregar estado del caso para validación en frontend
+                    $publication->moderation_case_status = $latestCase->status;
+                    $publication->can_appeal = !in_array($latestCase->status, ['closed', 'action_taken']);
+                } else {
+                    $publication->can_appeal = false;
+                    $publication->moderation_case_status = null;
                 }
                 return $publication;
             });
@@ -576,6 +582,12 @@ class PublicationController extends Controller
      */
     public function appeal(Request $request, $id)
     {
+        Log::info('Iniciando proceso de apelación', [
+            'publication_id' => $id,
+            'user_id' => Auth::id(),
+            'reason' => $request->reason
+        ]);
+
         $request->validate([
             'reason' => 'required|string|max:1000',
         ]);
@@ -583,36 +595,79 @@ class PublicationController extends Controller
         try {
             $publication = Publication::findOrFail($id);
             
+            Log::info('Publicación encontrada', [
+                'publication_id' => $publication->id,
+                'is_hidden' => $publication->is_hidden,
+                'created_by' => $publication->created_by,
+                'current_user' => Auth::id()
+            ]);
+            
             // Verificar que el usuario sea el propietario de la publicación
             if ($publication->created_by !== Auth::id()) {
+                Log::warning('Usuario no es propietario de la publicación', [
+                    'publication_owner' => $publication->created_by,
+                    'current_user' => Auth::id()
+                ]);
                 return redirect()->back()->withErrors(['error' => 'No tienes permisos para apelar esta publicación']);
             }
 
-            // Verificar que la publicación esté oculta
-            if (!$publication->is_hidden) {
-                return redirect()->back()->withErrors(['error' => 'Solo puedes apelar publicaciones que han sido ocultadas por moderación']);
-            }
 
             // Buscar el caso de moderación (cualquier status)
             $moderationCase = ModerationCase::where('publication_id', $id)->first();
 
+            Log::info('Caso de moderación encontrado', [
+                'case_id' => $moderationCase ? $moderationCase->id : null,
+                'case_status' => $moderationCase ? $moderationCase->status : null,
+                'assigned_moderator' => $moderationCase ? $moderationCase->assigned_moderator_id : null
+            ]);
+
             if (!$moderationCase) {
+                Log::warning('No se encontró caso de moderación', ['publication_id' => $id]);
                 return redirect()->back()->withErrors(['error' => 'No se encontró un caso de moderación para esta publicación']);
             }
 
-            // NUEVA VALIDACIÓN: Verificar que no exista una apelación pendiente
-            $existingAppeal = ModerationAppeal::where('moderation_case_id', $moderationCase->id)
-                ->whereNull('reviewed_at') // Apelación no revisada
-                ->first();
-
-            if ($existingAppeal) {
-                return redirect()->back()->withErrors(['error' => 'Ya existe una apelación pendiente para este caso. Debes esperar a que sea revisada.']);
+            // Verificar que el caso no haya llegado a una decisión final IRREVERSIBLE
+            if ($moderationCase->status === 'action_taken') {
+                Log::warning('Caso con decisión final irreversible', [
+                    'case_status' => $moderationCase->status
+                ]);
+                return redirect()->back()->withErrors(['error' => 'Este caso ya tiene una decisión final irreversible. No se pueden enviar más apelaciones.']);
             }
 
+            // Verificar que el caso no esté cerrado (solo permitir si está activo o appealed)
+            if ($moderationCase->status === 'closed') {
+                Log::warning('Caso cerrado - No se pueden enviar más apelaciones', [
+                    'case_status' => $moderationCase->status
+                ]);
+                return redirect()->back()->withErrors(['error' => 'Este caso ya está cerrado. No se pueden enviar más apelaciones.']);
+            }
+
+            // Si el caso está en 'appealed', permitir múltiples apelaciones
+            if ($moderationCase->status === 'appealed') {
+                Log::info('Caso en estado appealed - Se permiten múltiples apelaciones', [
+                    'case_status' => $moderationCase->status
+                ]);
+            }
+
+            // Verificar que la publicación esté oculta (solo se puede apelar publicaciones ocultas)
+            if (!$publication->is_hidden) {
+                Log::warning('Publicación no está oculta', [
+                    'is_hidden' => $publication->is_hidden
+                ]);
+                return redirect()->back()->withErrors(['error' => 'Solo puedes apelar publicaciones que han sido ocultadas por moderación.']);
+            }
+
+            Log::info('Iniciando transacción de apelación');
             DB::beginTransaction();
 
             // Guardar el ID del moderador original para asignar a uno diferente
             $originalModeratorId = $moderationCase->assigned_moderator_id;
+
+            Log::info('Creando apelación', [
+                'moderation_case_id' => $moderationCase->id,
+                'appealer_id' => Auth::id(),
+                'original_moderator_id' => $originalModeratorId
+            ]);
 
             // Crear la apelación
             $appeal = ModerationAppeal::create([
@@ -621,24 +676,129 @@ class PublicationController extends Controller
                 'appeal_reason' => $request->reason,
             ]);
 
+            Log::info('Apelación creada exitosamente', ['appeal_id' => $appeal->id]);
+
             // Actualizar el caso a estado "appealed" y desasignar al moderador anterior
-            $moderationCase->update([
-                'status' => 'appealed',
-                'assigned_moderator_id' => null,
-                'assigned_at' => null,
-            ]);
+            // Si el caso estaba 'closed', reabrirlo con la apelación
+            if ($moderationCase->status === 'closed') {
+                Log::info('Reabriendo caso cerrado con apelación', [
+                    'case_id' => $moderationCase->id,
+                    'previous_status' => $moderationCase->status
+                ]);
+                
+                $moderationCase->update([
+                    'status' => 'appealed',
+                    'assigned_moderator_id' => null,
+                    'assigned_at' => null,
+                ]);
+            } elseif ($moderationCase->status !== 'appealed') {
+                // Si no está en 'appealed', cambiar el estado
+                $moderationCase->update([
+                    'status' => 'appealed',
+                    'assigned_moderator_id' => null,
+                    'assigned_at' => null,
+                ]);
+            } else {
+                // Si ya está en "appealed", solo desasignar al moderador actual
+                $moderationCase->update([
+                    'assigned_moderator_id' => null,
+                    'assigned_at' => null,
+                ]);
+            }
 
             // Asignar a un moderador diferente
+            Log::info('Asignando apelación a moderador diferente');
             $this->assignAppealToDifferentModerator($moderationCase, $originalModeratorId);
 
             DB::commit();
+            Log::info('Apelación procesada exitosamente');
 
             return redirect()->back()->with('success', 'Apelación enviada correctamente. Un moderador diferente revisará tu caso.');
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error al enviar apelación: ' . $e->getMessage());
+            Log::error('Error al enviar apelación: ' . $e->getMessage(), [
+                'exception' => $e->getTraceAsString(),
+                'publication_id' => $id,
+                'user_id' => Auth::id()
+            ]);
             return redirect()->back()->withErrors(['error' => 'Error al enviar la apelación: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Verificar si se puede apelar una publicación
+     */
+    public function canAppeal($id)
+    {
+        try {
+            $publication = Publication::findOrFail($id);
+            
+            // Verificar que el usuario sea el propietario
+            if ($publication->created_by !== Auth::id()) {
+                return response()->json([
+                    'can_appeal' => false,
+                    'reason' => 'No tienes permisos para apelar esta publicación'
+                ]);
+            }
+
+            // Verificar que la publicación esté oculta
+            if (!$publication->is_hidden) {
+                return response()->json([
+                    'can_appeal' => false,
+                    'reason' => 'Solo puedes apelar publicaciones que han sido ocultadas por moderación'
+                ]);
+            }
+
+            // Buscar el caso de moderación
+            $moderationCase = ModerationCase::where('publication_id', $id)->first();
+
+            if (!$moderationCase) {
+                return response()->json([
+                    'can_appeal' => false,
+                    'reason' => 'No se encontró un caso de moderación para esta publicación'
+                ]);
+            }
+
+            // Verificar que el caso no haya llegado a una decisión final IRREVERSIBLE
+            if ($moderationCase->status === 'action_taken') {
+                return response()->json([
+                    'can_appeal' => false,
+                    'reason' => 'Este caso ya tiene una decisión final irreversible. No se pueden enviar más apelaciones.'
+                ]);
+            }
+
+            // Verificar que el caso no esté cerrado
+            if ($moderationCase->status === 'closed') {
+                return response()->json([
+                    'can_appeal' => false,
+                    'reason' => 'Este caso ya está cerrado. No se pueden enviar más apelaciones.'
+                ]);
+            }
+
+            // Si el caso está en 'appealed', permitir múltiples apelaciones
+            if ($moderationCase->status === 'appealed') {
+                return response()->json([
+                    'can_appeal' => true,
+                    'case_status' => $moderationCase->status,
+                    'publication_hidden' => $publication->is_hidden,
+                    'message' => 'Puedes enviar múltiples apelaciones mientras el caso esté activo'
+                ]);
+            }
+
+            // Si llegamos aquí, se puede apelar
+            return response()->json([
+                'can_appeal' => true,
+                'case_status' => $moderationCase->status,
+                'publication_hidden' => $publication->is_hidden,
+                'message' => 'Puedes enviar una apelación para esta publicación'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'can_appeal' => false,
+                'reason' => 'Error al verificar la apelación: ' . $e->getMessage()
+            ]);
         }
     }
 
@@ -690,12 +850,14 @@ class PublicationController extends Controller
         ModerationAction::create([
             'moderation_case_id' => $case->id,
             'moderator_id' => $originalModeratorId,
-            'action_type' => 'waiting_for_moderator',
+            'action_type' => 'close_case',
             'action_description' => 'Apelación en espera - No hay moderadores disponibles para revisar',
             'metadata' => [
                 'original_moderator_id' => $originalModeratorId,
                 'waiting_reason' => 'no_moderators_available',
                 'status' => 'pending_moderator_assignment',
+                'requires_manual_intervention' => true,
+                'waiting_for_moderator' => true
             ]
         ]);
     }
