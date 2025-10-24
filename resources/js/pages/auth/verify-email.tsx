@@ -1,6 +1,5 @@
 import EmailVerificationNotificationController from '@/actions/App/Http/Controllers/Auth/EmailVerificationNotificationController';
-import { logout } from '@/routes/index';
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, router } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -9,34 +8,37 @@ import AuthLayout from '@/layouts/auth-layout';
 export default function VerifyEmail({ status }: { status?: string }) {
   return (
     <AuthLayout
-      title="Verify email"
-      description="Please verify your email address by clicking on the link we just emailed to you."
+      title="Verificar email"
+      description="Por favor, verifica tu dirección de email haciendo clic en el enlace que acabamos de enviarte."
     >
-      <Head title="Email verification" />
+      <Head title="Verificación de Email" />
 
       {status === 'verification-link-sent' && (
         <div className="mb-4 text-center text-sm font-medium text-green-600">
-          A new verification link has been sent to the email address you provided during registration.
+          Se ha enviado un nuevo enlace de verificación a la dirección de email que proporcionaste durante el registro.
         </div>
       )}
 
-      <Form {...EmailVerificationNotificationController.store.form()} className="space-y-6 text-center">
-        {({ processing }) => (
-          <>
+      <div className="space-y-6 text-center">
+        <Form {...EmailVerificationNotificationController.store.form()}>
+          {({ processing }) => (
             <Button disabled={processing} variant="secondary">
               {processing && <LoaderCircle className="h-4 w-4 animate-spin" />}
-              Resend verification email
+              Reenviar correo de verificación
             </Button>
+          )}
+        </Form>
 
-            {/* 👇 logout por POST usando tu helper de form() */}
-            <Form {...logout.form()} className="inline">
-              <Button type="submit" variant="link" className="mx-auto block text-sm p-0">
-                Log out
-              </Button>
-            </Form>
-          </>
-        )}
-      </Form>
+        {/* 👇 logout usando router.post directamente */}
+        <Button 
+          type="button" 
+          variant="link" 
+          className="mx-auto block text-sm p-0"
+          onClick={() => router.post('/logout')}
+        >
+          Cerrar sesión
+        </Button>
+      </div>
     </AuthLayout>
   );
 }

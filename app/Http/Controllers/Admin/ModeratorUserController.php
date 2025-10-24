@@ -6,12 +6,14 @@ use App\Enums\RoleType;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\HandlesMiddleware;
 use App\Http\Requests\Admin\CreateModeratorRequest;
+use App\Mail\AdminUserWelcomeEmail;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 
 class ModeratorUserController extends Controller
@@ -75,8 +77,29 @@ class ModeratorUserController extends Controller
                 'role' => RoleType::MODERADOR->value,
                 'status' => 1, // HABILITADO
                 'is_active' => true,
-                'email_verified_at' => now(),
+                'email_verified_at' => null, // No verificar automáticamente para enviar correo de verificación al primer login
             ]);
+
+            // Enviar correo de bienvenida automáticamente
+            try {
+                Mail::to($moderator->email)->send(
+                    new AdminUserWelcomeEmail($moderator, $request->password, 'moderator')
+                );
+                
+                Log::info('Correo de bienvenida enviado al moderador', [
+                    'moderator_id' => $moderator->id,
+                    'email' => $moderator->email,
+                    'created_by' => Auth::id(),
+                ]);
+            } catch (\Exception $emailException) {
+                // Log el error del email pero no interrumpir el flujo
+                Log::error('Error al enviar correo de bienvenida al moderador', [
+                    'moderator_id' => $moderator->id,
+                    'email' => $moderator->email,
+                    'error' => $emailException->getMessage(),
+                    'created_by' => Auth::id(),
+                ]);
+            }
 
             Log::info('Moderador creado exitosamente', [
                 'moderator_id' => $moderator->id,
