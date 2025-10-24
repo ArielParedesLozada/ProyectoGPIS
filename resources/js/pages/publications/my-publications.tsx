@@ -354,8 +354,8 @@ function MyPublicationsContent() {
                         ))}
                     </div>
 
-                    {/* Paginación - Siempre visible */}
-                    {publications.links && publications.links.length > 0 && (
+                    {/* Paginación - Solo visible cuando hay publicaciones */}
+                    {publications.data && publications.data.length > 0 && publications.links && publications.links.length > 0 && (
                         <div className="flex justify-center mt-8">
                             <div className="flex items-center gap-2">
                                 {publications.links.map((link, i) =>
