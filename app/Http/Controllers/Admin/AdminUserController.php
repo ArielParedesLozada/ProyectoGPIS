@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\HandlesMiddleware;
 use App\Http\Requests\Admin\CreateAdminRequest;
 use App\Models\User;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -76,6 +77,7 @@ class AdminUserController extends Controller
                 'email' => $admin->email,
                 'created_by' => Auth::id(),
             ]);
+            event(new Registered($admin));
 
             return redirect()->route('admin.admins.index')
                 ->with('success', 'Administrador creado exitosamente.');

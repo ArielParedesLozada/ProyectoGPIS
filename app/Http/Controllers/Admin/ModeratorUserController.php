@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\HandlesMiddleware;
 use App\Http\Requests\Admin\CreateModeratorRequest;
 use App\Models\User;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -60,7 +61,7 @@ class ModeratorUserController extends Controller
             'user_id' => Auth::id(),
             'user_role' => Auth::user()->role,
         ]);
-        
+
         try {
             $moderator = User::create([
                 'cedula' => $request->cedula,
@@ -82,10 +83,10 @@ class ModeratorUserController extends Controller
                 'email' => $moderator->email,
                 'created_by' => Auth::id(),
             ]);
+            event(new Registered($moderator));
 
             return redirect()->route('admin.moderators.index')
                 ->with('success', 'Moderador creado exitosamente.');
-
         } catch (\Exception $e) {
             Log::error('Error al crear moderador', [
                 'error' => $e->getMessage(),
@@ -109,7 +110,7 @@ class ModeratorUserController extends Controller
             'current_status' => $moderator->is_active,
             'user_id' => Auth::id(),
         ]);
-        
+
         // Verificar que el usuario sea realmente un moderador
         if ($moderator->role !== RoleType::MODERADOR->value) {
             abort(404, 'Usuario no encontrado.');
@@ -128,7 +129,7 @@ class ModeratorUserController extends Controller
             ]);
 
             $status = $moderator->is_active ? 'activado' : 'desactivado';
-            
+
             Log::info("Moderador {$status}", [
                 'moderator_id' => $moderator->id,
                 'email' => $moderator->email,
@@ -137,7 +138,6 @@ class ModeratorUserController extends Controller
             ]);
 
             return back()->with('success', "Moderador {$status} exitosamente.");
-
         } catch (\Exception $e) {
             Log::error('Error al cambiar estado del moderador', [
                 'moderator_id' => $moderator->id,
@@ -203,7 +203,13 @@ class ModeratorUserController extends Controller
         ]);
 
         $data = $request->only([
-            'cedula', 'name', 'surname', 'phone', 'address', 'gender', 'email'
+            'cedula',
+            'name',
+            'surname',
+            'phone',
+            'address',
+            'gender',
+            'email'
         ]);
 
         // Solo actualizar la contraseña si se proporciona
@@ -260,7 +266,7 @@ class ModeratorUserController extends Controller
     public function restore($id)
     {
         $moderator = User::onlyTrashed()->findOrFail($id);
-        
+
         // Verificar que el usuario sea realmente un moderador
         if ($moderator->role !== RoleType::MODERADOR->value) {
             abort(404, 'Usuario no encontrado.');
@@ -277,7 +283,7 @@ class ModeratorUserController extends Controller
     public function forceDelete($id)
     {
         $moderator = User::onlyTrashed()->findOrFail($id);
-        
+
         // Verificar que el usuario sea realmente un moderador
         if ($moderator->role !== RoleType::MODERADOR->value) {
             abort(404, 'Usuario no encontrado.');
