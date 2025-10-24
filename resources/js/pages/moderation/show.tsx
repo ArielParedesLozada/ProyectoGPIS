@@ -77,11 +77,21 @@ interface ModerationCase {
     }>;
 }
 
-interface ModerationShowProps {
-    case: ModerationCase;
+interface ButtonStates {
+    canHidePublication: boolean;
+    canRestorePublication: boolean;
+    canDismissCase: boolean;
+    isAssignedToMe: boolean;
+    isCompleted: boolean;
+    isAppealed: boolean;
 }
 
-export default function ModerationShow({ case: caseItem }: ModerationShowProps) {
+interface ModerationShowProps {
+    case: ModerationCase;
+    buttonStates: ButtonStates;
+}
+
+export default function ModerationShow({ case: caseItem, buttonStates }: ModerationShowProps) {
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: "Moderación",
@@ -147,13 +157,8 @@ export default function ModerationShow({ case: caseItem }: ModerationShowProps) 
     };
 
     const handleDismissCase = () => {
-        if (!notes.trim()) {
-            alert('Debes proporcionar una razón para descartar el caso');
-            return;
-        }
-
         router.post(`/moderation/${caseItem.id}/dismiss`, {
-            notes: notes,
+            notes: 'Caso descartado por el moderador',
         }, {
             onSuccess: () => {
                 setShowDismissModal(false);
@@ -344,11 +349,17 @@ export default function ModerationShow({ case: caseItem }: ModerationShowProps) 
                             <div className="bg-white rounded-2xl shadow-lg p-6">
                                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Acciones</h3>
                                 
+                                
                                 <div className="space-y-3">
                                     {!caseItem.publication.is_hidden ? (
                                         <button
                                             onClick={() => setShowHideModal(true)}
-                                            className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-xl transition"
+                                            disabled={!buttonStates.canHidePublication}
+                                            className={`w-full font-semibold py-3 px-6 rounded-xl transition ${
+                                                buttonStates.canHidePublication
+                                                    ? 'bg-red-600 hover:bg-red-700 text-white'
+                                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                            }`}
                                         >
                                             <EyeOff className="w-4 h-4 mr-2 inline" />
                                             Ocultar Publicación
@@ -356,7 +367,12 @@ export default function ModerationShow({ case: caseItem }: ModerationShowProps) 
                                     ) : (
                                         <button
                                             onClick={handleRestorePublication}
-                                            className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-xl transition"
+                                            disabled={!buttonStates.canRestorePublication}
+                                            className={`w-full font-semibold py-3 px-6 rounded-xl transition ${
+                                                buttonStates.canRestorePublication
+                                                    ? 'bg-green-600 hover:bg-green-700 text-white'
+                                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                            }`}
                                         >
                                             <Eye className="w-4 h-4 mr-2 inline" />
                                             Restaurar Publicación
@@ -365,11 +381,18 @@ export default function ModerationShow({ case: caseItem }: ModerationShowProps) 
 
                                     <button
                                         onClick={() => setShowDismissModal(true)}
-                                        className="w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-6 rounded-xl transition"
+                                        disabled={!buttonStates.canDismissCase}
+                                        className={`w-full font-semibold py-3 px-6 rounded-xl transition ${
+                                            buttonStates.canDismissCase
+                                                ? 'bg-gray-600 hover:bg-gray-700 text-white'
+                                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                        }`}
                                     >
                                         <X className="w-4 h-4 mr-2 inline" />
                                         Descartar Caso
                                     </button>
+
+
                                 </div>
                             </div>
 
@@ -415,40 +438,32 @@ export default function ModerationShow({ case: caseItem }: ModerationShowProps) 
 
 
             {/* Modal para descartar caso */}
-            {showDismissModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl shadow-lg max-w-md w-full p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Descartar Caso</h3>
-                        
-                        <div className="mb-6">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Razón para descartar</label>
-                            <textarea
-                                value={notes}
-                                onChange={(e) => setNotes(e.target.value)}
-                                rows={3}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="Explica por qué se descarta este caso..."
-                                required
-                            />
-                        </div>
-
-                        <div className="flex gap-3">
-                            <button
-                                onClick={handleDismissCase}
-                                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition"
-                            >
-                                Descartar
-                            </button>
-                            <button
-                                onClick={() => setShowDismissModal(false)}
-                                className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 font-semibold py-2 px-4 rounded-lg transition"
-                            >
-                                Cancelar
-                            </button>
-                        </div>
+            <GeneralModal
+                isOpen={showDismissModal}
+                onClose={() => setShowDismissModal(false)}
+                title="Descartar Caso"
+            >
+                <div className="space-y-6">
+                    <p className="text-gray-600">
+                        ¿Estás seguro de que quieres descartar este caso?
+                    </p>
+                    
+                    <div className="flex gap-3">
+                        <button
+                            onClick={handleDismissCase}
+                            className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition"
+                        >
+                            Descartar
+                        </button>
+                        <button
+                            onClick={() => setShowDismissModal(false)}
+                            className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 font-semibold py-2 px-4 rounded-lg transition"
+                        >
+                            Cancelar
+                        </button>
                     </div>
                 </div>
-            )}
+            </GeneralModal>
 
             {/* Modal para ocultar publicación */}
             <GeneralModal

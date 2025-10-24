@@ -10,6 +10,7 @@ use App\Models\PublicationImage;
 use App\Models\ModerationCase;
 use App\Models\ModerationReport;
 use App\Models\ModerationAppeal;
+use App\Models\ModerationAction;
 use App\Models\User;
 use App\Services\GeocodingService;
 use Illuminate\Http\Request;
@@ -497,8 +498,10 @@ class PublicationController extends Controller
      */
     private function assignToModerator(ModerationCase $case)
     {
-        // Buscar moderadores disponibles (role = 'moderador' o 'admin')
-        $moderator = User::whereIn('role', ['moderador', 'admin'])
+        // Buscar moderadores activos disponibles (SOLO moderadores)
+        $moderator = User::where('role', 'moderador') // Solo moderadores, no admins
+            ->where('status', StatusType::HABILITADO->value) // Solo activos
+            ->where('is_active', true) // Solo activos
             ->withCount(['moderationCases' => function($query) {
                 $query->whereIn('status', ['pending', 'triage', 'in_review', 'appealed']);
             }])
@@ -518,7 +521,6 @@ class PublicationController extends Controller
      */
     public function appeal(Request $request, $id)
     {
-
         $request->validate([
             'reason' => 'required|string|max:1000',
         ]);
@@ -539,14 +541,23 @@ class PublicationController extends Controller
             // Buscar el caso de moderación (cualquier status)
             $moderationCase = ModerationCase::where('publication_id', $id)->first();
 
-
             if (!$moderationCase) {
                 return redirect()->back()->withErrors(['error' => 'No se encontró un caso de moderación para esta publicación']);
             }
 
+            // NUEVA VALIDACIÓN: Verificar que no exista una apelación pendiente
+            $existingAppeal = ModerationAppeal::where('moderation_case_id', $moderationCase->id)
+                ->whereNull('reviewed_at') // Apelación no revisada
+                ->first();
+
+            if ($existingAppeal) {
+                return redirect()->back()->withErrors(['error' => 'Ya existe una apelación pendiente para este caso. Debes esperar a que sea revisada.']);
+            }
 
             DB::beginTransaction();
 
+            // Guardar el ID del moderador original para asignar a uno diferente
+            $originalModeratorId = $moderationCase->assigned_moderator_id;
 
             // Crear la apelación
             $appeal = ModerationAppeal::create([
@@ -555,7 +566,6 @@ class PublicationController extends Controller
                 'appeal_reason' => $request->reason,
             ]);
 
-
             // Actualizar el caso a estado "appealed" y desasignar al moderador anterior
             $moderationCase->update([
                 'status' => 'appealed',
@@ -563,15 +573,75 @@ class PublicationController extends Controller
                 'assigned_at' => null,
             ]);
 
+            // Asignar a un moderador diferente
+            $this->assignAppealToDifferentModerator($moderationCase, $originalModeratorId);
 
             DB::commit();
 
-            return redirect()->back()->with('success', 'Apelación enviada correctamente. Otro moderador revisará tu caso.');
+            return redirect()->back()->with('success', 'Apelación enviada correctamente. Un moderador diferente revisará tu caso.');
 
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al enviar apelación: ' . $e->getMessage());
             return redirect()->back()->withErrors(['error' => 'Error al enviar la apelación: ' . $e->getMessage()]);
         }
+    }
+
+    /**
+     * Asignar apelación a un moderador diferente al original
+     */
+    private function assignAppealToDifferentModerator(ModerationCase $case, $originalModeratorId)
+    {
+        // Si no hay moderador original, usar asignación normal
+        if (!$originalModeratorId) {
+            $this->assignToModerator($case);
+            return;
+        }
+
+        // Buscar moderadores diferentes al original (SOLO moderadores)
+        $moderator = User::where('role', 'moderador') // Solo moderadores, no admins
+            ->where('id', '!=', $originalModeratorId) // Excluir al moderador original
+            ->where('status', StatusType::HABILITADO->value) // Solo activos
+            ->where('is_active', true) // Solo activos
+            ->withCount(['moderationCases' => function($query) {
+                $query->whereIn('status', ['pending', 'triage', 'in_review', 'appealed']);
+            }])
+            ->orderBy('moderation_cases_count')
+            ->first();
+
+        if ($moderator) {
+            $case->update([
+                'assigned_moderator_id' => $moderator->id,
+                'assigned_at' => now(),
+            ]);
+        } else {
+            // No hay moderadores disponibles - dejar sin asignar hasta que se cree uno
+            $this->handleNoModeratorsAvailable($case, $originalModeratorId);
+        }
+    }
+
+    /**
+     * Manejar caso cuando no hay moderadores disponibles para la apelación
+     */
+    private function handleNoModeratorsAvailable(ModerationCase $case, $originalModeratorId)
+    {
+        // Dejar el caso sin asignar - esperará hasta que se cree un nuevo moderador
+        $case->update([
+            'assigned_moderator_id' => null,
+            'assigned_at' => null,
+        ]);
+
+        // Registrar que está esperando moderador
+        ModerationAction::create([
+            'moderation_case_id' => $case->id,
+            'moderator_id' => $originalModeratorId,
+            'action_type' => 'waiting_for_moderator',
+            'action_description' => 'Apelación en espera - No hay moderadores disponibles para revisar',
+            'metadata' => [
+                'original_moderator_id' => $originalModeratorId,
+                'waiting_reason' => 'no_moderators_available',
+                'status' => 'pending_moderator_assignment',
+            ]
+        ]);
     }
 }
