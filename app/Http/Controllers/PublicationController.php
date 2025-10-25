@@ -13,7 +13,7 @@ use App\Models\ModerationAppeal;
 use App\Models\ModerationAction;
 use App\Models\User;
 use App\Services\GeocodingService;
-use App\Services\ProfanityService;
+use App\Services\SimpleProfanityService;
 use App\Exceptions\ProfanityDetectedException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -205,7 +205,7 @@ class PublicationController extends Controller
             }
 
             // Verificar contenido inapropiado para auto-moderación
-            $profanityService = new ProfanityService();
+            $profanityService = new SimpleProfanityService();
             $autoModerationInfo = [
                 'has_profanity' => false,
                 'reason' => null,

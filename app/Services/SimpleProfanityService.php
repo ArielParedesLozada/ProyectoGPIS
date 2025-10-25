@@ -106,6 +106,36 @@ class SimpleProfanityService
             }
         }
     }
+
+    /**
+     * Check if text contains profanity without throwing exception
+     * Returns array with detection info for auto-moderation
+     */
+    public function checkForAutoModeration(string $text): array
+    {
+        if (!$this->checkText($text)) {
+            return [
+                'has_profanity' => false,
+                'detected_words' => [],
+                'reason' => null
+            ];
+        }
+
+        $detectedWords = $this->getDetectedWords($text);
+        
+        // Log the detection for auto-moderation
+        Log::info('Profanity detected for auto-moderation', [
+            'text' => $text,
+            'detected_words' => $detectedWords,
+            'user_id' => Auth::id(),
+        ]);
+
+        return [
+            'has_profanity' => true,
+            'detected_words' => $detectedWords,
+            'reason' => 'Contenido inadecuado detectado automáticamente: ' . implode(', ', $detectedWords)
+        ];
+    }
     
     /**
      * Get profanity statistics
