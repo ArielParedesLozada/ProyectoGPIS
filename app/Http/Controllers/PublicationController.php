@@ -101,9 +101,23 @@ class PublicationController extends Controller
             
             // Agregar información de moderación a cada publicación
             $publications->getCollection()->transform(function ($publication) {
+                Log::info('Procesando publicación', [
+                    'publication_id' => $publication->id,
+                    'is_hidden' => $publication->is_hidden,
+                    'cases_count' => $publication->moderationCases->count()
+                ]);
+
                 if ($publication->is_hidden && $publication->moderationCases->isNotEmpty()) {
                     $latestCase = $publication->moderationCases->first();
                     $hideAction = $latestCase->actions->first();
+                    
+                    Log::info('Caso encontrado', [
+                        'publication_id' => $publication->id,
+                        'case_id' => $latestCase->id,
+                        'case_status' => $latestCase->status,
+                        'case_source' => $latestCase->source,
+                        'has_action' => $hideAction ? true : false
+                    ]);
                     
                     if ($hideAction && isset($hideAction->metadata['reason'])) {
                         $publication->moderation_reason = $hideAction->metadata['reason'];
@@ -112,10 +126,36 @@ class PublicationController extends Controller
                     
                     // Agregar estado del caso para validación en frontend
                     $publication->moderation_case_status = $latestCase->status;
-                    $publication->can_appeal = !in_array($latestCase->status, ['closed', 'action_taken']);
+                    
+                    // Para casos de auto-moderación, siempre permitir apelaciones
+                    // Identificar auto-moderación por metadata de la acción
+                    $isAutoModeration = false;
+                    if ($hideAction && isset($hideAction->metadata['auto_moderation']) && $hideAction->metadata['auto_moderation']) {
+                        $isAutoModeration = true;
+                    }
+                    
+                    if ($isAutoModeration) {
+                        $publication->can_appeal = true;
+                        Log::info('Auto-moderación detectada - permitiendo apelación', [
+                            'publication_id' => $publication->id,
+                            'case_id' => $latestCase->id
+                        ]);
+                    } else {
+                        // Para casos normales, usar la lógica estándar
+                        $publication->can_appeal = !in_array($latestCase->status, ['closed', 'action_taken']);
+                        Log::info('Caso normal - aplicando lógica estándar', [
+                            'publication_id' => $publication->id,
+                            'case_status' => $latestCase->status,
+                            'can_appeal' => $publication->can_appeal
+                        ]);
+                    }
                 } else {
                     $publication->can_appeal = false;
                     $publication->moderation_case_status = null;
+                    Log::info('Publicación sin casos de moderación', [
+                        'publication_id' => $publication->id,
+                        'is_hidden' => $publication->is_hidden
+                    ]);
                 }
                 return $publication;
             });
@@ -164,57 +204,57 @@ class PublicationController extends Controller
                 return redirect()->back()->withErrors(['horario' => 'El horario es obligatorio para servicios.']);
             }
 
-            // Validar contenido inapropiado (versión optimizada)
-            try {
-                $profanityService = new ProfanityService();
-                
-                // Log para debugging
-                Log::info('Profanity validation started', [
-                    'enabled' => config('profanity.enabled', true),
-                    'user_id' => Auth::id(),
+            // Verificar contenido inapropiado para auto-moderación
+            $profanityService = new ProfanityService();
+            $autoModerationInfo = [
+                'has_profanity' => false,
+                'reason' => null,
+                'detected_words' => []
+            ];
+
+            Log::info('Iniciando verificación de contenido inadecuado', [
+                'title' => $request->title,
+                'description' => $request->description,
+                'horario' => $request->horario
+            ]);
+            
+            // Verificar título
+            if (!empty($request->title)) {
+                Log::info('Verificando título', ['title' => $request->title]);
+                $titleCheck = $profanityService->checkForAutoModeration($request->title);
+                Log::info('Resultado verificación título', [
+                    'has_profanity' => $titleCheck['has_profanity'],
+                    'detected_words' => $titleCheck['detected_words']
                 ]);
-                
-                // Validar solo campos no vacíos para optimizar
-                $fieldsToValidate = [];
-                if (!empty($request->title)) {
-                    $fieldsToValidate['title'] = $request->title;
+                if ($titleCheck['has_profanity']) {
+                    $autoModerationInfo = $titleCheck;
                 }
-                if (!empty($request->description)) {
-                    $fieldsToValidate['description'] = $request->description;
+            }
+            
+            // Verificar descripción
+            if (!$autoModerationInfo['has_profanity'] && !empty($request->description)) {
+                Log::info('Verificando descripción', ['description' => $request->description]);
+                $descriptionCheck = $profanityService->checkForAutoModeration($request->description);
+                Log::info('Resultado verificación descripción', [
+                    'has_profanity' => $descriptionCheck['has_profanity'],
+                    'detected_words' => $descriptionCheck['detected_words']
+                ]);
+                if ($descriptionCheck['has_profanity']) {
+                    $autoModerationInfo = $descriptionCheck;
                 }
-                if (!empty($request->horario)) {
-                    $fieldsToValidate['horario'] = $request->horario;
+            }
+            
+            // Verificar horario
+            if (!$autoModerationInfo['has_profanity'] && !empty($request->horario)) {
+                Log::info('Verificando horario', ['horario' => $request->horario]);
+                $horarioCheck = $profanityService->checkForAutoModeration($request->horario);
+                Log::info('Resultado verificación horario', [
+                    'has_profanity' => $horarioCheck['has_profanity'],
+                    'detected_words' => $horarioCheck['detected_words']
+                ]);
+                if ($horarioCheck['has_profanity']) {
+                    $autoModerationInfo = $horarioCheck;
                 }
-                
-                Log::info('Fields to validate', [
-                    'fields' => $fieldsToValidate,
-                    'user_id' => Auth::id(),
-                ]);
-                
-                if (!empty($fieldsToValidate)) {
-                    $profanityService->validateFields($fieldsToValidate);
-                }
-                
-                Log::info('Profanity validation passed', [
-                    'user_id' => Auth::id(),
-                ]);
-                
-            } catch (ProfanityDetectedException $e) {
-                Log::warning('Profanity detected', [
-                    'message' => $e->getMessage(),
-                    'detected_words' => $e->getDetectedWords(),
-                    'user_id' => Auth::id(),
-                ]);
-                
-                return redirect()->back()->withErrors([
-                    'content' => $e->getMessage()
-                ])->withInput();
-            } catch (\Exception $e) {
-                // Si hay error en la validación, continuar sin validar
-                Log::warning('Profanity validation failed', [
-                    'error' => $e->getMessage(),
-                    'user_id' => Auth::id(),
-                ]);
             }
 
             $userId = Auth::id();
@@ -235,6 +275,7 @@ class PublicationController extends Controller
                 'type' => $request->type,
                 'published_at' => now(),
                 'horario' => $request->horario,
+                'is_hidden' => $autoModerationInfo['has_profanity'], // Ocultar si tiene contenido inadecuado
             ];
 
             // Agregar coordenadas geográficas
@@ -252,6 +293,26 @@ class PublicationController extends Controller
 
             $publication = Publication::create($publicationData);
 
+            // Debug logging para auto-moderación
+            Log::info('Verificando auto-moderación', [
+                'publication_id' => $publication->id,
+                'has_profanity' => $autoModerationInfo['has_profanity'],
+                'detected_words' => $autoModerationInfo['detected_words'] ?? [],
+                'reason' => $autoModerationInfo['reason'] ?? null
+            ]);
+
+            // Si tiene contenido inadecuado, crear caso de moderación automático
+            if ($autoModerationInfo['has_profanity']) {
+                Log::info('Creando caso de auto-moderación', [
+                    'publication_id' => $publication->id
+                ]);
+                $this->createAutoModerationCase($publication, $autoModerationInfo);
+            } else {
+                Log::info('No se detectó contenido inadecuado', [
+                    'publication_id' => $publication->id
+                ]);
+            }
+
             // Guardar imágenes si las hay
             if ($request->hasFile('images')) {
                 foreach ($request->file('images') as $image) {
@@ -263,9 +324,69 @@ class PublicationController extends Controller
                 }
             }
 
-            return redirect()->route('my-publications')->with('success', 'Publicación creada exitosamente.');
+            // Mensaje diferente si fue ocultada por contenido inadecuado
+            $successMessage = $autoModerationInfo['has_profanity'] 
+                ? 'Publicación creada pero oculta por contenido inadecuado. Puedes apelar esta decisión.'
+                : 'Publicación creada exitosamente.';
+
+            return redirect()->route('my-publications')->with('success', $successMessage);
         } catch (\Exception $e) {
             return redirect()->back()->withErrors(['error' => 'Error al crear la publicación: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Crear caso de moderación automático para publicaciones con contenido inadecuado
+     */
+    private function createAutoModerationCase(Publication $publication, array $autoModerationInfo)
+    {
+        try {
+            // Crear el caso de moderación
+            $moderationCase = ModerationCase::create([
+                'publication_id' => $publication->id,
+                'status' => 'appealed', // Caso en estado appealed para permitir apelaciones
+                'source' => 'system', // Usar 'system' en lugar de 'auto_moderation'
+                'assigned_moderator_id' => null, // No asignado a moderador
+                'assigned_at' => null,
+            ]);
+
+            Log::info('Caso de auto-moderación creado', [
+                'case_id' => $moderationCase->id,
+                'publication_id' => $publication->id,
+                'status' => $moderationCase->status,
+                'source' => $moderationCase->source,
+                'assigned_moderator_id' => $moderationCase->assigned_moderator_id
+            ]);
+
+            // Crear la acción de moderación
+            ModerationAction::create([
+                'moderation_case_id' => $moderationCase->id,
+                'moderator_id' => null, // Sistema automático
+                'action_type' => 'hide_publication',
+                'action_description' => 'Publicación ocultada automáticamente por contenido inadecuado',
+                'metadata' => [
+                    'reason' => $autoModerationInfo['reason'],
+                    'detected_words' => $autoModerationInfo['detected_words'],
+                    'auto_moderation' => true,
+                    'system_action' => true,
+                    'moderated_by' => 'system_automation',
+                ]
+            ]);
+
+            Log::info('Caso de moderación automático creado', [
+                'case_id' => $moderationCase->id,
+                'publication_id' => $publication->id,
+                'status' => $moderationCase->status,
+                'source' => $moderationCase->source,
+                'reason' => $autoModerationInfo['reason'],
+                'detected_words' => $autoModerationInfo['detected_words']
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error al crear caso de moderación automático', [
+                'publication_id' => $publication->id,
+                'error' => $e->getMessage()
+            ]);
         }
     }
 
@@ -768,7 +889,27 @@ class PublicationController extends Controller
                 ]);
             }
 
-            // Verificar que el caso no esté cerrado
+            // Para casos de auto-moderación, siempre permitir apelaciones
+            // Identificar auto-moderación por metadata de la acción
+            $hideAction = ModerationAction::where('moderation_case_id', $moderationCase->id)
+                ->where('action_type', 'hide_publication')
+                ->first();
+            
+            $isAutoModeration = false;
+            if ($hideAction && isset($hideAction->metadata['auto_moderation']) && $hideAction->metadata['auto_moderation']) {
+                $isAutoModeration = true;
+            }
+            
+            if ($isAutoModeration) {
+                return response()->json([
+                    'can_appeal' => true,
+                    'case_status' => $moderationCase->status,
+                    'publication_hidden' => $publication->is_hidden,
+                    'message' => 'Puedes apelar esta decisión de auto-moderación'
+                ]);
+            }
+
+            // Verificar que el caso no esté cerrado (solo para casos normales)
             if ($moderationCase->status === 'closed') {
                 return response()->json([
                     'can_appeal' => false,
