@@ -38,6 +38,31 @@ export default function EditPublication({ publication, categories }: EditPublica
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { showToast } = useToast();
 
+    // Función helper para parsear horario
+    const parseHorario = (horario: string | null): { day: number; open: string; close: string }[] => {
+        if (!horario) return [];
+        try {
+            return JSON.parse(horario);
+        } catch {
+            return [];
+        }
+    };
+
+    // Captura inicial del horario para comparación
+    const initialScheduleRef = useRef<string>('');
+    
+    // Inicializar la referencia solo una vez
+    useEffect(() => {
+        if (initialScheduleRef.current === '') {
+            const initialSchedule = publication.serviceHours?.map(hour => ({
+                day: hour.day_of_week,
+                open: hour.open_time.slice(0, 5),
+                close: hour.close_time.slice(0, 5)
+            })) || [];
+            initialScheduleRef.current = JSON.stringify(initialSchedule);
+        }
+    }, []);
+
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'Mis Publicaciones',
@@ -57,12 +82,16 @@ export default function EditPublication({ publication, categories }: EditPublica
         type: publication.type,
         lat: publication.location_point?.lat?.toString() || '',
         lng: publication.location_point?.lng?.toString() || '',
-        horario: publication.horario || '',
+        schedule: publication.serviceHours?.map(hour => ({
+            day: hour.day_of_week,
+            open: hour.open_time.slice(0, 5),
+            close: hour.close_time.slice(0, 5)
+        })) || [],
         images: [] as File[]
     });
 
     // Función para validar campos en tiempo real
-    const validateField = (field: string, value: string | number) => {
+    const validateField = (field: string, value: string | number | { day: number; open: string; close: string }[]) => {
         const newErrors = { ...validationErrors };
         
         switch (field) {
@@ -112,11 +141,11 @@ export default function EditPublication({ publication, categories }: EditPublica
                 }
                 break;
                 
-            case 'horario':
-                if (data.type === 'servicio' && (!value || value === '')) {
-                    newErrors.horario = 'El horario es requerido para servicios';
+            case 'schedule':
+                if (data.type === 'servicio' && (!value || (Array.isArray(value) && value.length === 0))) {
+                    newErrors.schedule = 'El horario es requerido para servicios';
                 } else {
-                    delete newErrors.horario;
+                    delete newErrors.schedule;
                 }
                 break;
         }
@@ -158,6 +187,9 @@ export default function EditPublication({ publication, categories }: EditPublica
 
     // Detectar cambios en el formulario
     useEffect(() => {
+        const currentScheduleString = JSON.stringify(data.schedule || []);
+        const initialScheduleString = initialScheduleRef.current;
+        
         const hasFormChanges = 
             data.title !== publication.title ||
             data.description !== (publication.description || '') ||
@@ -166,10 +198,9 @@ export default function EditPublication({ publication, categories }: EditPublica
             data.type !== publication.type ||
             data.lat !== (publication.location_point?.lat?.toString() || '') ||
             data.lng !== (publication.location_point?.lng?.toString() || '') ||
-            data.horario !== (publication.horario || '') ||
+            currentScheduleString !== initialScheduleString ||
             selectedImages.length > 0 ||
             existingImages.length !== publication.images.length;
-
         setHasChanges(hasFormChanges);
     }, [data, selectedImages, existingImages, publication]);
 
@@ -257,7 +288,7 @@ export default function EditPublication({ publication, categories }: EditPublica
         validateField('category_id', data.category_id);
         validateField('type', data.type);
         if (data.type === 'servicio') {
-            validateField('horario', data.horario);
+            validateField('schedule', data.schedule);
         }
         validateLocation();
         validateImages();
@@ -282,7 +313,7 @@ export default function EditPublication({ publication, categories }: EditPublica
         formData.append('type', data.type);
         formData.append('lat', data.lat);
         formData.append('lng', data.lng);
-        formData.append('horario', data.horario || '');
+        formData.append('schedule', JSON.stringify(data.schedule));
         
         // Agregar imágenes como images[]
         selectedImages.forEach((image) => {
@@ -423,12 +454,12 @@ export default function EditPublication({ publication, categories }: EditPublica
                                         {data.type === 'servicio' && (
                                             <div>
                                                 <ServiceSchedule
-                                                    value={data.horario}
-                                                    onChange={(value: string) => {
-                                                        setData('horario', value);
-                                                        validateField('horario', value);
+                                                    value={data.schedule}
+                                                    onChange={(value: { day: number; open: string; close: string }[]) => {
+                                                        setData('schedule', value.map(i => ({ ...i })));
+                                                        validateField('schedule', value);
                                                     }}
-                                                    error={errors.horario || validationErrors.horario}
+                                                    error={errors.schedule || validationErrors.schedule}
                                                     required={true}
                                                 />
                                             </div>

@@ -72,6 +72,12 @@ export interface Publication {
         id: number;
         image_url: string;
     }>;
+    serviceHours?: Array<{
+        id: number;
+        day_of_week: number;
+        open_time: string;
+        close_time: string;
+    }>;
 }
 
 export interface Paginated<T> {

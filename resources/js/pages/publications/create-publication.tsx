@@ -52,12 +52,12 @@ export default function CreatePublication({ categories }: CreatePublicationProps
         type: '',
         lat: '',
         lng: '',
-        horario: '',
+        schedule: [] as { day: number; open: string; close: string }[],
         images: [] as File[]
     });
 
     // Función para validar campos en tiempo real
-    const validateField = (field: string, value: string | number) => {
+    const validateField = (field: string, value: string | number | { day: number; open: string; close: string }[]) => {
         const newErrors = { ...validationErrors };
         
         switch (field) {
@@ -107,11 +107,11 @@ export default function CreatePublication({ categories }: CreatePublicationProps
                 }
                 break;
                 
-            case 'horario':
-                if (data.type === 'servicio' && (!value || value === '')) {
-                    newErrors.horario = 'El horario es requerido para servicios';
+            case 'schedule':
+                if (data.type === 'servicio' && (!value || (Array.isArray(value) && value.length === 0))) {
+                    newErrors.schedule = 'El horario es requerido para servicios';
                 } else {
-                    delete newErrors.horario;
+                    delete newErrors.schedule;
                 }
                 break;
         }
@@ -228,7 +228,7 @@ export default function CreatePublication({ categories }: CreatePublicationProps
         validateField('category_id', data.category_id);
         validateField('type', data.type);
         if (data.type === 'servicio') {
-            validateField('horario', data.horario);
+            validateField('schedule', data.schedule);
         }
         validateLocation();
         validateImages();
@@ -253,7 +253,7 @@ export default function CreatePublication({ categories }: CreatePublicationProps
         formData.append('type', data.type);
         formData.append('lat', data.lat);
         formData.append('lng', data.lng);
-        formData.append('horario', data.horario || '');
+        formData.append('schedule', JSON.stringify(data.schedule));
         
         // Agregar imágenes como images[]
         selectedImages.forEach((image) => {
@@ -381,12 +381,12 @@ export default function CreatePublication({ categories }: CreatePublicationProps
                                         {data.type === 'servicio' && (
                                             <div>
                                                 <ServiceSchedule
-                                                    value={data.horario}
-                                                    onChange={(value: string) => {
-                                                        setData('horario', value);
-                                                        validateField('horario', value);
+                                                    value={data.schedule}
+                                                    onChange={(value: { day: number; open: string; close: string }[]) => {
+                                                        setData('schedule', value.map(i => ({ ...i })));
+                                                        validateField('schedule', value);
                                                     }}
-                                                    error={errors.horario || validationErrors.horario}
+                                                    error={errors.schedule || validationErrors.schedule}
                                                     required={true}
                                                 />
                                             </div>

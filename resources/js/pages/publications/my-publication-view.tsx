@@ -231,10 +231,69 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
                     <span className="text-gray-600 text-sm font-medium">Código:</span>
                     <span className="text-gray-900 font-mono text-sm">{publication.code}</span>
                   </div>
-                  {publication.horario && (
-                    <div className="flex justify-between items-center py-2">
+                  {publication.serviceHours && publication.serviceHours.length > 0 ? (
+                    <div className="flex justify-between items-start py-2">
                       <span className="text-gray-600 text-sm font-medium">Horario:</span>
-                      <span className="text-gray-900 text-sm">{publication.horario}</span>
+                      <div className="text-gray-900 text-sm text-right max-w-xs">
+                        {(() => {
+                          const dayNames = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+                          
+                          // Agrupar por horario
+                          const scheduleByTime: { [key: string]: number[] } = {};
+                          publication.serviceHours.forEach(hour => {
+                            const timeKey = `${hour.open_time.slice(0, 5)}-${hour.close_time.slice(0, 5)}`;
+                            if (!scheduleByTime[timeKey]) {
+                              scheduleByTime[timeKey] = [];
+                            }
+                            scheduleByTime[timeKey].push(hour.day_of_week);
+                          });
+
+                          // Formatear cada grupo de horario
+                          const formatTimeGroup = (timeKey: string, days: number[]) => {
+                            const sortedDays = days.sort((a, b) => a - b);
+                            
+                            // Agrupar días consecutivos
+                            const ranges: string[] = [];
+                            let start = sortedDays[0];
+                            let end = start;
+                            
+                            for (let i = 1; i < sortedDays.length; i++) {
+                              if (sortedDays[i] === end + 1) {
+                                end = sortedDays[i];
+                              } else {
+                                // Finalizar rango actual
+                                if (start === end) {
+                                  ranges.push(dayNames[start]);
+                                } else {
+                                  ranges.push(`${dayNames[start]} - ${dayNames[end]}`);
+                                }
+                                start = sortedDays[i];
+                                end = start;
+                              }
+                            }
+                            
+                            // Agregar último rango
+                            if (start === end) {
+                              ranges.push(dayNames[start]);
+                            } else {
+                              ranges.push(`${dayNames[start]} - ${dayNames[end]}`);
+                            }
+                            
+                            return `${ranges.join(', ')}/${timeKey}`;
+                          };
+
+                          return Object.keys(scheduleByTime)
+                            .map(timeKey => formatTimeGroup(timeKey, scheduleByTime[timeKey]))
+                            .join(', ');
+                        })()}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex justify-between items-start py-2">
+                      <span className="text-gray-600 text-sm font-medium">Horario:</span>
+                      <div className="text-gray-900 text-sm text-right max-w-xs">
+                        No especificado
+                      </div>
                     </div>
                   )}
                   <div className="flex justify-between items-center py-2">

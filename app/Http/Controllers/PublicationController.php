@@ -7,6 +7,7 @@ use App\Enums\PublicationType;
 use App\Models\Category;
 use App\Models\Publication;
 use App\Models\PublicationImage;
+use App\Models\PublicationServiceHour;
 use App\Services\GeocodingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -147,14 +148,14 @@ class PublicationController extends Controller
                 'type' => 'required|in:producto,servicio',
                 'lat' => 'required|numeric|between:-90,90',
                 'lng' => 'required|numeric|between:-180,180',
-                'horario' => 'nullable|string|max:255',
+                'schedule' => 'nullable|string|max:2000',
                 'images' => 'nullable|array|max:5',
                 'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:5120', // 5MB max
             ]);
 
             // Validar horario requerido para servicios
-            if ($request->type === 'servicio' && empty($request->horario)) {
-                return redirect()->back()->withErrors(['horario' => 'El horario es obligatorio para servicios.']);
+            if ($request->type === 'servicio' && empty($request->schedule)) {
+                return redirect()->back()->withErrors(['schedule' => 'El horario es obligatorio para servicios.']);
             }
 
             $userId = Auth::id();
@@ -174,7 +175,7 @@ class PublicationController extends Controller
                 'status' => StatusType::HABILITADO, // Siempre crear como HABILITADO
                 'type' => $request->type,
                 'published_at' => now(),
-                'horario' => $request->horario,
+                // El horario se manejará por separado con serviceHours
             ];
 
             // Agregar coordenadas geográficas
@@ -210,6 +211,21 @@ class PublicationController extends Controller
 
             $publication = Publication::create($publicationData);
 
+            // Guardar horarios de servicio si es tipo servicio
+            if ($request->type === 'servicio' && $request->schedule) {
+                $schedule = json_decode($request->schedule, true);
+                if (is_array($schedule)) {
+                    foreach ($schedule as $timeSlot) {
+                        PublicationServiceHour::create([
+                            'publication_id' => $publication->id,
+                            'day_of_week' => $timeSlot['day'],
+                            'open_time' => $timeSlot['open'],
+                            'close_time' => $timeSlot['close'],
+                        ]);
+                    }
+                }
+            }
+
             // Guardar imágenes si las hay
             if ($request->hasFile('images')) {
                 foreach ($request->file('images') as $image) {
@@ -229,7 +245,7 @@ class PublicationController extends Controller
 
     public function edit($id)
     {
-        $publication = Publication::with(['category', 'images'])
+        $publication = Publication::with(['category', 'images', 'serviceHours'])
             ->where('created_by', Auth::id())
             ->findOrFail($id);
         
@@ -247,8 +263,12 @@ class PublicationController extends Controller
         
         $categories = Category::select('id', 'name')->get();
 
+        // Forzar serialización correcta
+        $publicationData = $publication->toArray();
+        $publicationData['serviceHours'] = $publication->serviceHours->toArray();
+        
         return Inertia::render('publications/edit-publication', [
-            'publication' => $publication,
+            'publication' => $publicationData,
             'categories' => $categories,
         ]);
     }
@@ -274,14 +294,14 @@ class PublicationController extends Controller
                 'type' => 'required|in:producto,servicio',
                 'lat' => 'required|numeric|between:-90,90',
                 'lng' => 'required|numeric|between:-180,180',
-                'horario' => 'nullable|string|max:255',
+                'schedule' => 'nullable|string|max:2000',
                 'images' => 'nullable|array|max:5',
                 'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:5120', // 5MB max
             ]);
 
             // Validar horario requerido para servicios
-            if ($request->type === 'servicio' && empty($request->horario)) {
-                return redirect()->back()->withErrors(['horario' => 'El horario es obligatorio para servicios.']);
+            if ($request->type === 'servicio' && empty($request->schedule)) {
+                return redirect()->back()->withErrors(['schedule' => 'El horario es obligatorio para servicios.']);
             }
 
             // Obtener ubicación legible usando reverse geocoding
@@ -307,9 +327,7 @@ class PublicationController extends Controller
             }
             // Actualizar ubicación con reverse geocoding
             $updateData['location'] = $location;
-            if ($request->filled('horario')) {
-                $updateData['horario'] = $request->horario;
-            }
+            // El horario se manejará por separado con serviceHours
 
             // Actualizar coordenadas geográficas
             try {
@@ -344,6 +362,28 @@ class PublicationController extends Controller
 
             if (!empty($updateData)) {
                 $publication->update($updateData);
+            }
+
+            // Actualizar horarios de servicio si es tipo servicio
+            if ($request->type === 'servicio' && $request->schedule) {
+                // Eliminar horarios existentes
+                $publication->serviceHours()->delete();
+                
+                // Crear nuevos horarios
+                $schedule = json_decode($request->schedule, true);
+                if (is_array($schedule)) {
+                    foreach ($schedule as $timeSlot) {
+                        PublicationServiceHour::create([
+                            'publication_id' => $publication->id,
+                            'day_of_week' => $timeSlot['day'],
+                            'open_time' => $timeSlot['open'],
+                            'close_time' => $timeSlot['close'],
+                        ]);
+                    }
+                }
+            } elseif ($request->type === 'producto') {
+                // Si cambió a producto, eliminar horarios de servicio
+                $publication->serviceHours()->delete();
             }
 
             // Manejar imágenes existentes
@@ -418,7 +458,7 @@ class PublicationController extends Controller
 
     public function view($id)
     {
-        $publication = Publication::with(['user', 'category', 'images'])->findOrFail($id);
+        $publication = Publication::with(['user', 'category', 'images', 'serviceHours'])->findOrFail($id);
         
         // Extraer coordenadas del campo location_point si existe
         $coords = DB::selectOne("SELECT ST_X(location_point::geometry) as lng, ST_Y(location_point::geometry) as lat FROM publications WHERE id = ?", [$id]);
@@ -432,8 +472,12 @@ class PublicationController extends Controller
             $publication->location_point = null;
         }
         
+        // Forzar serialización correcta
+        $publicationData = $publication->toArray();
+        $publicationData['serviceHours'] = $publication->serviceHours->toArray();
+        
         return Inertia::render('publications/publication-view', [
-            'publication' => $publication
+            'publication' => $publicationData
         ]);
     }
 
@@ -446,7 +490,7 @@ class PublicationController extends Controller
                 return redirect()->route('login');
             }
             
-            $publication = Publication::with(['category', 'images'])
+            $publication = Publication::with(['category', 'images', 'serviceHours'])
                 ->where('created_by', $userId)
                 ->findOrFail($id);
             
@@ -462,8 +506,12 @@ class PublicationController extends Controller
                 $publication->location_point = null;
             }
                 
+            // Forzar serialización correcta
+            $publicationData = $publication->toArray();
+            $publicationData['serviceHours'] = $publication->serviceHours->toArray();
+            
             return Inertia::render('publications/my-publication-view', [
-                'publication' => $publication
+                'publication' => $publicationData
             ]);
         } catch (\Exception $e) {
             Log::error('Error in myView: ' . $e->getMessage());
