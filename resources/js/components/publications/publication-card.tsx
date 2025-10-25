@@ -1,10 +1,11 @@
 import { publicationView } from "@/routes";
 import { Publication } from "@/types";
-import { Link } from "@inertiajs/react";
+import { Link, router } from "@inertiajs/react";
 import { Label } from "../ui/label";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ReportModal from "./report-modal";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { Heart } from "lucide-react";
 
 interface PublicationCardProps {
     publication: Publication
@@ -12,11 +13,49 @@ interface PublicationCardProps {
 
 export default function PublicationCard({ publication }: PublicationCardProps) {
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+    const [isFavorite, setIsFavorite] = useState(false);
+
+    // Verificar si la publicación está en favoritos al cargar
+    useEffect(() => {
+        const checkFavoriteStatus = async () => {
+            try {
+                const response = await fetch(`/favorites/check/${publication.id}`);
+                const data = await response.json();
+                setIsFavorite(data.isFavorite);
+            } catch (error) {
+                console.error('Error checking favorite status:', error);
+                setIsFavorite(false);
+            }
+        };
+
+        checkFavoriteStatus();
+    }, [publication.id]);
 
     const handleReportClick = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
         setIsReportModalOpen(true);
+    };
+
+    const handleFavoriteClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (isFavorite) {
+            // Quitar de favoritos
+            router.delete(`/favorites/${publication.id}`, {
+                onSuccess: () => {
+                    setIsFavorite(false);
+                }
+            });
+        } else {
+            // Agregar a favoritos
+            router.post(`/favorites/${publication.id}`, {}, {
+                onSuccess: () => {
+                    setIsFavorite(true);
+                }
+            });
+        }
     };
 
     return (
@@ -48,6 +87,21 @@ export default function PublicationCard({ publication }: PublicationCardProps) {
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
                             </svg>
+                        </button>
+                    </div>
+
+                    {/* Botón de favoritos - esquina inferior izquierda */}
+                    <div className="absolute bottom-3 left-3 z-10">
+                        <button
+                            onClick={handleFavoriteClick}
+                            className={`p-2 rounded-full transition-all duration-200 ${
+                                isFavorite 
+                                    ? 'bg-red-500 text-white' 
+                                    : 'bg-white bg-opacity-80 text-gray-600 hover:bg-opacity-100'
+                            }`}
+                            title={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
+                        >
+                            <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
                         </button>
                     </div>
                 </div>

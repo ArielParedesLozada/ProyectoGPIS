@@ -38,6 +38,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('/{id}', [PublicationController::class, 'destroy'])->name('publications.destroy');
         Route::get('/{id}', [PublicationController::class, 'myView'])->name('my-publication-view');
     });
+    
+    // Rutas para Favoritos
+    Route::prefix('favorites')->group(function () {
+        Route::get('/', [PublicationController::class, 'favorites'])->name('favorites');
+        Route::post('/{id}', [PublicationController::class, 'addToFavorites'])->name('favorites.add');
+        Route::delete('/{id}', [PublicationController::class, 'removeFromFavorites'])->name('favorites.remove');
+        Route::get('/check/{id}', [PublicationController::class, 'checkFavorite'])->name('favorites.check');
+    });
 });
 
 require __DIR__ . '/settings.php';
