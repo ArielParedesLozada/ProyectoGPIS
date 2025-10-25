@@ -371,14 +371,14 @@ function MyPublicationsContent() {
                                                     <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
                                                     <div className="flex-1">
                                                         <h4 className="text-sm font-medium text-red-800 mb-1">
-                                                            Motivo de ocultación:
+                                                            {publication.is_final_decision ? 'Decisión Final de Moderación:' : 'Motivo de ocultación:'}
                                                         </h4>
                                                         <p className="text-sm text-red-700">
                                                             {publication.moderation_reason}
                                                         </p>
                                                         {publication.moderation_date && (
                                                             <p className="text-xs text-red-600 mt-1">
-                                                                Oculto el {new Date(publication.moderation_date).toLocaleDateString()}
+                                                                {publication.is_final_decision ? 'Decisión final el' : 'Oculto el'} {new Date(publication.moderation_date).toLocaleDateString()}
                                                             </p>
                                                         )}
                                                     </div>

@@ -109,7 +109,16 @@ class PublicationController extends Controller
 
                 if ($publication->is_hidden && $publication->moderationCases->isNotEmpty()) {
                     $latestCase = $publication->moderationCases->first();
-                    $hideAction = $latestCase->actions->first();
+                    
+                    // Buscar la acción de ocultación inicial
+                    $hideAction = $latestCase->actions()
+                        ->where('action_type', 'hide_publication')
+                        ->first();
+                    
+                    // Si no hay acción de ocultación, buscar cualquier acción
+                    if (!$hideAction) {
+                        $hideAction = $latestCase->actions->first();
+                    }
                     
                     Log::info('Caso encontrado', [
                         'publication_id' => $publication->id,
@@ -119,9 +128,32 @@ class PublicationController extends Controller
                         'has_action' => $hideAction ? true : false
                     ]);
                     
-                    if ($hideAction && isset($hideAction->metadata['reason'])) {
+                    // Verificar si es un caso de auto-moderación
+                    $isAutoModeration = $latestCase->source === 'system';
+                    
+                    if ($latestCase->status === 'closed') {
+                        // Buscar la decisión final del moderador
+                        $finalDecision = $latestCase->actions()
+                            ->where('action_type', 'close_case')
+                            ->whereJsonContains('metadata->action_subtype', 'confirm_hide_decision')
+                            ->first();
+                        
+                        if ($finalDecision && isset($finalDecision->metadata['notes'])) {
+                            // Mostrar el comentario de la decisión final
+                            $publication->moderation_reason = $finalDecision->metadata['notes'];
+                            $publication->moderation_date = $finalDecision->created_at;
+                            $publication->is_final_decision = true;
+                        } else if ($hideAction && isset($hideAction->metadata['reason'])) {
+                            // Fallback al motivo inicial
+                            $publication->moderation_reason = $hideAction->metadata['reason'];
+                            $publication->moderation_date = $hideAction->created_at;
+                            $publication->is_final_decision = false;
+                        }
+                    } else if ($hideAction && isset($hideAction->metadata['reason'])) {
+                        // Para casos no cerrados, mostrar el motivo inicial
                         $publication->moderation_reason = $hideAction->metadata['reason'];
                         $publication->moderation_date = $hideAction->created_at;
+                        $publication->is_final_decision = false;
                     }
                     
                     // Agregar estado del caso para validación en frontend
@@ -142,7 +174,8 @@ class PublicationController extends Controller
                         ]);
                     } else {
                         // Para casos normales, usar la lógica estándar
-                        $publication->can_appeal = !in_array($latestCase->status, ['closed', 'action_taken']);
+                        
+                        $publication->can_appeal = !in_array($latestCase->status, ['closed', 'dismissed']);
                         Log::info('Caso normal - aplicando lógica estándar', [
                             'publication_id' => $publication->id,
                             'case_status' => $latestCase->status,
@@ -748,12 +781,7 @@ class PublicationController extends Controller
             }
 
             // Verificar que el caso no haya llegado a una decisión final IRREVERSIBLE
-            if ($moderationCase->status === 'action_taken') {
-                Log::warning('Caso con decisión final irreversible', [
-                    'case_status' => $moderationCase->status
-                ]);
-                return redirect()->back()->withErrors(['error' => 'Este caso ya tiene una decisión final irreversible. No se pueden enviar más apelaciones.']);
-            }
+            // NOTA: 'action_taken' permite apelaciones, solo 'closed' es irreversible
 
             // Verificar que el caso no esté cerrado (solo permitir si está activo o appealed)
             if ($moderationCase->status === 'closed') {
