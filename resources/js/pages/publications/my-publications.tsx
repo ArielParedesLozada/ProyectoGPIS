@@ -170,86 +170,93 @@ function MyPublicationsContent() {
         <>
             <Head title="Mis Publicaciones" />
             
-            <div className="bg-gray-50 min-h-screen">
+            <div className="bg-gray-50 min-h-screen space-y-8 px-6 py-6">
                 {/* Header */}
-                <div className="bg-white border-b border-gray-200 px-6 py-8">
-                    <div className="max-w-7xl mx-auto">
+                <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 text-white mb-8">
                         <div className="flex justify-between items-start">
                             <div>
-                                <h1 className="text-3xl font-bold text-gray-900 mb-2">Mis Publicaciones</h1>
-                                <p className="text-gray-600">Gestiona tus productos y servicios</p>
-                                {publications.data.length > 0 && (
-                                    <p className="text-sm text-gray-500 mt-2">
-                                        Mostrando {publications.data.length} publicaciones
-                                    </p>
-                                )}
+                            <h1 className="text-3xl font-bold mb-2">Mis Publicaciones</h1>
+                            <p className="text-blue-100 text-lg">Gestiona tus productos y servicios</p>
+                            {publications.data.length > 0 && (
+                                <p className="text-sm text-blue-200 mt-2">
+                                    Mostrando {publications.data.length} publicaciones
+                                </p>
+                            )}
                             </div>
-                            <Link href="/my-publications/create">
-                                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                                    <Plus className="w-4 h-4 mr-2" />
-                                    Crear Publicación
-                                </Button>
-                            </Link>
-                        </div>
+                        <Link href="/my-publications/create">
+                            <Button variant="secondary" className="bg-white/20 text-white border-white/30 hover:bg-white/30">
+                                        <Plus className="w-4 h-4 mr-2" />
+                                        Crear Publicación
+                                    </Button>
+                        </Link>
                     </div>
                 </div>
 
                 {/* Stats Cards */}
-                <div className="max-w-7xl mx-auto px-6 py-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Total Publicaciones</CardTitle>
-                                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <div className="max-w-7xl mx-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+                        <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 bg-white/95 backdrop-blur-sm border border-gray-200/50">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm font-semibold text-gray-700 flex items-center">
+                                    <DollarSign className="h-5 w-5 mr-2 text-blue-600" />
+                                    Total Publicaciones
+                                </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{publications.data.length}</div>
+                                <div className="text-3xl font-bold text-blue-600 mb-2">{publications.data.length}</div>
+                                <p className="text-sm text-gray-600">Registradas en el sistema</p>
                             </CardContent>
                         </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Habilitadas</CardTitle>
-                                <Eye className="h-4 w-4 text-muted-foreground" />
+                        <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-all duration-200 bg-white/95 backdrop-blur-sm border border-gray-200/50">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm font-semibold text-gray-700 flex items-center">
+                                    <Eye className="h-5 w-5 mr-2 text-green-600" />
+                                    Habilitadas
+                                </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">
+                                <div className="text-3xl font-bold text-green-600 mb-2">
                                     {publications.data.filter(p => p.status === 1).length}
                                 </div>
+                                <p className="text-sm text-gray-600">Visibles al público</p>
                             </CardContent>
                         </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Inhabilitadas</CardTitle>
-                                <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        <Card className="border-l-4 border-l-red-500 hover:shadow-lg transition-all duration-200 bg-white/95 backdrop-blur-sm border border-gray-200/50">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm font-semibold text-gray-700 flex items-center">
+                                    <EyeOff className="h-5 w-5 mr-2 text-red-600" />
+                                    Inhabilitadas
+                                </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">
+                                <div className="text-3xl font-bold text-red-600 mb-2">
                                     {publications.data.filter(p => p.status === 2).length}
                                 </div>
+                                <p className="text-sm text-gray-600">No visibles al público</p>
                             </CardContent>
                         </Card>
                     </div>
 
                     {/* Publications Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {publications.data.map((publication) => (
-                            <Card key={publication.id} className="group hover:shadow-lg transition-shadow">
+                            <Card key={publication.id} className="group hover:shadow-lg transition-all duration-200 bg-white/95 backdrop-blur-sm border border-gray-200/50 overflow-hidden">
                                 <CardHeader className="pb-3">
-                                        <div className="flex justify-between items-start">
+                                    <div className="flex justify-between items-start">
                                             <div className="flex-1 min-w-0">
                                                 <ConditionalTooltip 
                                                     content={publication.title}
                                                     className="text-lg line-clamp-2 mb-2"
                                                 >
                                                     <CardTitle>
-                                                        {publication.title}
-                                                    </CardTitle>
+                                                {publication.title}
+                                            </CardTitle>
                                                 </ConditionalTooltip>
-                                                <div className="flex gap-2 mb-2">
-                                                    {getStatusBadge(publication.status)}
-                                                    {getTypeBadge(publication.type)}
-                                                </div>
+                                            <div className="flex gap-2 mb-2">
+                                                {getStatusBadge(publication.status)}
+                                                {getTypeBadge(publication.type)}
                                             </div>
+                                        </div>
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
                                                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -317,8 +324,8 @@ function MyPublicationsContent() {
                                             className="text-sm text-gray-600 line-clamp-2"
                                         >
                                             <p>
-                                                {publication.description}
-                                            </p>
+                                            {publication.description}
+                                        </p>
                                         </ConditionalTooltip>
 
                                         {/* Location */}
@@ -334,7 +341,7 @@ function MyPublicationsContent() {
                                                     {publication.location}
                                                 </span>
                                             </ConditionalTooltip>
-                                        </div>
+                                            </div>
 
                                         {/* Price */}
                                         <div className="mb-3">
