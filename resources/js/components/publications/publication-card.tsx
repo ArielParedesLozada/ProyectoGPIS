@@ -1,6 +1,6 @@
 import { publicationView } from "@/routes";
 import { Publication } from "@/types";
-import { Link, router } from "@inertiajs/react";
+import { Link, router, usePage } from "@inertiajs/react";
 import { Label } from "../ui/label";
 import { useState, useEffect } from "react";
 import ReportModal from "./report-modal";
@@ -12,8 +12,19 @@ interface PublicationCardProps {
 }
 
 export default function PublicationCard({ publication }: PublicationCardProps) {
+    const { url } = usePage();
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
     const [isFavorite, setIsFavorite] = useState(false);
+    
+    // Determinar el parámetro 'from' basado en la URL actual
+    const getFromParam = () => {
+        if (url.includes('/favorites')) {
+            return 'favorites';
+        } else if (url.includes('/my-publications')) {
+            return 'my-publications';
+        }
+        return null;
+    };
 
     // Verificar si la publicación está en favoritos al cargar
     useEffect(() => {
@@ -158,7 +169,11 @@ export default function PublicationCard({ publication }: PublicationCardProps) {
                 </div>
                 
                 {/* Link wrapper para hacer toda la card clickeable */}
-                <Link href={publicationView(publication.id)} className="absolute inset-0 z-0" style={{pointerEvents: isReportModalOpen ? 'none' : 'auto'}}></Link>
+                <Link 
+                    href={`${publicationView(publication.id).url}${getFromParam() ? `?from=${getFromParam()}` : ''}`} 
+                    className="absolute inset-0 z-0" 
+                    style={{pointerEvents: isReportModalOpen ? 'none' : 'auto'}}
+                ></Link>
             </div>
             
             {/* Modal de reporte */}

@@ -1,7 +1,7 @@
 import AppLayout from "@/layouts/app-layout";
 import { publicationView } from "@/routes";
 import { BreadcrumbItem, Publication } from "@/types";
-import { Head, Link } from "@inertiajs/react";
+import { Head, Link, usePage } from "@inertiajs/react";
 import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import MiniMap from "@/components/publications/MiniMap";
@@ -13,6 +13,8 @@ interface PublicationViewProps {
 }
 
 export default function PublicationView({ publication }: PublicationViewProps) {
+    const { url } = usePage();
+    
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: `${publication.category.name}/${publication.title}`,
@@ -22,6 +24,31 @@ export default function PublicationView({ publication }: PublicationViewProps) {
 
     // Estado para el modal de reporte
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+    
+    // Determinar la URL de regreso basada en el referrer o parámetros
+    const getBackUrl = () => {
+        // Verificar si hay un parámetro 'from' en la URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const from = urlParams.get('from');
+        
+        if (from === 'favorites') {
+            return '/favorites';
+        } else if (from === 'my-publications') {
+            return '/my-publications';
+        }
+        
+        // Si no hay parámetro, usar el referrer
+        if (document.referrer) {
+            if (document.referrer.includes('/favorites')) {
+                return '/favorites';
+            } else if (document.referrer.includes('/my-publications')) {
+                return '/my-publications';
+            }
+        }
+        
+        // Por defecto, regresar a publicaciones
+        return '/publication';
+    };
     
     // Array de imágenes reales de la base de datos
     const images = publication.images && publication.images.length > 0 
@@ -38,7 +65,7 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                         <div className="lg:col-span-2">
                             {/* Flecha de regreso - posicionada absolutamente */}
                             <Link
-                                href="/publication"
+                                href={getBackUrl()}
                                 className="absolute top-0 left-0 z-10 inline-flex items-center justify-center w-8 h-8 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
                             >
                                 <ArrowLeft className="h-4 w-4" />
@@ -178,11 +205,11 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                                             </div>
                                         ) : (
                                             <div className="flex justify-between items-start py-2">
-                                                <span className="text-gray-600 text-sm font-medium">Horario:</span>
+                                            <span className="text-gray-600 text-sm font-medium">Horario:</span>
                                                 <div className="text-gray-900 text-sm text-right max-w-xs">
                                                     No especificado
                                                 </div>
-                                            </div>
+                                        </div>
                                         )
                                     )}
                                     <div className="flex justify-between items-center py-2">
