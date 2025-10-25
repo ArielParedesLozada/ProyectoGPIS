@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import MiniMap from "@/components/publications/MiniMap";
 import DeleteConfirmationModal from "@/components/publications/delete-confirmation-modal";
 import ImageGallery from "@/components/publications/ImageGallery";
+import SmartImage from "@/components/ui/smart-image";
 
 interface MyPublicationViewProps {
   publication: Publication;

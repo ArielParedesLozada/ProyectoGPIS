@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import MiniMap from "@/components/publications/MiniMap";
 import ReportModal from "@/components/publications/report-modal";
 import ImageGallery from "@/components/publications/ImageGallery";
+import SmartImage from "@/components/ui/smart-image";
 
 interface PublicationViewProps {
     publication: Publication

@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import ReportModal from "./report-modal";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { Heart } from "lucide-react";
+import SmartImage from "../ui/smart-image";
 
 interface PublicationCardProps {
     publication: Publication;
@@ -74,12 +75,12 @@ export default function PublicationCard({ publication }: PublicationCardProps) {
                 <div className="bg-card rounded-lg shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden h-full flex flex-col">
                     {/* Imagen del producto */}
                     <div className="relative">
-                        <img
+                        <SmartImage
                             src={publication.images && publication.images.length > 0
                                 ? `/storage/${publication.images[0].image_url}`
                                 : "https://picsum.photos/300/200"}
                             alt={publication.title}
-                            className="w-full h-48 object-cover"
+                            className="w-full h-48"
                         />
                         {/* Badge de categoría - esquina superior izquierda */}
                         <div className="absolute top-3 left-3">

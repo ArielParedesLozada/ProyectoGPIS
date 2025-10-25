@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
+import SmartImage from "../ui/smart-image";
 
 interface ImageGalleryProps {
     images: string[];
@@ -126,17 +127,19 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                 role="img"
                 aria-label={`${title} - Imagen ${currentImageIndex + 1}`}
             >
-                <div
-                    className="w-full h-80 sm:h-96 lg:h-[510px] xl:h-[560px] transition-[background-size,background-position] duration-100 ease-linear"
-                    style={{
-                        backgroundImage: `url("${currentSrc}")`,
-                        backgroundRepeat: "no-repeat",
-                        backgroundPosition: isHovering ? `${bgPos.x}% ${bgPos.y}%` : "center",
-                        backgroundSize: isHovering ? bgSize : "cover",
-                        cursor: isHovering ? "zoom-in" : "default",
-                        willChange: "background-position, background-size",
-                    }}
-                />
+                <div className="relative w-full h-80 sm:h-96 lg:h-[510px] xl:h-[560px] overflow-hidden">
+                    <SmartImage
+                        src={currentSrc}
+                        alt={`${title} - Imagen ${currentImageIndex + 1}`}
+                        className="w-full h-full transition-transform duration-100 ease-linear"
+                        style={{
+                            transform: isHovering ? `scale(${zoom})` : "scale(1)",
+                            transformOrigin: isHovering ? `${bgPos.x}% ${bgPos.y}%` : "center",
+                            cursor: isHovering ? "zoom-in" : "default",
+                            willChange: "transform",
+                        }}
+                    />
+                </div>
 
                 {/* Botones navegación */}
                 {images.length > 1 && (

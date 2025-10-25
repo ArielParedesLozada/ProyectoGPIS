@@ -28,6 +28,7 @@ import {
 import DeleteConfirmationModal from "@/components/publications/delete-confirmation-modal";
 import GeneralModal from "@/components/ui/general-modal";
 import EmptyState from "@/components/ui/empty-state";
+import SmartImage from "@/components/ui/smart-image";
 // useToast removido - se usa FlashToastHandler globalmente
 
 // Componente para tooltip condicional
@@ -371,10 +372,10 @@ function MyPublicationsContent() {
                                     <div className="space-y-3">
                                         {/* Image */}
                                         <div className="relative">
-                                            <img
+                                            <SmartImage
                                                 src={publication.images?.[0]?.image_url ? `/storage/${publication.images[0].image_url}` : "https://picsum.photos/300/200"}
                                                 alt={publication.title}
-                                                className="w-full h-32 object-cover rounded-lg"
+                                                className="w-full h-32 rounded-lg"
                                             />
                                             <div className="absolute top-2 left-2">
                                                 <Badge variant="secondary" className="bg-card/90">
