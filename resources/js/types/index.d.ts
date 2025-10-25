@@ -78,6 +78,7 @@ export interface Publication {
         open_time: string;
         close_time: string;
     }>;
+    is_hidden?: boolean;
 }
 
 export interface Paginated<T> {

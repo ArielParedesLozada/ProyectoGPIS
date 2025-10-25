@@ -6,7 +6,7 @@ import ReportModal from "./report-modal";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 interface PublicationCardProps {
-    publication: Publication
+    publication: Publication;
 }
 
 export default function PublicationCard({ publication }: PublicationCardProps) {
@@ -19,8 +19,9 @@ export default function PublicationCard({ publication }: PublicationCardProps) {
     };
 
     return (
-        <>
             <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border border-gray-100 overflow-hidden h-full flex flex-col relative group">
+        <Link href={publicationView(publication.id)} className="group">
+            <div className="bg-card rounded-lg shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden h-full flex flex-col">
                 {/* Imagen del producto */}
                 <div className="relative">
                     <img
@@ -94,8 +95,9 @@ export default function PublicationCard({ publication }: PublicationCardProps) {
                         </Tooltip>
                     </div>
 
-                    {/* Botón - siempre al final */}
-                    <div className="flex justify-end mt-auto">
+                    {/* Precio y botón - siempre al final */}
+                    <div className="flex items-center justify-between mt-auto">
+                        <p className="text-2xl font-bold text-foreground">${publication.price}</p>
                         <button className="bg-gray-200 text-gray-800 px-3 py-1 rounded text-sm font-medium">
                             Disponible
                         </button>
@@ -105,6 +107,7 @@ export default function PublicationCard({ publication }: PublicationCardProps) {
                 {/* Link wrapper para hacer toda la card clickeable */}
                 <Link href={publicationView(publication.id)} className="absolute inset-0 z-0" style={{pointerEvents: isReportModalOpen ? 'none' : 'auto'}}></Link>
             </div>
+            </Link>
             
             {/* Modal de reporte */}
             <ReportModal
@@ -113,6 +116,6 @@ export default function PublicationCard({ publication }: PublicationCardProps) {
                 publicationId={publication.id}
                 publicationTitle={publication.title}
             />
-        </>
-    )
+        </div>
+    );
 }

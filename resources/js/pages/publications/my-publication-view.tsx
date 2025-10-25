@@ -1,7 +1,7 @@
 import AppLayout from "@/layouts/app-layout";
 import { BreadcrumbItem, Publication } from "@/types";
 import { Head, Link, router } from "@inertiajs/react";
-import { ArrowLeft, Edit, Eye, EyeOff, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Edit, Eye, EyeOff, Trash2, ChevronLeft, ChevronRight, MessageSquare } from "lucide-react";
 import { useState, useEffect } from "react";
 import MiniMap from "@/components/publications/MiniMap";
 import DeleteConfirmationModal from "@/components/publications/delete-confirmation-modal";
@@ -20,7 +20,11 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
 
   // Estado para el carrusel de imágenes
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  
+
+  // Estado para el modal de apelación
+  const [showAppealModal, setShowAppealModal] = useState(false);
+  const [appealReason, setAppealReason] = useState('');
+
   // Estado para el modal de confirmación de eliminación
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -72,6 +76,40 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
 
   const handleToggleStatus = () => {
     router.patch(`/my-publications/${publication.id}/toggle-status`);
+  };
+
+  const handleAppeal = async () => {
+    if (!appealReason.trim()) {
+      alert('Debes proporcionar una razón para la apelación');
+      return;
+    }
+
+    try {
+      const response = await fetch(`/my-publications/${publication.id}/appeal`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+        },
+        body: JSON.stringify({
+          reason: appealReason,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert(data.message);
+        setShowAppealModal(false);
+        setAppealReason('');
+        router.reload();
+      } else {
+        alert(data.message || 'Error al enviar la apelación');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error al enviar la apelación');
+    }
   };
 
   return (
@@ -134,9 +172,8 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
                         <button
                           key={index}
                           onClick={() => setCurrentImageIndex(index)}
-                          className={`w-2 h-2 rounded-full transition-all duration-200 ${
-                            index === currentImageIndex ? "bg-white" : "bg-white/50 hover:bg-white/75"
-                          }`}
+                          className={`w-2 h-2 rounded-full transition-all duration-200 ${index === currentImageIndex ? "bg-white" : "bg-white/50 hover:bg-white/75"
+                            }`}
                         />
                       ))}
                     </div>
@@ -149,9 +186,8 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
                   </div>
                   <div className="absolute top-4 right-4">
                     <span
-                      className={`px-3 py-1 rounded-full text-sm font-medium shadow-lg ${
-                        publication.status === 1 ? "bg-green-500 text-white" : "bg-red-500 text-white"
-                      }`}
+                      className={`px-3 py-1 rounded-full text-sm font-medium shadow-lg ${publication.status === 1 ? "bg-green-500 text-white" : "bg-red-500 text-white"
+                        }`}
                     >
                       {publication.status === 1 ? "Habilitado" : "Inhabilitado"}
                     </span>
@@ -190,11 +226,10 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
 
                   <button
                     onClick={handleToggleStatus}
-                    className={`w-full font-semibold py-3 px-6 rounded-xl transition ${
-                      publication.status === 1
+                    className={`w-full font-semibold py-3 px-6 rounded-xl transition ${publication.status === 1
                         ? "bg-red-100 hover:bg-red-200 text-red-700"
                         : "bg-green-100 hover:bg-green-200 text-green-700"
-                    }`}
+                      }`}
                   >
                     {publication.status === 1 ? (
                       <>
@@ -218,11 +253,10 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
                   <div className="flex justify-between items-center py-2">
                     <span className="text-gray-600 text-sm font-medium">Tipo:</span>
                     <span
-                      className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        publication.type === "servicio"
+                      className={`px-3 py-1 rounded-full text-sm font-medium ${publication.type === "servicio"
                           ? "bg-green-100 text-green-800"
                           : "bg-blue-100 text-blue-800"
-                      }`}
+                        }`}
                     >
                       {publication.type}
                     </span>
@@ -237,7 +271,7 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
                       <div className="text-gray-900 text-sm text-right max-w-xs">
                         {(() => {
                           const dayNames = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-                          
+
                           // Agrupar por horario
                           const scheduleByTime: { [key: string]: number[] } = {};
                           publication.serviceHours.forEach(hour => {
@@ -251,12 +285,12 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
                           // Formatear cada grupo de horario
                           const formatTimeGroup = (timeKey: string, days: number[]) => {
                             const sortedDays = days.sort((a, b) => a - b);
-                            
+
                             // Agrupar días consecutivos
                             const ranges: string[] = [];
                             let start = sortedDays[0];
                             let end = start;
-                            
+
                             for (let i = 1; i < sortedDays.length; i++) {
                               if (sortedDays[i] === end + 1) {
                                 end = sortedDays[i];
@@ -271,14 +305,14 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
                                 end = start;
                               }
                             }
-                            
+
                             // Agregar último rango
                             if (start === end) {
                               ranges.push(dayNames[start]);
                             } else {
                               ranges.push(`${dayNames[start]} - ${dayNames[end]}`);
                             }
-                            
+
                             return `${ranges.join(', ')}/${timeKey}`;
                           };
 
@@ -305,6 +339,29 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
                 </div>
               </div>
 
+              {/* Card de acciones peligrosas */}
+              <div className="bg-white rounded-2xl shadow-lg p-6">
+                <h3 className="font-bold text-gray-900 mb-4 text-lg">Acciones Peligrosas</h3>
+
+                {/* Botón de apelación si la publicación está oculta */}
+                {publication.is_hidden && (
+                  <button
+                    onClick={() => setShowAppealModal(true)}
+                    className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-6 rounded-xl transition mb-3"
+                  >
+                    <MessageSquare className="w-4 h-4 mr-2 inline" />
+                    Apelar Moderación
+                  </button>
+                )}
+
+                <button
+                  onClick={handleDelete}
+                  className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-xl transition"
+                >
+                  <Trash2 className="w-4 h-4 mr-2 inline" />
+                  Eliminar Publicación
+                </button>
+              </div>
             </div>
           </div>
 
@@ -346,6 +403,46 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
           )}
         </div>
       </div>
+      {/* Modal de apelación */}
+      {showAppealModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-lg max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Apelar Moderación</h3>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Razón de la apelación
+              </label>
+              <textarea
+                value={appealReason}
+                onChange={(e) => setAppealReason(e.target.value)}
+                rows={4}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Explica por qué crees que la moderación fue incorrecta..."
+                required
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleAppeal}
+                className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 px-4 rounded-lg transition"
+              >
+                Enviar Apelación
+              </button>
+              <button
+                onClick={() => {
+                  setShowAppealModal(false);
+                  setAppealReason('');
+                }}
+                className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 font-semibold py-2 px-4 rounded-lg transition"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de confirmación de eliminación */}
       <DeleteConfirmationModal
@@ -355,6 +452,7 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
         isDeleting={isDeleting}
         publicationTitle={publication.title}
       />
+
     </AppLayout>
   );
 }

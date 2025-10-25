@@ -22,7 +22,9 @@ class Publication extends Model
         'created_by',
         'published_at',
         'status',
-        'type'
+        'type',
+        'horario',
+        'is_hidden'
     ];
 
     protected $casts = [
@@ -41,6 +43,16 @@ class Publication extends Model
     }
     public function images(): HasMany {
         return $this->hasMany(PublicationImage::class, 'publication_id', 'id');
+    }
+
+    public function moderationCases(): HasMany
+    {
+        return $this->hasMany(ModerationCase::class);
+    }
+
+    public function activeModerationCase(): HasMany
+    {
+        return $this->hasMany(ModerationCase::class)->whereIn('status', ['pending', 'triage', 'in_review', 'appealed']);
     }
 
     public function serviceHours(): HasMany
