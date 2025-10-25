@@ -651,46 +651,23 @@ class ModerationController extends Controller
             ], 403);
         }
 
-        // Buscar casos asignados al moderador desactivado
-        $cases = ModerationCase::where('assigned_moderator_id', $moderatorId)
-            ->whereIn('status', ['pending', 'triage', 'in_review', 'appealed'])
-            ->get();
+        try {
+            // Despachar job para reasignación automática
+            \App\Jobs\ReassignModeratorCasesJob::dispatch($moderatorId);
 
-        $reassignedCount = 0;
-
-        foreach ($cases as $case) {
-            // Desasignar el caso
-            $case->update([
-                'assigned_moderator_id' => null,
-                'assigned_at' => null,
+            return response()->json([
+                'success' => true,
+                'message' => 'Reasignación iniciada. Los casos se procesarán en segundo plano.'
             ]);
 
-            // Reasignar a otro moderador disponible
-            $newModerator = $this->reassignCaseToAvailableModerator($case);
+        } catch (\Exception $e) {
+            Log::error("Error al iniciar reasignación para moderador {$moderatorId}: " . $e->getMessage());
             
-            if ($newModerator) {
-                // Registrar la acción de reasignación
-                ModerationAction::create([
-                    'moderation_case_id' => $case->id,
-                    'moderator_id' => Auth::id(),
-                    'action_type' => 'reassign_from_inactive_moderator',
-                    'action_description' => 'Caso reasignado por moderador inactivo',
-                    'metadata' => [
-                        'original_moderator_id' => $moderatorId,
-                        'new_moderator_id' => $newModerator->id,
-                        'new_moderator_name' => $newModerator->name . ' ' . $newModerator->surname,
-                        'reassigned_by' => Auth::user()->name . ' ' . Auth::user()->surname,
-                    ]
-                ]);
-            }
-            
-            $reassignedCount++;
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al iniciar la reasignación: ' . $e->getMessage()
+            ], 500);
         }
-
-        return response()->json([
-            'success' => true,
-            'message' => "Se reasignaron {$reassignedCount} casos correctamente"
-        ]);
     }
 
     /**

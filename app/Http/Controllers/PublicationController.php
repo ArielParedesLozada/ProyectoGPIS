@@ -14,7 +14,7 @@ use App\Models\ModerationAction;
 use App\Models\User;
 use App\Models\PublicationServiceHour;
 use App\Services\GeocodingService;
-use App\Services\ProfanityService;
+use App\Services\SimpleProfanityService;
 use App\Exceptions\ProfanityDetectedException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -100,12 +100,11 @@ class PublicationController extends Controller
         try {
             $query = Publication::query()
                 ->with(['category', 'images', 'moderationCases' => function ($query) {
-                    $query->where('status', 'closed')
-                        ->with(['actions' => function ($actionQuery) {
-                            $actionQuery->where('action_type', 'hide_publication')
-                                ->orderBy('created_at', 'desc')
-                                ->limit(1);
-                        }]);
+                    $query->with(['actions' => function ($actionQuery) {
+                        $actionQuery->where('action_type', 'hide_publication')
+                            ->orderBy('created_at', 'desc')
+                            ->limit(1);
+                    }]);
                 }])
                 ->where('created_by', $userId);
 
@@ -126,14 +125,61 @@ class PublicationController extends Controller
                 } else {
                     $publication->location_point = null;
                 }
+                Log::info('Procesando publicación', [
+                    'publication_id' => $publication->id,
+                    'is_hidden' => $publication->is_hidden,
+                    'cases_count' => $publication->moderationCases->count()
+                ]);
+
                 if ($publication->is_hidden && $publication->moderationCases->isNotEmpty()) {
                     $latestCase = $publication->moderationCases->first();
                     $hideAction = $latestCase->actions->first();
+
+                    Log::info('Caso encontrado', [
+                        'publication_id' => $publication->id,
+                        'case_id' => $latestCase->id,
+                        'case_status' => $latestCase->status,
+                        'case_source' => $latestCase->source,
+                        'has_action' => $hideAction ? true : false
+                    ]);
 
                     if ($hideAction && isset($hideAction->metadata['reason'])) {
                         $publication->moderation_reason = $hideAction->metadata['reason'];
                         $publication->moderation_date = $hideAction->created_at;
                     }
+
+                    // Agregar estado del caso para validación en frontend
+                    $publication->moderation_case_status = $latestCase->status;
+
+                    // Para casos de auto-moderación, siempre permitir apelaciones
+                    // Identificar auto-moderación por metadata de la acción
+                    $isAutoModeration = false;
+                    if ($hideAction && isset($hideAction->metadata['auto_moderation']) && $hideAction->metadata['auto_moderation']) {
+                        $isAutoModeration = true;
+                    }
+
+                    if ($isAutoModeration) {
+                        $publication->can_appeal = true;
+                        Log::info('Auto-moderación detectada - permitiendo apelación', [
+                            'publication_id' => $publication->id,
+                            'case_id' => $latestCase->id
+                        ]);
+                    } else {
+                        // Para casos normales, usar la lógica estándar
+                        $publication->can_appeal = !in_array($latestCase->status, ['closed', 'action_taken']);
+                        Log::info('Caso normal - aplicando lógica estándar', [
+                            'publication_id' => $publication->id,
+                            'case_status' => $latestCase->status,
+                            'can_appeal' => $publication->can_appeal
+                        ]);
+                    }
+                } else {
+                    $publication->can_appeal = false;
+                    $publication->moderation_case_status = null;
+                    Log::info('Publicación sin casos de moderación', [
+                        'publication_id' => $publication->id,
+                        'is_hidden' => $publication->is_hidden
+                    ]);
                 }
                 return $publication;
             });
@@ -178,113 +224,59 @@ class PublicationController extends Controller
             ]);
 
             // Validar horario requerido para servicios
-            if ($request->type === 'servicio' && empty($request->schedule)) {
-                return redirect()->back()->withErrors(['schedule' => 'El horario es obligatorio para servicios.']);
+            if ($request->type === 'servicio' && empty($request->horario)) {
+                return redirect()->back()->withErrors(['horario' => 'El horario es obligatorio para servicios.']);
+            }
+            // Verificar contenido inapropiado para auto-moderación
+            $profanityService = new SimpleProfanityService();
+            $autoModerationInfo = [
+                'has_profanity' => false,
+                'reason' => null,
+                'detected_words' => []
+            ];
+
+            Log::info('Iniciando verificación de contenido inadecuado', [
+                'title' => $request->title,
+                'description' => $request->description,
+                'horario' => $request->horario
+            ]);
+
+            // Verificar título
+            if (!empty($request->title)) {
+                Log::info('Verificando título', ['title' => $request->title]);
+                $titleCheck = $profanityService->checkForAutoModeration($request->title);
+                Log::info('Resultado verificación título', [
+                    'has_profanity' => $titleCheck['has_profanity'],
+                    'detected_words' => $titleCheck['detected_words']
+                ]);
+                if ($titleCheck['has_profanity']) {
+                    $autoModerationInfo = $titleCheck;
+                }
+            }
+            // Verificar descripción
+            if (!$autoModerationInfo['has_profanity'] && !empty($request->description)) {
+                Log::info('Verificando descripción', ['description' => $request->description]);
+                $descriptionCheck = $profanityService->checkForAutoModeration($request->description);
+                Log::info('Resultado verificación descripción', [
+                    'has_profanity' => $descriptionCheck['has_profanity'],
+                    'detected_words' => $descriptionCheck['detected_words']
+                ]);
+                if ($descriptionCheck['has_profanity']) {
+                    $autoModerationInfo = $descriptionCheck;
+                }
             }
 
-            // Validar contenido inapropiado (versión optimizada)
-            try {
-                $profanityService = new ProfanityService();
-
-                // Log para debugging
-                Log::info('Profanity validation started', [
-                    'enabled' => config('profanity.enabled', true),
-                    'user_id' => Auth::id(),
+            // Verificar horario
+            if (!$autoModerationInfo['has_profanity'] && !empty($request->horario)) {
+                Log::info('Verificando horario', ['horario' => $request->horario]);
+                $horarioCheck = $profanityService->checkForAutoModeration($request->horario);
+                Log::info('Resultado verificación horario', [
+                    'has_profanity' => $horarioCheck['has_profanity'],
+                    'detected_words' => $horarioCheck['detected_words']
                 ]);
-
-                // Validar solo campos no vacíos para optimizar
-                $fieldsToValidate = [];
-                if (!empty($request->title)) {
-                    $fieldsToValidate['title'] = $request->title;
+                if ($horarioCheck['has_profanity']) {
+                    $autoModerationInfo = $horarioCheck;
                 }
-                if (!empty($request->description)) {
-                    $fieldsToValidate['description'] = $request->description;
-                }
-                if (!empty($request->horario)) {
-                    $fieldsToValidate['horario'] = $request->horario;
-                }
-
-                Log::info('Fields to validate', [
-                    'fields' => $fieldsToValidate,
-                    'user_id' => Auth::id(),
-                ]);
-
-                if (!empty($fieldsToValidate)) {
-                    $profanityService->validateFields($fieldsToValidate);
-                }
-
-                Log::info('Profanity validation passed', [
-                    'user_id' => Auth::id(),
-                ]);
-            } catch (ProfanityDetectedException $e) {
-                Log::warning('Profanity detected', [
-                    'message' => $e->getMessage(),
-                    'detected_words' => $e->getDetectedWords(),
-                    'user_id' => Auth::id(),
-                ]);
-
-                return redirect()->back()->withErrors([
-                    'content' => $e->getMessage()
-                ])->withInput();
-            } catch (\Exception $e) {
-                // Si hay error en la validación, continuar sin validar
-                Log::warning('Profanity validation failed', [
-                    'error' => $e->getMessage(),
-                    'user_id' => Auth::id(),
-                ]);
-            }
-
-            // Validar contenido inapropiado (versión optimizada)
-            try {
-                $profanityService = new ProfanityService();
-                
-                // Log para debugging
-                Log::info('Profanity validation started', [
-                    'enabled' => config('profanity.enabled', true),
-                    'user_id' => Auth::id(),
-                ]);
-                
-                // Validar solo campos no vacíos para optimizar
-                $fieldsToValidate = [];
-                if (!empty($request->title)) {
-                    $fieldsToValidate['title'] = $request->title;
-                }
-                if (!empty($request->description)) {
-                    $fieldsToValidate['description'] = $request->description;
-                }
-                if (!empty($request->horario)) {
-                    $fieldsToValidate['horario'] = $request->horario;
-                }
-                
-                Log::info('Fields to validate', [
-                    'fields' => $fieldsToValidate,
-                    'user_id' => Auth::id(),
-                ]);
-                
-                if (!empty($fieldsToValidate)) {
-                    $profanityService->validateFields($fieldsToValidate);
-                }
-                
-                Log::info('Profanity validation passed', [
-                    'user_id' => Auth::id(),
-                ]);
-                
-            } catch (ProfanityDetectedException $e) {
-                Log::warning('Profanity detected', [
-                    'message' => $e->getMessage(),
-                    'detected_words' => $e->getDetectedWords(),
-                    'user_id' => Auth::id(),
-                ]);
-                
-                return redirect()->back()->withErrors([
-                    'content' => $e->getMessage()
-                ])->withInput();
-            } catch (\Exception $e) {
-                // Si hay error en la validación, continuar sin validar
-                Log::warning('Profanity validation failed', [
-                    'error' => $e->getMessage(),
-                    'user_id' => Auth::id(),
-                ]);
             }
 
             $userId = Auth::id();
@@ -304,7 +296,8 @@ class PublicationController extends Controller
                 'status' => StatusType::HABILITADO, // Siempre crear como HABILITADO
                 'type' => $request->type,
                 'published_at' => now(),
-                // El horario se manejará por separado con serviceHours
+                'horario' => $request->horario,
+                'is_hidden' => $autoModerationInfo['has_profanity'], // Ocultar si tiene contenido inadecuado
             ];
 
             // Agregar coordenadas geográficas
@@ -339,8 +332,24 @@ class PublicationController extends Controller
             }
 
             $publication = Publication::create($publicationData);
+            Log::info('Verificando auto-moderación', [
+                'publication_id' => $publication->id,
+                'has_profanity' => $autoModerationInfo['has_profanity'],
+                'detected_words' => $autoModerationInfo['detected_words'] ?? [],
+                'reason' => $autoModerationInfo['reason'] ?? null
+            ]);
 
-            // Guardar horarios de servicio si es tipo servicio
+            // Si tiene contenido inadecuado, crear caso de moderación automático
+            if ($autoModerationInfo['has_profanity']) {
+                Log::info('Creando caso de auto-moderación', [
+                    'publication_id' => $publication->id
+                ]);
+                $this->createAutoModerationCase($publication, $autoModerationInfo);
+            } else {
+                Log::info('No se detectó contenido inadecuado', [
+                    'publication_id' => $publication->id
+                ]);
+            }
             if ($request->type === 'servicio' && $request->schedule) {
                 $schedule = json_decode($request->schedule, true);
                 if (is_array($schedule)) {
@@ -366,9 +375,68 @@ class PublicationController extends Controller
                 }
             }
 
-            return redirect()->route('my-publications')->with('success', 'Publicación creada exitosamente.');
+            // Mensaje diferente si fue ocultada por contenido inadecuado
+            $successMessage = $autoModerationInfo['has_profanity']
+                ? 'Publicación creada pero oculta por contenido inadecuado. Puedes apelar esta decisión.'
+                : 'Publicación creada exitosamente.';
+
+            return redirect()->route('my-publications')->with('success', $successMessage);
         } catch (\Exception $e) {
             return redirect()->back()->withErrors(['error' => 'Error al crear la publicación: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Crear caso de moderación automático para publicaciones con contenido inadecuado
+     */
+    private function createAutoModerationCase(Publication $publication, array $autoModerationInfo)
+    {
+        try {
+            // Crear el caso de moderación
+            $moderationCase = ModerationCase::create([
+                'publication_id' => $publication->id,
+                'status' => 'appealed', // Caso en estado appealed para permitir apelaciones
+                'source' => 'system', // Usar 'system' en lugar de 'auto_moderation'
+                'assigned_moderator_id' => null, // No asignado a moderador
+                'assigned_at' => null,
+            ]);
+
+            Log::info('Caso de auto-moderación creado', [
+                'case_id' => $moderationCase->id,
+                'publication_id' => $publication->id,
+                'status' => $moderationCase->status,
+                'source' => $moderationCase->source,
+                'assigned_moderator_id' => $moderationCase->assigned_moderator_id
+            ]);
+
+            // Crear la acción de moderación
+            ModerationAction::create([
+                'moderation_case_id' => $moderationCase->id,
+                'moderator_id' => null, // Sistema automático
+                'action_type' => 'hide_publication',
+                'action_description' => 'Publicación ocultada automáticamente por contenido inadecuado',
+                'metadata' => [
+                    'reason' => $autoModerationInfo['reason'],
+                    'detected_words' => $autoModerationInfo['detected_words'],
+                    'auto_moderation' => true,
+                    'system_action' => true,
+                    'moderated_by' => 'system_automation',
+                ]
+            ]);
+
+            Log::info('Caso de moderación automático creado', [
+                'case_id' => $moderationCase->id,
+                'publication_id' => $publication->id,
+                'status' => $moderationCase->status,
+                'source' => $moderationCase->source,
+                'reason' => $autoModerationInfo['reason'],
+                'detected_words' => $autoModerationInfo['detected_words']
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error al crear caso de moderación automático', [
+                'publication_id' => $publication->id,
+                'error' => $e->getMessage()
+            ]);
         }
     }
 
@@ -758,6 +826,12 @@ class PublicationController extends Controller
      */
     public function appeal(Request $request, $id)
     {
+        Log::info('Iniciando proceso de apelación', [
+            'publication_id' => $id,
+            'user_id' => Auth::id(),
+            'reason' => $request->reason
+        ]);
+
         $request->validate([
             'reason' => 'required|string|max:1000',
         ]);
@@ -767,34 +841,70 @@ class PublicationController extends Controller
 
             // Verificar que el usuario sea el propietario de la publicación
             if ($publication->created_by !== Auth::id()) {
+                Log::warning('Usuario no es propietario de la publicación', [
+                    'publication_owner' => $publication->created_by,
+                    'current_user' => Auth::id()
+                ]);
                 return redirect()->back()->withErrors(['error' => 'No tienes permisos para apelar esta publicación']);
             }
 
-            // Verificar que la publicación esté oculta
-            if (!$publication->is_hidden) {
-                return redirect()->back()->withErrors(['error' => 'Solo puedes apelar publicaciones que han sido ocultadas por moderación']);
-            }
 
             // Buscar el caso de moderación (cualquier status)
             $moderationCase = ModerationCase::where('publication_id', $id)->first();
 
+            Log::info('Caso de moderación encontrado', [
+                'case_id' => $moderationCase ? $moderationCase->id : null,
+                'case_status' => $moderationCase ? $moderationCase->status : null,
+                'assigned_moderator' => $moderationCase ? $moderationCase->assigned_moderator_id : null
+            ]);
+
             if (!$moderationCase) {
+                Log::warning('No se encontró caso de moderación', ['publication_id' => $id]);
                 return redirect()->back()->withErrors(['error' => 'No se encontró un caso de moderación para esta publicación']);
             }
 
-            // NUEVA VALIDACIÓN: Verificar que no exista una apelación pendiente
-            $existingAppeal = ModerationAppeal::where('moderation_case_id', $moderationCase->id)
-                ->whereNull('reviewed_at') // Apelación no revisada
-                ->first();
-
-            if ($existingAppeal) {
-                return redirect()->back()->withErrors(['error' => 'Ya existe una apelación pendiente para este caso. Debes esperar a que sea revisada.']);
+            // Verificar que el caso no haya llegado a una decisión final IRREVERSIBLE
+            if ($moderationCase->status === 'action_taken') {
+                Log::warning('Caso con decisión final irreversible', [
+                    'case_status' => $moderationCase->status
+                ]);
+                return redirect()->back()->withErrors(['error' => 'Este caso ya tiene una decisión final irreversible. No se pueden enviar más apelaciones.']);
             }
 
+            // Verificar que el caso no esté cerrado (solo permitir si está activo o appealed)
+            if ($moderationCase->status === 'closed') {
+                Log::warning('Caso cerrado - No se pueden enviar más apelaciones', [
+                    'case_status' => $moderationCase->status
+                ]);
+                return redirect()->back()->withErrors(['error' => 'Este caso ya está cerrado. No se pueden enviar más apelaciones.']);
+            }
+
+            // Si el caso está en 'appealed', permitir múltiples apelaciones
+            if ($moderationCase->status === 'appealed') {
+                Log::info('Caso en estado appealed - Se permiten múltiples apelaciones', [
+                    'case_status' => $moderationCase->status
+                ]);
+            }
+
+            // Verificar que la publicación esté oculta (solo se puede apelar publicaciones ocultas)
+            if (!$publication->is_hidden) {
+                Log::warning('Publicación no está oculta', [
+                    'is_hidden' => $publication->is_hidden
+                ]);
+                return redirect()->back()->withErrors(['error' => 'Solo puedes apelar publicaciones que han sido ocultadas por moderación.']);
+            }
+
+            Log::info('Iniciando transacción de apelación');
             DB::beginTransaction();
 
             // Guardar el ID del moderador original para asignar a uno diferente
             $originalModeratorId = $moderationCase->assigned_moderator_id;
+
+            Log::info('Creando apelación', [
+                'moderation_case_id' => $moderationCase->id,
+                'appealer_id' => Auth::id(),
+                'original_moderator_id' => $originalModeratorId
+            ]);
 
             // Crear la apelación
             $appeal = ModerationAppeal::create([
@@ -803,23 +913,147 @@ class PublicationController extends Controller
                 'appeal_reason' => $request->reason,
             ]);
 
+            Log::info('Apelación creada exitosamente', ['appeal_id' => $appeal->id]);
+
             // Actualizar el caso a estado "appealed" y desasignar al moderador anterior
-            $moderationCase->update([
-                'status' => 'appealed',
-                'assigned_moderator_id' => null,
-                'assigned_at' => null,
-            ]);
+            // Si el caso estaba 'closed', reabrirlo con la apelación
+            if ($moderationCase->status === 'closed') {
+                Log::info('Reabriendo caso cerrado con apelación', [
+                    'case_id' => $moderationCase->id,
+                    'previous_status' => $moderationCase->status
+                ]);
+
+                $moderationCase->update([
+                    'status' => 'appealed',
+                    'assigned_moderator_id' => null,
+                    'assigned_at' => null,
+                ]);
+            } elseif ($moderationCase->status !== 'appealed') {
+                // Si no está en 'appealed', cambiar el estado
+                $moderationCase->update([
+                    'status' => 'appealed',
+                    'assigned_moderator_id' => null,
+                    'assigned_at' => null,
+                ]);
+            } else {
+                // Si ya está en "appealed", solo desasignar al moderador actual
+                $moderationCase->update([
+                    'assigned_moderator_id' => null,
+                    'assigned_at' => null,
+                ]);
+            }
 
             // Asignar a un moderador diferente
+            Log::info('Asignando apelación a moderador diferente');
             $this->assignAppealToDifferentModerator($moderationCase, $originalModeratorId);
 
             DB::commit();
+            Log::info('Apelación procesada exitosamente');
 
             return redirect()->back()->with('success', 'Apelación enviada correctamente. Un moderador diferente revisará tu caso.');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error al enviar apelación: ' . $e->getMessage());
+            Log::error('Error al enviar apelación: ' . $e->getMessage(), [
+                'exception' => $e->getTraceAsString(),
+                'publication_id' => $id,
+                'user_id' => Auth::id()
+            ]);
             return redirect()->back()->withErrors(['error' => 'Error al enviar la apelación: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Verificar si se puede apelar una publicación
+     */
+    public function canAppeal($id)
+    {
+        try {
+            $publication = Publication::findOrFail($id);
+
+            // Verificar que el usuario sea el propietario
+            if ($publication->created_by !== Auth::id()) {
+                return response()->json([
+                    'can_appeal' => false,
+                    'reason' => 'No tienes permisos para apelar esta publicación'
+                ]);
+            }
+
+            // Verificar que la publicación esté oculta
+            if (!$publication->is_hidden) {
+                return response()->json([
+                    'can_appeal' => false,
+                    'reason' => 'Solo puedes apelar publicaciones que han sido ocultadas por moderación'
+                ]);
+            }
+
+            // Buscar el caso de moderación
+            $moderationCase = ModerationCase::where('publication_id', $id)->first();
+
+            if (!$moderationCase) {
+                return response()->json([
+                    'can_appeal' => false,
+                    'reason' => 'No se encontró un caso de moderación para esta publicación'
+                ]);
+            }
+
+            // Verificar que el caso no haya llegado a una decisión final IRREVERSIBLE
+            if ($moderationCase->status === 'action_taken') {
+                return response()->json([
+                    'can_appeal' => false,
+                    'reason' => 'Este caso ya tiene una decisión final irreversible. No se pueden enviar más apelaciones.'
+                ]);
+            }
+
+            // Para casos de auto-moderación, siempre permitir apelaciones
+            // Identificar auto-moderación por metadata de la acción
+            $hideAction = ModerationAction::where('moderation_case_id', $moderationCase->id)
+                ->where('action_type', 'hide_publication')
+                ->first();
+
+            $isAutoModeration = false;
+            if ($hideAction && isset($hideAction->metadata['auto_moderation']) && $hideAction->metadata['auto_moderation']) {
+                $isAutoModeration = true;
+            }
+
+            if ($isAutoModeration) {
+                return response()->json([
+                    'can_appeal' => true,
+                    'case_status' => $moderationCase->status,
+                    'publication_hidden' => $publication->is_hidden,
+                    'message' => 'Puedes apelar esta decisión de auto-moderación'
+                ]);
+            }
+
+            // Verificar que el caso no esté cerrado (solo para casos normales)
+            if ($moderationCase->status === 'closed') {
+                return response()->json([
+                    'can_appeal' => false,
+                    'reason' => 'Este caso ya está cerrado. No se pueden enviar más apelaciones.'
+                ]);
+            }
+
+            // Si el caso está en 'appealed', permitir múltiples apelaciones
+            if ($moderationCase->status === 'appealed') {
+                return response()->json([
+                    'can_appeal' => true,
+                    'case_status' => $moderationCase->status,
+                    'publication_hidden' => $publication->is_hidden,
+                    'message' => 'Puedes enviar múltiples apelaciones mientras el caso esté activo'
+                ]);
+            }
+
+            // Si llegamos aquí, se puede apelar
+            return response()->json([
+                'can_appeal' => true,
+                'case_status' => $moderationCase->status,
+                'publication_hidden' => $publication->is_hidden,
+                'message' => 'Puedes enviar una apelación para esta publicación'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'can_appeal' => false,
+                'reason' => 'Error al verificar la apelación: ' . $e->getMessage()
+            ]);
         }
     }
 
@@ -871,12 +1105,14 @@ class PublicationController extends Controller
         ModerationAction::create([
             'moderation_case_id' => $case->id,
             'moderator_id' => $originalModeratorId,
-            'action_type' => 'waiting_for_moderator',
+            'action_type' => 'close_case',
             'action_description' => 'Apelación en espera - No hay moderadores disponibles para revisar',
             'metadata' => [
                 'original_moderator_id' => $originalModeratorId,
                 'waiting_reason' => 'no_moderators_available',
                 'status' => 'pending_moderator_assignment',
+                'requires_manual_intervention' => true,
+                'waiting_for_moderator' => true
             ]
         ]);
     }

@@ -39,6 +39,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put('/{id}', [PublicationController::class, 'update'])->name('publications.update');
         Route::delete('/{id}', [PublicationController::class, 'destroy'])->name('publications.destroy');
         Route::post('/{id}/appeal', [PublicationController::class, 'appeal'])->name('publications.appeal');
+        Route::get('/{id}/can-appeal', [PublicationController::class, 'canAppeal'])->name('publications.can-appeal');
         Route::get('/{id}', [PublicationController::class, 'myView'])->name('my-publication-view');
     });
 

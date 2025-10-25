@@ -258,12 +258,12 @@ function MyPublicationsContent() {
                 href: '/my-publications',
             }]}>
             <Head title="Mis Publicaciones" />
-            
+
             <div className="bg-gray-50 min-h-screen space-y-8 px-6 py-6">
                 {/* Header */}
                 <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 text-white mb-8">
-                        <div className="flex justify-between items-start">
-                            <div>
+                    <div className="flex justify-between items-start">
+                        <div>
                             <h1 className="text-3xl font-bold mb-2">Mis Publicaciones</h1>
                             <p className="text-blue-100 text-lg">Gestiona tus productos y servicios</p>
                             {publications.data.length > 0 && (
@@ -271,12 +271,12 @@ function MyPublicationsContent() {
                                     Mostrando {publications.data.length} publicaciones
                                 </p>
                             )}
-                            </div>
+                        </div>
                         <Link href="/my-publications/create">
                             <Button variant="secondary" className="bg-white/20 text-white border-white/30 hover:bg-white/30">
-                                        <Plus className="w-4 h-4 mr-2" />
-                                        Crear Publicación
-                                    </Button>
+                                <Plus className="w-4 h-4 mr-2" />
+                                Crear Publicación
+                            </Button>
                         </Link>
                     </div>
                 </div>
@@ -346,15 +346,15 @@ function MyPublicationsContent() {
                             <Card key={publication.id} className="group hover:shadow-lg transition-all duration-200 bg-white/95 backdrop-blur-sm border border-gray-200/50 overflow-hidden">
                                 <CardHeader className="pb-3">
                                     <div className="flex justify-between items-start">
-                                            <div className="flex-1 min-w-0">
-                                                <ConditionalTooltip 
-                                                    content={publication.title}
-                                                    className="text-lg line-clamp-2 mb-2"
-                                                >
-                                                    <CardTitle>
-                                                {publication.title}
-                                            </CardTitle>
-                                                </ConditionalTooltip>
+                                        <div className="flex-1 min-w-0">
+                                            <ConditionalTooltip
+                                                content={publication.title}
+                                                className="text-lg line-clamp-2 mb-2"
+                                            >
+                                                <CardTitle>
+                                                    {publication.title}
+                                                </CardTitle>
+                                            </ConditionalTooltip>
                                             <div className="flex gap-2 mb-2">
                                                 {getStatusBadge(publication)}
                                                 {getTypeBadge(publication.type)}
@@ -398,13 +398,22 @@ function MyPublicationsContent() {
                                                         )}
                                                     </DropdownMenuItem>
                                                 )}
-                                                {publication.is_hidden && (
+                                                {publication.is_hidden && publication.can_appeal && (
                                                     <DropdownMenuItem
                                                         onClick={() => handleAppeal(publication)}
                                                         className="text-orange-600"
                                                     >
                                                         <MessageSquare className="mr-2 h-4 w-4" />
                                                         Apelar Moderación
+                                                    </DropdownMenuItem>
+                                                )}
+                                                {publication.is_hidden && !publication.can_appeal && (
+                                                    <DropdownMenuItem
+                                                        disabled
+                                                        className="text-gray-400 cursor-not-allowed"
+                                                    >
+                                                        <MessageSquare className="mr-2 h-4 w-4" />
+                                                        Apelar Moderación (No disponible)
                                                     </DropdownMenuItem>
                                                 )}
                                                 <DropdownMenuItem
@@ -441,8 +450,8 @@ function MyPublicationsContent() {
                                             className="text-sm text-gray-600 line-clamp-2"
                                         >
                                             <p>
-                                            {publication.description}
-                                        </p>
+                                                {publication.description}
+                                            </p>
                                         </ConditionalTooltip>
                                         {/* Location */}
                                         {publication.is_hidden && publication.moderation_reason && (
@@ -498,8 +507,8 @@ function MyPublicationsContent() {
                                             key={i}
                                             href={link.url}
                                             className={`px-4 py-2 border rounded-lg text-sm font-medium transition-colors ${link.active
-                                                    ? "bg-blue-600 text-white border-blue-600"
-                                                    : "text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400"
+                                                ? "bg-blue-600 text-white border-blue-600"
+                                                : "text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400"
                                                 }`}
                                             dangerouslySetInnerHTML={{ __html: link.label }}
                                         />
