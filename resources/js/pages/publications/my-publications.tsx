@@ -258,7 +258,6 @@ function MyPublicationsContent() {
                 href: '/my-publications',
             }]}>
             <Head title="Mis Publicaciones" />
-
             <div className="bg-gray-50 min-h-screen">
                 {/* Header */}
                 <div className="bg-card border-b border-gray-200 px-6 py-8">
@@ -599,6 +598,10 @@ function MyPublicationsContent() {
 
 // Componente principal que envuelve con ToastProvider
 export default function MyPublications() {
-    return <MyPublicationsContent />;
+    return (
+        <ToastProvider>
+            <MyPublicationsContent />;
+        </ToastProvider>
+    )
 }
 
