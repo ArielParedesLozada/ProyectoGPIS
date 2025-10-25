@@ -97,7 +97,7 @@ export default function PublicationCard({ publication }: PublicationCardProps) {
 
                     {/* Botón - siempre al final */}
                     <div className="flex justify-end mt-auto">
-                        <button className="bg-gray-200 text-gray-800 px-3 py-1 rounded text-sm font-medium">
+                        <button className="bg-green-100 text-green-800 px-3 py-1 rounded text-sm font-medium">
                             Disponible
                         </button>
                     </div>
