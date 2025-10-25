@@ -1,23 +1,23 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-    DropdownMenu, 
-    DropdownMenuContent, 
-    DropdownMenuItem, 
-    DropdownMenuTrigger 
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import AppLayout from "@/layouts/app-layout";
 import { SharedData, Paginated, Publication, Category } from "@/types";
 import { usePage, router, Head, Link } from "@inertiajs/react";
 import { useState, useRef, useEffect } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { 
-    Plus, 
-    MoreHorizontal, 
-    Edit, 
-    Trash2, 
-    Eye, 
+import {
+    Plus,
+    MoreHorizontal,
+    Edit,
+    Trash2,
+    Eye,
     EyeOff,
     Calendar,
     MapPin,
@@ -30,10 +30,10 @@ import GeneralModal from "@/components/ui/general-modal";
 import { useToast, ToastProvider } from "@/hooks/useToast";
 
 // Componente para tooltip condicional
-const ConditionalTooltip = ({ children, content, className = "" }: { 
-    children: React.ReactNode; 
-    content: string; 
-    className?: string; 
+const ConditionalTooltip = ({ children, content, className = "" }: {
+    children: React.ReactNode;
+    content: string;
+    className?: string;
 }) => {
     const [isTruncated, setIsTruncated] = useState(false);
     const elementRef = useRef<HTMLDivElement>(null);
@@ -42,31 +42,31 @@ const ConditionalTooltip = ({ children, content, className = "" }: {
         const checkTruncation = () => {
             if (elementRef.current) {
                 const element = elementRef.current;
-                
+
                 // Para line-clamp, comparar scrollHeight con offsetHeight (con tolerancia de 2px)
                 const isVerticallyTruncated = element.scrollHeight > element.offsetHeight + 2;
-                
+
                 // Para truncate (texto horizontal), comparar scrollWidth con clientWidth (con tolerancia de 2px)
                 const isHorizontallyTruncated = element.scrollWidth > element.clientWidth + 2;
-                
+
                 // Verificar si hay contenido oculto
                 const isOverflowing = isVerticallyTruncated || isHorizontallyTruncated;
-                
+
                 setIsTruncated(isOverflowing);
             }
         };
 
         // Usar setTimeout para asegurar que el DOM esté renderizado
         const timeoutId = setTimeout(checkTruncation, 100);
-        
+
         // También verificar en el próximo frame
         const rafId = requestAnimationFrame(checkTruncation);
-        
+
         // Verificar después de que las fuentes se carguen
         const fontTimeoutId = setTimeout(checkTruncation, 500);
-        
+
         window.addEventListener('resize', checkTruncation);
-        
+
         return () => {
             clearTimeout(timeoutId);
             clearTimeout(fontTimeoutId);
@@ -134,7 +134,7 @@ function MyPublicationsContent() {
 
     const handleConfirmDelete = () => {
         if (!publicationToDelete) return;
-        
+
         setIsDeleting(true);
         router.delete(`/my-publications/${publicationToDelete.id}`, {
             onSuccess: () => {
@@ -155,15 +155,15 @@ function MyPublicationsContent() {
     };
 
     const handleToggleStatus = (id: number) => {
-const publication = publications.data.find(p => p.id === id);
+        const publication = publications.data.find(p => p.id === id);
         const isCurrentlyEnabled = publication?.status === 1;
-        
+
         router.patch(`/my-publications/${id}/toggle-status`, {}, {
             onSuccess: () => {
                 showToast({
                     type: 'success',
                     title: isCurrentlyEnabled ? 'Publicación inhabilitada' : 'Publicación habilitada',
-                    message: isCurrentlyEnabled 
+                    message: isCurrentlyEnabled
                         ? 'La publicación ha sido inhabilitada exitosamente.'
                         : 'La publicación ha sido habilitada exitosamente.'
                 });
@@ -227,7 +227,7 @@ const publication = publications.data.find(p => p.id === id);
                 </Badge>
             );
         }
-        
+
         return publication.status === 1 ? (
             <Badge variant="default" className="bg-green-100 text-green-800">
                 Habilitado
@@ -253,12 +253,12 @@ const publication = publications.data.find(p => p.id === id);
 
     return (
         <AppLayout breadcrumbs={[
-        {
-            title: 'Mis Publicaciones',
-            href: '/my-publications',
-        }]}>
+            {
+                title: 'Mis Publicaciones',
+                href: '/my-publications',
+            }]}>
             <Head title="Mis Publicaciones" />
-            
+
             <div className="bg-gray-50 min-h-screen">
                 {/* Header */}
                 <div className="bg-card border-b border-gray-200 px-6 py-8">
@@ -335,21 +335,21 @@ const publication = publications.data.find(p => p.id === id);
                         {publications.data.map((publication) => (
                             <Card key={publication.id} className="group hover:shadow-lg transition-shadow">
                                 <CardHeader className="pb-3">
-                                        <div className="flex justify-between items-start">
-                                            <div className="flex-1 min-w-0">
-                                                <ConditionalTooltip 
-                                                    content={publication.title}
-                                                    className="text-lg line-clamp-2 mb-2"
-                                                >
-                                                    <CardTitle>
-                                                        {publication.title}
-                                                    </CardTitle>
-                                                </ConditionalTooltip>
-                                                <div className="flex gap-2 mb-2">
-                                                    {getStatusBadge(publication)}
-                                                    {getTypeBadge(publication.type)}
-                                                </div>
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex-1 min-w-0">
+                                            <ConditionalTooltip
+                                                content={publication.title}
+                                                className="text-lg line-clamp-2 mb-2"
+                                            >
+                                                <CardTitle>
+                                                    {publication.title}
+                                                </CardTitle>
+                                            </ConditionalTooltip>
+                                            <div className="flex gap-2 mb-2">
+                                                {getStatusBadge(publication)}
+                                                {getTypeBadge(publication.type)}
                                             </div>
+                                        </div>
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
                                                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -372,7 +372,7 @@ const publication = publications.data.find(p => p.id === id);
                                                     </DropdownMenuItem>
                                                 )}
                                                 {!publication.is_hidden && (
-                                                    <DropdownMenuItem 
+                                                    <DropdownMenuItem
                                                         onClick={() => handleToggleStatus(publication.id)}
                                                     >
                                                         {publication.status === 1 ? (
@@ -389,7 +389,7 @@ const publication = publications.data.find(p => p.id === id);
                                                     </DropdownMenuItem>
                                                 )}
                                                 {publication.is_hidden && (
-                                                    <DropdownMenuItem 
+                                                    <DropdownMenuItem
                                                         onClick={() => handleAppeal(publication)}
                                                         className="text-orange-600"
                                                     >
@@ -397,7 +397,7 @@ const publication = publications.data.find(p => p.id === id);
                                                         Apelar Moderación
                                                     </DropdownMenuItem>
                                                 )}
-                                                <DropdownMenuItem 
+                                                <DropdownMenuItem
                                                     onClick={() => handleDelete(publication.id)}
                                                     className="text-red-600"
                                                 >
@@ -426,7 +426,7 @@ const publication = publications.data.find(p => p.id === id);
 
                                         {/* Description */}
                                         {/* Description */}
-                                        <ConditionalTooltip 
+                                        <ConditionalTooltip
                                             content={publication.description || ''}
                                             className="text-sm text-gray-600 line-clamp-2"
                                         >
@@ -434,7 +434,7 @@ const publication = publications.data.find(p => p.id === id);
                                                 {publication.description}
                                             </p>
                                         </ConditionalTooltip>
-                                                                                {publication.is_hidden && publication.moderation_reason && (
+                                        {publication.is_hidden && publication.moderation_reason && (
                                             <div className="bg-red-50 border border-red-200 rounded-lg p-3 mt-2">
                                                 <div className="flex items-start gap-2">
                                                     <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
@@ -487,11 +487,10 @@ const publication = publications.data.find(p => p.id === id);
                                         <Link
                                             key={i}
                                             href={link.url}
-                                            className={`px-4 py-2 border rounded-lg text-sm font-medium transition-colors ${
-                                                link.active 
-                                                    ? "bg-blue-600 text-white border-blue-600" 
+                                            className={`px-4 py-2 border rounded-lg text-sm font-medium transition-colors ${link.active
+                                                    ? "bg-blue-600 text-white border-blue-600"
                                                     : "text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400"
-                                            }`}
+                                                }`}
                                             dangerouslySetInnerHTML={{ __html: link.label }}
                                         />
                                     ) : (
@@ -538,7 +537,7 @@ const publication = publications.data.find(p => p.id === id);
                 isDeleting={isDeleting}
                 publicationTitle={publicationToDelete?.title}
             />
-                        <GeneralModal
+            <GeneralModal
                 isOpen={showAppealModal}
                 onClose={() => {
                     setShowAppealModal(false);
@@ -552,14 +551,14 @@ const publication = publications.data.find(p => p.id === id);
                         Si crees que tu publicación fue ocultada incorrectamente, puedes apelar esta decisión.
                         Proporciona un motivo detallado para tu apelación.
                     </p>
-                    
+
                     {selectedPublication && (
                         <div className="bg-gray-50 rounded-lg p-3">
                             <h4 className="font-medium text-gray-900 mb-1">Publicación:</h4>
                             <p className="text-sm text-gray-600">{selectedPublication.title}</p>
                         </div>
                     )}
-                    
+
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                             Motivo de la apelación
