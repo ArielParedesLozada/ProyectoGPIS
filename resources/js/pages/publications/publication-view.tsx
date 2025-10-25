@@ -152,7 +152,7 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                                         <span className="text-gray-600 text-sm font-medium">Tipo:</span>
                                         <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                                             publication.type === 'servicio' 
-                                                ? 'bg-green-100 text-green-800' 
+                                                ? 'border border-purple-200 text-purple-800 bg-purple-50' 
                                                 : 'bg-blue-100 text-blue-800'
                                         }`}>
                                             {publication.type}
@@ -162,70 +162,72 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                                         <span className="text-gray-600 text-sm font-medium">Código:</span>
                                         <span className="text-gray-900 font-mono text-sm">{publication.code}</span>
                                     </div>
-                                    {publication.serviceHours && publication.serviceHours.length > 0 ? (
-                                        <div className="flex justify-between items-start py-2">
-                                            <span className="text-gray-600 text-sm font-medium">Horario:</span>
-                                            <div className="text-gray-900 text-sm text-right max-w-xs">
-                                                {(() => {
-                                                    const dayNames = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-                                                    
-                                                    // Agrupar por horario
-                                                    const scheduleByTime: { [key: string]: number[] } = {};
-                                                    publication.serviceHours.forEach(hour => {
-                                                        const timeKey = `${hour.open_time.slice(0, 5)}-${hour.close_time.slice(0, 5)}`;
-                                                        if (!scheduleByTime[timeKey]) {
-                                                            scheduleByTime[timeKey] = [];
-                                                        }
-                                                        scheduleByTime[timeKey].push(hour.day_of_week);
-                                                    });
-
-                                                    // Formatear cada grupo de horario
-                                                    const formatTimeGroup = (timeKey: string, days: number[]) => {
-                                                        const sortedDays = days.sort((a, b) => a - b);
+                                    {publication.type === 'servicio' && (
+                                        publication.serviceHours && publication.serviceHours.length > 0 ? (
+                                            <div className="flex justify-between items-start py-2">
+                                                <span className="text-gray-600 text-sm font-medium">Horario:</span>
+                                                <div className="text-gray-900 text-sm text-right max-w-xs">
+                                                    {(() => {
+                                                        const dayNames = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
                                                         
-                                                        // Agrupar días consecutivos
-                                                        const ranges: string[] = [];
-                                                        let start = sortedDays[0];
-                                                        let end = start;
-                                                        
-                                                        for (let i = 1; i < sortedDays.length; i++) {
-                                                            if (sortedDays[i] === end + 1) {
-                                                                end = sortedDays[i];
-                                                            } else {
-                                                                // Finalizar rango actual
-                                                                if (start === end) {
-                                                                    ranges.push(dayNames[start]);
-                                                                } else {
-                                                                    ranges.push(`${dayNames[start]} - ${dayNames[end]}`);
-                                                                }
-                                                                start = sortedDays[i];
-                                                                end = start;
+                                                        // Agrupar por horario
+                                                        const scheduleByTime: { [key: string]: number[] } = {};
+                                                        publication.serviceHours.forEach(hour => {
+                                                            const timeKey = `${hour.open_time.slice(0, 5)}-${hour.close_time.slice(0, 5)}`;
+                                                            if (!scheduleByTime[timeKey]) {
+                                                                scheduleByTime[timeKey] = [];
                                                             }
-                                                        }
-                                                        
-                                                        // Agregar último rango
-                                                        if (start === end) {
-                                                            ranges.push(dayNames[start]);
-                                                        } else {
-                                                            ranges.push(`${dayNames[start]} - ${dayNames[end]}`);
-                                                        }
-                                                        
-                                                        return `${ranges.join(', ')}/${timeKey}`;
-                                                    };
+                                                            scheduleByTime[timeKey].push(hour.day_of_week);
+                                                        });
 
-                                                    return Object.keys(scheduleByTime)
-                                                        .map(timeKey => formatTimeGroup(timeKey, scheduleByTime[timeKey]))
-                                                        .join(', ');
-                                                })()}
+                                                        // Formatear cada grupo de horario
+                                                        const formatTimeGroup = (timeKey: string, days: number[]) => {
+                                                            const sortedDays = days.sort((a, b) => a - b);
+                                                            
+                                                            // Agrupar días consecutivos
+                                                            const ranges: string[] = [];
+                                                            let start = sortedDays[0];
+                                                            let end = start;
+                                                            
+                                                            for (let i = 1; i < sortedDays.length; i++) {
+                                                                if (sortedDays[i] === end + 1) {
+                                                                    end = sortedDays[i];
+                                                                } else {
+                                                                    // Finalizar rango actual
+                                                                    if (start === end) {
+                                                                        ranges.push(dayNames[start]);
+                                                                    } else {
+                                                                        ranges.push(`${dayNames[start]} - ${dayNames[end]}`);
+                                                                    }
+                                                                    start = sortedDays[i];
+                                                                    end = start;
+                                                                }
+                                                            }
+                                                            
+                                                            // Agregar último rango
+                                                            if (start === end) {
+                                                                ranges.push(dayNames[start]);
+                                                            } else {
+                                                                ranges.push(`${dayNames[start]} - ${dayNames[end]}`);
+                                                            }
+                                                            
+                                                            return `${ranges.join(', ')}/${timeKey}`;
+                                                        };
+
+                                                        return Object.keys(scheduleByTime)
+                                                            .map(timeKey => formatTimeGroup(timeKey, scheduleByTime[timeKey]))
+                                                            .join(', ');
+                                                    })()}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ) : (
-                                        <div className="flex justify-between items-start py-2">
-                                            <span className="text-gray-600 text-sm font-medium">Horario:</span>
-                                            <div className="text-gray-900 text-sm text-right max-w-xs">
-                                                No especificado
+                                        ) : (
+                                            <div className="flex justify-between items-start py-2">
+                                                <span className="text-gray-600 text-sm font-medium">Horario:</span>
+                                                <div className="text-gray-900 text-sm text-right max-w-xs">
+                                                    No especificado
+                                                </div>
                                             </div>
-                                        </div>
+                                        )
                                     )}
                                     <div className="flex justify-between items-center py-2">
                                         <span className="text-gray-600 text-sm font-medium">Publicado:</span>
