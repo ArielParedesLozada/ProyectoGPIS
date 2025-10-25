@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 
 use App\Enums\RoleType;
+use App\Notifications\CustomVerifyEmail;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -47,6 +48,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function publications(): HasMany
     {
         return $this->hasMany(Publication::class, 'created_by', 'id');
+    }
+
+    public function moderationCases(): HasMany
+    {
+        return $this->hasMany(ModerationCase::class, 'assigned_moderator_id');
     }
 
     // Role helper methods
@@ -92,5 +98,21 @@ class User extends Authenticatable implements MustVerifyEmail
     public function canManageModerators(): bool
     {
         return $this->isSuperAdmin() || $this->isAdmin();
+    }
+
+    /**
+     * Send the email verification notification.
+     */
+    public function sendEmailVerificationNotification()
+    {
+        // Usar directamente nuestro mailable personalizado
+        \Illuminate\Support\Facades\Mail::to($this->email)->send(
+            new \App\Mail\CustomEmailVerification($this)
+        );
+    }
+
+    public function favorites(): HasMany
+    {
+        return $this->hasMany(Favorite::class);
     }
 }

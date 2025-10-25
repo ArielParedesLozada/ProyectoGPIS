@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useForm } from "@inertiajs/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,8 @@ import { Head, Link, router } from "@inertiajs/react";
 import { BreadcrumbItem } from "@/types";
 import MapPicker from "@/components/publications/MapPicker";
 import ServiceSchedule from "@/components/publications/ServiceSchedule";
-import { useToast, ToastProvider } from "@/hooks/useToast";
+import { useToast } from "@/hooks/useToast";
+import ErrorMessage from "@/components/ui/error-message";
 
 interface EditPublicationProps {
     publication: Publication & {
@@ -28,13 +29,39 @@ interface EditPublicationProps {
     categories: Category[];
 }
 
-// Componente interno que usa useToast
-function EditPublicationContent({ publication, categories }: EditPublicationProps) {
+export default function EditPublication({ publication, categories }: EditPublicationProps) {
     const [selectedImages, setSelectedImages] = useState<File[]>([]);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
     const [existingImages, setExistingImages] = useState(publication.images || []);
+    const [hasChanges, setHasChanges] = useState(false);
+    const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { showToast } = useToast();
+
+    // Función helper para parsear horario
+    const parseHorario = (horario: string | null): { day: number; open: string; close: string }[] => {
+        if (!horario) return [];
+        try {
+            return JSON.parse(horario);
+        } catch {
+            return [];
+        }
+    };
+
+    // Captura inicial del horario para comparación
+    const initialScheduleRef = useRef<string>('');
+    
+    // Inicializar la referencia solo una vez
+    useEffect(() => {
+        if (initialScheduleRef.current === '') {
+            const initialSchedule = publication.serviceHours?.map(hour => ({
+                day: hour.day_of_week,
+                open: hour.open_time.slice(0, 5),
+                close: hour.close_time.slice(0, 5)
+            })) || [];
+            initialScheduleRef.current = JSON.stringify(initialSchedule);
+        }
+    }, []);
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -55,21 +82,138 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
         type: publication.type,
         lat: publication.location_point?.lat?.toString() || '',
         lng: publication.location_point?.lng?.toString() || '',
-        horario: publication.horario || '',
+        schedule: publication.serviceHours?.map(hour => ({
+            day: hour.day_of_week,
+            open: hour.open_time.slice(0, 5),
+            close: hour.close_time.slice(0, 5)
+        })) || [],
         images: [] as File[]
     });
 
+    // Función para validar campos en tiempo real
+    const validateField = (field: string, value: string | number | { day: number; open: string; close: string }[]) => {
+        const newErrors = { ...validationErrors };
+        
+        switch (field) {
+            case 'title':
+                if (!value || (typeof value === 'string' && value.trim().length === 0)) {
+                    newErrors.title = 'El título es requerido';
+                } else if (typeof value === 'string' && value.trim().length < 3) {
+                    newErrors.title = 'El título debe tener al menos 3 caracteres';
+                } else {
+                    delete newErrors.title;
+                }
+                break;
+                
+            case 'description':
+                if (!value || (typeof value === 'string' && value.trim().length === 0)) {
+                    newErrors.description = 'La descripción es requerida';
+                } else if (typeof value === 'string' && value.trim().length < 10) {
+                    newErrors.description = 'La descripción debe tener al menos 10 caracteres';
+                } else {
+                    delete newErrors.description;
+                }
+                break;
+                
+            case 'price':
+                if (!value || value === '') {
+                    newErrors.price = 'El precio es requerido';
+                } else if (isNaN(Number(value)) || Number(value) <= 0) {
+                    newErrors.price = 'El precio debe ser un número válido mayor a 0';
+                } else {
+                    delete newErrors.price;
+                }
+                break;
+                
+            case 'category_id':
+                if (!value || value === '') {
+                    newErrors.category_id = 'La categoría es requerida';
+                } else {
+                    delete newErrors.category_id;
+                }
+                break;
+                
+            case 'type':
+                if (!value || value === '') {
+                    newErrors.type = 'El tipo es requerido';
+                } else {
+                    delete newErrors.type;
+                }
+                break;
+                
+            case 'schedule':
+                if (data.type === 'servicio' && (!value || (Array.isArray(value) && value.length === 0))) {
+                    newErrors.schedule = 'El horario es requerido para servicios';
+                } else {
+                    delete newErrors.schedule;
+                }
+                break;
+        }
+        
+        setValidationErrors(newErrors);
+    };
 
+    // Validar ubicación
+    const validateLocation = () => {
+        const newErrors = { ...validationErrors };
+        if (!data.lat || !data.lng || data.lat === '' || data.lng === '') {
+            newErrors.location = 'Debes seleccionar una ubicación en el mapa';
+        } else {
+            delete newErrors.location;
+        }
+        setValidationErrors(newErrors);
+    };
+
+    // Validar imágenes
+    const validateImages = () => {
+        const newErrors = { ...validationErrors };
+        if (selectedImages.length === 0 && existingImages.length === 0) {
+            newErrors.images = 'Debes tener al menos una imagen';
+        } else {
+            delete newErrors.images;
+        }
+        setValidationErrors(newErrors);
+    };
+
+    // Efecto para validar ubicación cuando cambie
+    useEffect(() => {
+        validateLocation();
+    }, [data.lat, data.lng]);
+
+    // Efecto para validar imágenes cuando cambien
+    useEffect(() => {
+        validateImages();
+    }, [selectedImages, existingImages]);
+
+    // Detectar cambios en el formulario
+    useEffect(() => {
+        const currentScheduleString = JSON.stringify(data.schedule || []);
+        const initialScheduleString = initialScheduleRef.current;
+        
+        const hasFormChanges = 
+            data.title !== publication.title ||
+            data.description !== (publication.description || '') ||
+            data.price !== publication.price.toString() ||
+            data.category_id !== publication.category_id.toString() ||
+            data.type !== publication.type ||
+            data.lat !== (publication.location_point?.lat?.toString() || '') ||
+            data.lng !== (publication.location_point?.lng?.toString() || '') ||
+            currentScheduleString !== initialScheduleString ||
+            selectedImages.length > 0 ||
+            existingImages.length !== publication.images.length;
+        setHasChanges(hasFormChanges);
+    }, [data, selectedImages, existingImages, publication]);
 
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         
-        // Validar número máximo de imágenes
-        if (selectedImages.length + files.length > 5) {
+        // Validar número máximo de imágenes (considerando existentes + nuevas)
+        const totalImages = existingImages.length + selectedImages.length + files.length;
+        if (totalImages > 5) {
             showToast({
                 type: 'error',
                 title: 'Demasiadas imágenes',
-                message: 'No se pueden subir más de 5 imágenes.'
+                message: `No se pueden tener más de 5 imágenes. Actualmente tienes ${existingImages.length} existentes y estás agregando ${selectedImages.length + files.length} nuevas.`
             });
             return;
         }
@@ -126,19 +270,36 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
     };
 
     const handleLocationChange = (lat: number, lng: number) => {
-        setData('lat', lat.toString());
-        setData('lng', lng.toString());
+        // Redondear coordenadas a 6 decimales para mayor precisión
+        const roundedLat = Math.round(lat * 1000000) / 1000000;
+        const roundedLng = Math.round(lng * 1000000) / 1000000;
+        
+        setData('lat', roundedLat.toString());
+        setData('lng', roundedLng.toString());
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         
-        // Validar que se haya seleccionado una ubicación en el mapa
-        if (!data.lat || !data.lng || data.lat === '' || data.lng === '') {
+        // Validar todos los campos antes de enviar
+        validateField('title', data.title);
+        validateField('description', data.description);
+        validateField('price', data.price);
+        validateField('category_id', data.category_id);
+        validateField('type', data.type);
+        if (data.type === 'servicio') {
+            validateField('schedule', data.schedule);
+        }
+        validateLocation();
+        validateImages();
+        
+        // Verificar si hay errores de validación
+        const hasErrors = Object.keys(validationErrors).length > 0;
+        if (hasErrors) {
             showToast({
                 type: 'error',
-                title: 'Ubicación requerida',
-                message: 'Por favor selecciona una ubicación en el mapa.'
+                title: 'Formulario incompleto',
+                message: 'Por favor completa todos los campos requeridos correctamente.'
             });
             return;
         }
@@ -152,7 +313,7 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
         formData.append('type', data.type);
         formData.append('lat', data.lat);
         formData.append('lng', data.lng);
-        formData.append('horario', data.horario || '');
+        formData.append('schedule', JSON.stringify(data.schedule));
         
         // Agregar imágenes como images[]
         selectedImages.forEach((image) => {
@@ -171,11 +332,6 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
         router.post(`/my-publications/${publication.id}`, formData, {
             forceFormData: true,
             onSuccess: () => {
-                showToast({
-                    type: 'success',
-                    title: 'Publicación actualizada',
-                    message: 'Tu publicación ha sido actualizada exitosamente.'
-                });
                 // Limpiar imágenes seleccionadas después del éxito
                 setSelectedImages([]);
                 setImagePreviews([]);
@@ -196,7 +352,7 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
     };
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <>
             <Head title="Editar Publicación" />
             
             <div className="bg-gray-50 min-h-screen py-8">
@@ -229,15 +385,13 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
                                                 type="text"
                                                 placeholder="Ej: Laptop Dell XPS 15 2024"
                                                 value={data.title}
-                                                onChange={(e) => setData('title', e.target.value)}
-                                                className={errors.title ? 'border-red-500' : ''}
+                                                onChange={(e) => {
+                                                    setData('title', e.target.value);
+                                                    validateField('title', e.target.value);
+                                                }}
+                                                className={errors.title || validationErrors.title ? 'border-red-500' : ''}
                                             />
-                                            {errors.title && (
-                                                <div className="flex items-center gap-1 mt-1 text-red-500 text-sm">
-                                                    <AlertCircle className="w-4 h-4" />
-                                                    {errors.title}
-                                                </div>
-                                            )}
+                                            <ErrorMessage error={errors.title || validationErrors.title} />
                                         </div>
 
                                         {/* Descripción */}
@@ -247,23 +401,24 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
                                                 id="description"
                                                 placeholder="Describe tu producto o servicio en detalle..."
                                                 value={data.description}
-                                                onChange={(e) => setData('description', e.target.value)}
+                                                onChange={(e) => {
+                                                    setData('description', e.target.value);
+                                                    validateField('description', e.target.value);
+                                                }}
                                                 rows={4}
-                                                className={errors.description ? 'border-red-500' : ''}
+                                                className={errors.description || validationErrors.description ? 'border-red-500' : ''}
                                             />
-                                            {errors.description && (
-                                                <div className="flex items-center gap-1 mt-1 text-red-500 text-sm">
-                                                    <AlertCircle className="w-4 h-4" />
-                                                    {errors.description}
-                                                </div>
-                                            )}
+                                            <ErrorMessage error={errors.description || validationErrors.description} />
                                         </div>
 
                                         {/* Categoría */}
                                         <div>
                                             <Label htmlFor="category_id">Categoría *</Label>
-                                            <Select value={data.category_id} onValueChange={(value) => setData('category_id', value)}>
-                                                <SelectTrigger className={errors.category_id ? 'border-red-500' : ''}>
+                                            <Select value={data.category_id} onValueChange={(value) => {
+                                                setData('category_id', value);
+                                                validateField('category_id', value);
+                                            }}>
+                                                <SelectTrigger className={errors.category_id || validationErrors.category_id ? 'border-red-500' : ''}>
                                                     <SelectValue placeholder="Selecciona una categoría" />
                                                 </SelectTrigger>
                                                 <SelectContent>
@@ -274,19 +429,17 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
                                                     ))}
                                                 </SelectContent>
                                             </Select>
-                                            {errors.category_id && (
-                                                <div className="flex items-center gap-1 mt-1 text-red-500 text-sm">
-                                                    <AlertCircle className="w-4 h-4" />
-                                                    {errors.category_id}
-                                                </div>
-                                            )}
+                                            <ErrorMessage error={errors.category_id || validationErrors.category_id} />
                                         </div>
 
                                         {/* Tipo */}
                                         <div>
                                             <Label htmlFor="type">Tipo *</Label>
-                                            <Select value={data.type} onValueChange={(value: "servicio" | "producto") => setData('type', value)}>
-                                                <SelectTrigger className={errors.type ? 'border-red-500' : ''}>
+                                            <Select value={data.type} onValueChange={(value: "servicio" | "producto") => {
+                                                setData('type', value);
+                                                validateField('type', value);
+                                            }}>
+                                                <SelectTrigger className={errors.type || validationErrors.type ? 'border-red-500' : ''}>
                                                     <SelectValue placeholder="Selecciona el tipo" />
                                                 </SelectTrigger>
                                                 <SelectContent>
@@ -294,21 +447,19 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
                                                     <SelectItem value="servicio">Servicio</SelectItem>
                                                 </SelectContent>
                                             </Select>
-                                            {errors.type && (
-                                                <div className="flex items-center gap-1 mt-1 text-red-500 text-sm">
-                                                    <AlertCircle className="w-4 h-4" />
-                                                    {errors.type}
-                                                </div>
-                                            )}
+                                            <ErrorMessage error={errors.type || validationErrors.type} />
                                         </div>
 
                                         {/* Horario de atención (solo para servicios) */}
                                         {data.type === 'servicio' && (
                                             <div>
                                                 <ServiceSchedule
-                                                    value={data.horario}
-                                                    onChange={(value: string) => setData('horario', value)}
-                                                    error={errors.horario}
+                                                    value={data.schedule}
+                                                    onChange={(value: { day: number; open: string; close: string }[]) => {
+                                                        setData('schedule', value.map(i => ({ ...i })));
+                                                        validateField('schedule', value);
+                                                    }}
+                                                    error={errors.schedule || validationErrors.schedule}
                                                     required={true}
                                                 />
                                             </div>
@@ -332,18 +483,16 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
                                                     type="number"
                                                     placeholder="0.00"
                                                     value={data.price}
-                                                    onChange={(e) => setData('price', e.target.value)}
-                                                    className={`pl-8 ${errors.price ? 'border-red-500' : ''}`}
+                                                    onChange={(e) => {
+                                                        setData('price', e.target.value);
+                                                        validateField('price', e.target.value);
+                                                    }}
+                                                    className={`pl-8 ${errors.price || validationErrors.price ? 'border-red-500' : ''}`}
                                                     step="0.01"
                                                     min="0"
                                                 />
                                             </div>
-                                            {errors.price && (
-                                                <div className="flex items-center gap-1 mt-1 text-red-500 text-sm">
-                                                    <AlertCircle className="w-4 h-4" />
-                                                    {errors.price}
-                                                </div>
-                                            )}
+                                            <ErrorMessage error={errors.price || validationErrors.price} />
                                         </div>
                                     </div>
                                 </CardContent>
@@ -362,12 +511,7 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
                                         onLocationChange={handleLocationChange}
                                         className="h-64 w-full"
                                     />
-                                    {(!data.lat || !data.lng || data.lat === '' || data.lng === '') && (
-                                        <p className="text-sm text-amber-600 mt-2 flex items-center gap-1">
-                                            <AlertCircle className="w-4 h-4" />
-                                            Por favor selecciona una ubicación en el mapa
-                                        </p>
-                                    )}
+                                    <ErrorMessage error={validationErrors.location} />
                                 </CardContent>
                             </Card>
 
@@ -404,14 +548,22 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
                             <Card>
                                 <CardContent className="pt-6">
                                     <h3 className="text-lg font-semibold mb-4">Agregar Nuevas Imágenes</h3>
-                                    <p className="text-sm text-muted-foreground mb-4">
-                                        Agrega hasta 5 imágenes adicionales (máximo 5MB cada una)
+                                    <p className="text-sm text-gray-600 mb-4">
+                                        Agrega hasta {5 - existingImages.length} imágenes adicionales (máximo 5 imágenes en total, 5MB cada una)
                                     </p>
 
                                     {/* Upload Area */}
                                     <div
-                                        className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors cursor-pointer"
-                                        onClick={() => fileInputRef.current?.click()}
+                                        className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                                            existingImages.length >= 5 
+                                                ? 'border-gray-200 bg-gray-50 cursor-not-allowed' 
+                                                : 'border-gray-300 hover:border-gray-400 cursor-pointer'
+                                        }`}
+                                        onClick={() => {
+                                            if (existingImages.length < 5) {
+                                                fileInputRef.current?.click();
+                                            }
+                                        }}
                                     >
                                         <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                                         <p className="text-muted-foreground mb-2">Subir imágenes</p>
@@ -452,12 +604,7 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
                                         </div>
                                     )}
 
-                                    {errors.images && (
-                                        <div className="flex items-center gap-1 mt-2 text-red-500 text-sm">
-                                            <AlertCircle className="w-4 h-4" />
-                                            {errors.images}
-                                        </div>
-                                    )}
+                                    <ErrorMessage error={errors.images || validationErrors.images} />
                                 </CardContent>
                             </Card>
 
@@ -470,7 +617,7 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
                                 </Link>
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    disabled={processing || !hasChanges}
                                     className="bg-blue-600 hover:bg-blue-700"
                                 >
                                     {processing ? 'Guardando...' : 'Guardar Cambios'}
@@ -480,15 +627,22 @@ function EditPublicationContent({ publication, categories }: EditPublicationProp
                     </div>
                 </div>
             </div>
-        </AppLayout>
+        </>
     );
 }
 
-// Componente principal que envuelve con ToastProvider
-export default function EditPublication({ publication, categories }: EditPublicationProps) {
-    return (
-        <ToastProvider>
-            <EditPublicationContent publication={publication} categories={categories} />
-        </ToastProvider>
-    );
-}
+// Layout estático de Inertia
+EditPublication.layout = (page: React.ReactNode) => (
+    <AppLayout breadcrumbs={[
+        {
+            title: 'Mis Publicaciones',
+            href: '/my-publications',
+        },
+        {
+            title: 'Editar Publicación',
+            href: '/my-publications',
+        },
+    ]}>
+        {page}
+    </AppLayout>
+);

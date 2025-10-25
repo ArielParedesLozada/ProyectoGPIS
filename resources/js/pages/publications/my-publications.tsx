@@ -1,37 +1,106 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-    DropdownMenu, 
-    DropdownMenuContent, 
-    DropdownMenuItem, 
-    DropdownMenuTrigger 
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import AppLayout from "@/layouts/app-layout";
-import { SharedData, Paginated, Publication, Category, BreadcrumbItem } from "@/types";
+import { SharedData, Paginated, Publication, Category } from "@/types";
 import { usePage, router, Head, Link } from "@inertiajs/react";
-import { useState, useEffect } from "react";
-import { 
-    Plus, 
-    MoreHorizontal, 
-    Edit, 
-    Trash2, 
-    Eye, 
+import { useState, useRef, useEffect } from "react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+    Plus,
+    MoreHorizontal,
+    Edit,
+    Trash2,
+    Eye,
     EyeOff,
     Calendar,
     MapPin,
-    DollarSign
+    DollarSign,
+    AlertTriangle,
+    MessageSquare
 } from "lucide-react";
+import DeleteConfirmationModal from "@/components/publications/delete-confirmation-modal";
+import GeneralModal from "@/components/ui/general-modal";
 import { useToast, ToastProvider } from "@/hooks/useToast";
 
-// Componente interno que usa useToast
+// Componente para tooltip condicional
+const ConditionalTooltip = ({ children, content, className = "" }: {
+    children: React.ReactNode;
+    content: string;
+    className?: string;
+}) => {
+    const [isTruncated, setIsTruncated] = useState(false);
+    const elementRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const checkTruncation = () => {
+            if (elementRef.current) {
+                const element = elementRef.current;
+
+                // Para line-clamp, comparar scrollHeight con offsetHeight (con tolerancia de 2px)
+                const isVerticallyTruncated = element.scrollHeight > element.offsetHeight + 2;
+
+                // Para truncate (texto horizontal), comparar scrollWidth con clientWidth (con tolerancia de 2px)
+                const isHorizontallyTruncated = element.scrollWidth > element.clientWidth + 2;
+
+                // Verificar si hay contenido oculto
+                const isOverflowing = isVerticallyTruncated || isHorizontallyTruncated;
+
+                setIsTruncated(isOverflowing);
+            }
+        };
+
+        // Usar setTimeout para asegurar que el DOM esté renderizado
+        const timeoutId = setTimeout(checkTruncation, 100);
+
+        // También verificar en el próximo frame
+        const rafId = requestAnimationFrame(checkTruncation);
+
+        // Verificar después de que las fuentes se carguen
+        const fontTimeoutId = setTimeout(checkTruncation, 500);
+
+        window.addEventListener('resize', checkTruncation);
+
+        return () => {
+            clearTimeout(timeoutId);
+            clearTimeout(fontTimeoutId);
+            cancelAnimationFrame(rafId);
+            window.removeEventListener('resize', checkTruncation);
+        };
+    }, [content]);
+
+    if (isTruncated) {
+        return (
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <div ref={elementRef} className={`${className} cursor-help`}>
+                        {children}
+                    </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p className="whitespace-normal break-words">{content}</p>
+                </TooltipContent>
+            </Tooltip>
+        );
+    }
+
+    return (
+        <div ref={elementRef} className={className}>
+            {children}
+        </div>
+    );
+};
+
 function MyPublicationsContent() {
-    const breadcrumbs: BreadcrumbItem[] = [
-        {
-            title: 'Mis Publicaciones',
-            href: '/my-publications',
-        },
-    ];
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [publicationToDelete, setPublicationToDelete] = useState<Publication | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const { auth, publications, categories, flash } = usePage<SharedData & {
         publications: Paginated<Publication>,
@@ -42,6 +111,9 @@ function MyPublicationsContent() {
     }>().props;
 
     const { showToast } = useToast();
+    const [showAppealModal, setShowAppealModal] = useState(false);
+    const [selectedPublication, setSelectedPublication] = useState<Publication | null>(null);
+    const [appealReason, setAppealReason] = useState('');
 
     // Mostrar toast cuando hay mensajes flash
     useEffect(() => {
@@ -55,44 +127,43 @@ function MyPublicationsContent() {
     }, [flash?.success, showToast]);
 
     const handleDelete = (id: number) => {
-        // Mostrar toast de confirmación
-        showToast({
-            type: 'warning',
-            title: 'Confirmar eliminación',
-            message: '¿Estás seguro de que quieres eliminar esta publicación? Haz clic en "Eliminar" en el menú para confirmar.'
+        const publication = publications.data.find(p => p.id === id);
+        setPublicationToDelete(publication || null);
+        setDeleteModalOpen(true);
+    };
+
+    const handleConfirmDelete = () => {
+        if (!publicationToDelete) return;
+
+        setIsDeleting(true);
+        router.delete(`/my-publications/${publicationToDelete.id}`, {
+            onSuccess: () => {
+                setDeleteModalOpen(false);
+                setPublicationToDelete(null);
+                setIsDeleting(false);
+            },
+            onError: () => {
+                setIsDeleting(false);
+            }
         });
-        
-        // Usar confirm nativo como fallback
-        if (confirm('¿Estás seguro de que quieres eliminar esta publicación?')) {
-            router.delete(`/my-publications/${id}`, {
-                onSuccess: () => {
-                    showToast({
-                        type: 'success',
-                        title: 'Publicación eliminada',
-                        message: 'La publicación ha sido eliminada exitosamente.'
-                    });
-                },
-                onError: () => {
-                    showToast({
-                        type: 'error',
-                        title: 'Error al eliminar',
-                        message: 'No se pudo eliminar la publicación. Inténtalo de nuevo.'
-                    });
-                }
-            });
-        }
+    };
+
+    const handleCloseDeleteModal = () => {
+        setDeleteModalOpen(false);
+        setPublicationToDelete(null);
+        setIsDeleting(false);
     };
 
     const handleToggleStatus = (id: number) => {
         const publication = publications.data.find(p => p.id === id);
         const isCurrentlyEnabled = publication?.status === 1;
-        
+
         router.patch(`/my-publications/${id}/toggle-status`, {}, {
             onSuccess: () => {
                 showToast({
                     type: 'success',
                     title: isCurrentlyEnabled ? 'Publicación inhabilitada' : 'Publicación habilitada',
-                    message: isCurrentlyEnabled 
+                    message: isCurrentlyEnabled
                         ? 'La publicación ha sido inhabilitada exitosamente.'
                         : 'La publicación ha sido habilitada exitosamente.'
                 });
@@ -107,8 +178,57 @@ function MyPublicationsContent() {
         });
     };
 
-    const getStatusBadge = (status: number) => {
-        return status === 1 ? (
+    const handleAppeal = (publication: Publication) => {
+        setSelectedPublication(publication);
+        setShowAppealModal(true);
+    };
+
+    const handleSubmitAppeal = () => {
+        if (!appealReason.trim()) {
+            showToast({
+                type: 'error',
+                title: 'Error',
+                message: 'Debes proporcionar un motivo para la apelación.'
+            });
+            return;
+        }
+
+        if (!selectedPublication) return;
+
+        router.post(`/my-publications/${selectedPublication.id}/appeal`, {
+            reason: appealReason
+        }, {
+            onSuccess: () => {
+                showToast({
+                    type: 'success',
+                    title: 'Apelación enviada',
+                    message: 'Tu apelación ha sido enviada y será revisada por un moderador.'
+                });
+                setShowAppealModal(false);
+                setAppealReason('');
+                setSelectedPublication(null);
+            },
+            onError: () => {
+                showToast({
+                    type: 'error',
+                    title: 'Error al enviar apelación',
+                    message: 'No se pudo enviar la apelación. Inténtalo de nuevo.'
+                });
+            }
+        });
+    };
+
+    const getStatusBadge = (publication: Publication) => {
+        if (publication.is_hidden) {
+            return (
+                <Badge variant="destructive" className="bg-red-100 text-red-800">
+                    <AlertTriangle className="w-3 h-3 mr-1" />
+                    Oculto por Moderación
+                </Badge>
+            );
+        }
+
+        return publication.status === 1 ? (
             <Badge variant="default" className="bg-green-100 text-green-800">
                 Habilitado
             </Badge>
@@ -132,81 +252,97 @@ function MyPublicationsContent() {
     };
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={[
+            {
+                title: 'Mis Publicaciones',
+                href: '/my-publications',
+            }]}>
             <Head title="Mis Publicaciones" />
-            
-            <div className="bg-gray-50 min-h-screen">
+
+            <div className="bg-gray-50 min-h-screen space-y-8 px-6 py-6">
                 {/* Header */}
-                <div className="bg-card border-b border-gray-200 px-6 py-8">
-                    <div className="max-w-7xl mx-auto">
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <h1 className="text-3xl font-bold text-foreground mb-2">Mis Publicaciones</h1>
-                                <p className="text-muted-foreground">Gestiona tus productos y servicios</p>
-                                {publications.data.length > 0 && (
-                                    <p className="text-sm text-gray-500 mt-2">
-                                        Mostrando {publications.data.length} publicaciones
-                                    </p>
-                                )}
-                            </div>
-                            <Link href="/my-publications/create">
-                                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                                    <Plus className="w-4 h-4 mr-2" />
-                                    Crear Publicación
-                                </Button>
-                            </Link>
+                <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 text-white mb-8">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <h1 className="text-3xl font-bold mb-2">Mis Publicaciones</h1>
+                            <p className="text-blue-100 text-lg">Gestiona tus productos y servicios</p>
+                            {publications.data.length > 0 && (
+                                <p className="text-sm text-blue-200 mt-2">
+                                    Mostrando {publications.data.length} publicaciones
+                                </p>
+                            )}
                         </div>
+                        <Link href="/my-publications/create">
+                            <Button variant="secondary" className="bg-white/20 text-white border-white/30 hover:bg-white/30">
+                                <Plus className="w-4 h-4 mr-2" />
+                                Crear Publicación
+                            </Button>
+                        </Link>
                     </div>
                 </div>
 
                 {/* Stats Cards */}
-                <div className="max-w-7xl mx-auto px-6 py-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Total Publicaciones</CardTitle>
-                                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <div className="max-w-7xl mx-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+                        <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 bg-white/95 backdrop-blur-sm border border-gray-200/50">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm font-semibold text-gray-700 flex items-center">
+                                    <DollarSign className="h-5 w-5 mr-2 text-blue-600" />
+                                    Total Publicaciones
+                                </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{publications.data.length}</div>
+                                <div className="text-3xl font-bold text-blue-600 mb-2">{publications.data.length}</div>
+                                <p className="text-sm text-gray-600">Registradas en el sistema</p>
                             </CardContent>
                         </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Habilitadas</CardTitle>
-                                <Eye className="h-4 w-4 text-muted-foreground" />
+                        <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-all duration-200 bg-white/95 backdrop-blur-sm border border-gray-200/50">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm font-semibold text-gray-700 flex items-center">
+                                    <Eye className="h-5 w-5 mr-2 text-green-600" />
+                                    Habilitadas
+                                </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">
+                                <div className="text-3xl font-bold text-green-600 mb-2">
                                     {publications.data.filter(p => p.status === 1).length}
                                 </div>
+                                <p className="text-sm text-gray-600">Visibles al público </p>
                             </CardContent>
                         </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Inhabilitadas</CardTitle>
-                                <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        <Card className="border-l-4 border-l-red-500 hover:shadow-lg transition-all duration-200 bg-white/95 backdrop-blur-sm border border-gray-200/50">
+                            <CardHeader className="pb-3" >
+                                <CardTitle className="text-sm font-semibold text-gray-700 flex items-center">
+                                    <EyeOff className="h-5 w-5 mr-2 text-red-600" />
+                                    Inhabilitadas
+                                </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">
+                                <div className="text-3xl font-bold text-red-600 mb-2" >
                                     {publications.data.filter(p => p.status === 2).length}
                                 </div>
+                                <p className="text-sm text-gray-600">No visibles al público</p>
                             </CardContent>
                         </Card>
                     </div>
 
                     {/* Publications Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {publications.data.map((publication) => (
-                            <Card key={publication.id} className="group hover:shadow-lg transition-shadow">
+                            <Card key={publication.id} className="group hover:shadow-lg transition-all duration-200 bg-white/95 backdrop-blur-sm border border-gray-200/50 overflow-hidden">
                                 <CardHeader className="pb-3">
                                     <div className="flex justify-between items-start">
-                                        <div className="flex-1">
-                                            <CardTitle className="text-lg line-clamp-2 mb-2">
-                                                {publication.title}
-                                            </CardTitle>
+                                        <div className="flex-1 min-w-0">
+                                            <ConditionalTooltip
+                                                content={publication.title}
+                                                className="text-lg line-clamp-2 mb-2"
+                                            >
+                                                <CardTitle>
+                                                    {publication.title}
+                                                </CardTitle>
+                                            </ConditionalTooltip>
                                             <div className="flex gap-2 mb-2">
-                                                {getStatusBadge(publication.status)}
+                                                {getStatusBadge(publication)}
                                                 {getTypeBadge(publication.type)}
                                             </div>
                                         </div>
@@ -223,28 +359,50 @@ function MyPublicationsContent() {
                                                         Ver
                                                     </Link>
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem asChild>
-                                                    <Link href={`/my-publications/${publication.id}/edit`}>
-                                                        <Edit className="mr-2 h-4 w-4" />
-                                                        Editar
-                                                    </Link>
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem 
-                                                    onClick={() => handleToggleStatus(publication.id)}
-                                                >
-                                                    {publication.status === 1 ? (
-                                                        <>
-                                                            <EyeOff className="mr-2 h-4 w-4" />
-                                                            Inhabilitar
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <Eye className="mr-2 h-4 w-4" />
-                                                            Habilitar
-                                                        </>
-                                                    )}
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem 
+                                                {!publication.is_hidden && (
+                                                    <DropdownMenuItem asChild>
+                                                        <Link href={`/my-publications/${publication.id}/edit`}>
+                                                            <Edit className="mr-2 h-4 w-4" />
+                                                            Editar
+                                                        </Link>
+                                                    </DropdownMenuItem>
+                                                )}
+                                                {!publication.is_hidden && (
+                                                    <DropdownMenuItem
+                                                        onClick={() => handleToggleStatus(publication.id)}
+                                                    >
+                                                        {publication.status === 1 ? (
+                                                            <>
+                                                                <EyeOff className="mr-2 h-4 w-4" />
+                                                                Inhabilitar
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Eye className="mr-2 h-4 w-4" />
+                                                                Habilitar
+                                                            </>
+                                                        )}
+                                                    </DropdownMenuItem>
+                                                )}
+                                                {publication.is_hidden && publication.can_appeal && (
+                                                    <DropdownMenuItem
+                                                        onClick={() => handleAppeal(publication)}
+                                                        className="text-orange-600"
+                                                    >
+                                                        <MessageSquare className="mr-2 h-4 w-4" />
+                                                        Apelar Moderación
+                                                    </DropdownMenuItem>
+                                                )}
+                                                {publication.is_hidden && !publication.can_appeal && (
+                                                    <DropdownMenuItem
+                                                        disabled
+                                                        className="text-gray-400 cursor-not-allowed"
+                                                    >
+                                                        <MessageSquare className="mr-2 h-4 w-4" />
+                                                        Apelar Moderación (No disponible)
+                                                    </DropdownMenuItem>
+                                                )}
+                                                <DropdownMenuItem
                                                     onClick={() => handleDelete(publication.id)}
                                                     className="text-red-600"
                                                 >
@@ -272,24 +430,63 @@ function MyPublicationsContent() {
                                         </div>
 
                                         {/* Description */}
-                                        <p className="text-sm text-muted-foreground line-clamp-2">
-                                            {publication.description}
-                                        </p>
+                                        <ConditionalTooltip
+                                            content={publication.description || ''}
+                                            className="text-sm text-gray-600 line-clamp-2"
+                                        >
+                                            <p>
+                                                {publication.description}
+                                            </p>
+                                        </ConditionalTooltip>
 
-                                        {/* Price and Location */}
-                                        <div className="flex justify-between items-center">
-                                            <div className="flex items-center text-sm text-gray-500">
-                                                <MapPin className="w-4 h-4 mr-1" />
-                                                <span className="truncate">{publication.location}</span>
+                                        {/* Location */}
+                                        <div className="flex items-center text-sm text-gray-500 mb-2">
+                                            <svg className="w-4 h-4 text-red-500 mr-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                                            </svg>
+                                            <ConditionalTooltip 
+                                                content={publication.location || ''}
+                                                className="truncate flex-1 min-w-0"
+                                            >
+                                                <span>
+                                                    {publication.location}
+                                                </span>
+                                            </ConditionalTooltip>
                                             </div>
-                                            <div className="text-xl font-bold text-foreground">
+                                                                                    {/* Moderacion */}
+                                        {publication.is_hidden && publication.moderation_reason && (
+                                            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mt-2">
+                                                <div className="flex items-start gap-2">
+                                                    <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
+                                                    <div className="flex-1">
+                                                        <h4 className="text-sm font-medium text-red-800 mb-1">
+                                                            {publication.is_final_decision ? 'Decisión Final de Moderación:' : 'Motivo de ocultación:'}
+                                                        </h4>
+                                                        <p className="text-sm text-red-700">
+                                                            {publication.moderation_reason}
+                                                        </p>
+                                                        {publication.moderation_date && (
+                                                            <p className="text-xs text-red-600 mt-1">
+                                                                {publication.is_final_decision ? 'Decisión final el' : 'Oculto el'} {new Date(publication.moderation_date).toLocaleDateString()}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Price */}
+                                        <div className="mb-3">
+                                            <div className="text-xl font-bold text-gray-900">
                                                 ${publication.price}
                                             </div>
                                         </div>
 
                                         {/* Date */}
                                         <div className="flex items-center text-xs text-gray-500">
-                                            <Calendar className="w-3 h-3 mr-1" />
+                                            <svg className="w-3 h-3 text-blue-500 mr-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                                            </svg>
                                             <span>
                                                 {new Date(publication.published_at).toLocaleDateString()}
                                             </span>
@@ -300,8 +497,8 @@ function MyPublicationsContent() {
                         ))}
                     </div>
 
-                    {/* Paginación - Siempre visible */}
-                    {publications.links.length > 3 && (
+                    {/* Paginación - Solo visible cuando hay publicaciones */}
+                    {publications.data && publications.data.length > 0 && publications.links && publications.links.length > 0 && (
                         <div className="flex justify-center mt-8">
                             <div className="flex items-center gap-2">
                                 {publications.links.map((link, i) =>
@@ -309,8 +506,7 @@ function MyPublicationsContent() {
                                         <Link
                                             key={i}
                                             href={link.url}
-                                            className={`px-4 py-2 border rounded-lg text-sm font-medium transition-colors ${
-                                                link.active 
+                                            className={`px-4 py-2 border rounded-lg text-sm font-medium transition-colors ${link.active 
                                                     ? "bg-blue-600 text-white border-blue-600" 
                                                     : "text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400"
                                             }`}
@@ -352,6 +548,70 @@ function MyPublicationsContent() {
                 </div>
             </div>
 
+            {/* Modal de confirmación de eliminación */}
+            <DeleteConfirmationModal
+                isOpen={deleteModalOpen}
+                onClose={handleCloseDeleteModal}
+                onConfirm={handleConfirmDelete}
+                isDeleting={isDeleting}
+                publicationTitle={publicationToDelete?.title}
+            />
+            <GeneralModal
+                isOpen={showAppealModal}
+                onClose={() => {
+                    setShowAppealModal(false);
+                    setAppealReason('');
+                    setSelectedPublication(null);
+                }}
+                title="Apelar Moderación"
+            >
+                <div className="space-y-4">
+                    <p className="text-gray-600">
+                        Si crees que tu publicación fue ocultada incorrectamente, puedes apelar esta decisión.
+                        Proporciona un motivo detallado para tu apelación.
+                    </p>
+
+                    {selectedPublication && (
+                        <div className="bg-gray-50 rounded-lg p-3">
+                            <h4 className="font-medium text-gray-900 mb-1">Publicación:</h4>
+                            <p className="text-sm text-gray-600">{selectedPublication.title}</p>
+                        </div>
+                    )}
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Motivo de la apelación
+                        </label>
+                        <textarea
+                            value={appealReason}
+                            onChange={(e) => setAppealReason(e.target.value)}
+                            rows={4}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                            placeholder="Explica por qué crees que tu publicación debería ser restaurada..."
+                            required
+                        />
+                    </div>
+
+                    <div className="flex gap-3 pt-4">
+                        <button
+                            onClick={handleSubmitAppeal}
+                            className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 px-4 rounded-lg transition"
+                        >
+                            Enviar Apelación
+                        </button>
+                        <button
+                            onClick={() => {
+                                setShowAppealModal(false);
+                                setAppealReason('');
+                                setSelectedPublication(null);
+                            }}
+                            className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 font-semibold py-2 px-4 rounded-lg transition"
+                        >
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            </GeneralModal>
         </AppLayout>
     );
 }
@@ -360,7 +620,8 @@ function MyPublicationsContent() {
 export default function MyPublications() {
     return (
         <ToastProvider>
-            <MyPublicationsContent />
+            <MyPublicationsContent />;
         </ToastProvider>
-    );
+    )
 }
+

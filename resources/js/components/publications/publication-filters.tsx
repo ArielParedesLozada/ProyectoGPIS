@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -35,6 +35,16 @@ export default function PublicationFilters({
     const [nearMe, setNearMe] = useState(!!nearLat && !!nearLng);
     const [radius, setRadius] = useState(radiusKm?.toString() || '10');
     const [isGettingLocation, setIsGettingLocation] = useState(false);
+
+    // Sincronizar estado con props cuando cambien
+    useEffect(() => {
+        setCategory(selectedCategory?.toString() || 'all');
+        setType(selectedType || 'all');
+        setMinPrice(selectedMinPrice?.toString() || '');
+        setMaxPrice(selectedMaxPrice?.toString() || '');
+        setNearMe(!!nearLat && !!nearLng);
+        setRadius(radiusKm?.toString() || '10');
+    }, [selectedCategory, selectedType, selectedMinPrice, selectedMaxPrice, nearLat, nearLng, radiusKm]);
 
     const getCurrentLocation = () => {
         if (!navigator.geolocation) {
@@ -85,11 +95,21 @@ export default function PublicationFilters({
     const handleFilterChange = (newCategory: string, newType: string) => {
         setCategory(newCategory);
         setType(newType);
-        applyFilters(newCategory, newType, minPrice, maxPrice);
+        // Mantener filtros de ubicación si están activos
+        if (nearMe && nearLat && nearLng) {
+            applyFilters(newCategory, newType, minPrice, maxPrice, nearLat, nearLng, radius);
+        } else {
+            applyFilters(newCategory, newType, minPrice, maxPrice);
+        }
     };
 
     const handlePriceFilter = () => {
-        applyFilters(category, type, minPrice, maxPrice);
+        // Mantener filtros de ubicación si están activos
+        if (nearMe && nearLat && nearLng) {
+            applyFilters(category, type, minPrice, maxPrice, nearLat, nearLng, radius);
+        } else {
+            applyFilters(category, type, minPrice, maxPrice);
+        }
     };
 
     const handleNearMeToggle = () => {

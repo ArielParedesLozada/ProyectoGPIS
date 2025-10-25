@@ -13,7 +13,7 @@ import {
 import { publicationIndex, myPublications } from '@/routes/index';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { LayoutGrid, User, Shield, Users, UserPlus, Settings } from 'lucide-react';
+import { LayoutGrid, User, Shield, Users, UserPlus, Settings, Heart, AlertTriangle } from 'lucide-react';
 import MarketplaceLogo from './marketplace-logo';
 import { SharedData } from '@/types';
 
@@ -28,12 +28,27 @@ export function AppSidebar() {
         },
     ];
 
-    // Solo usuarios no administrativos ven "Mis Publicaciones"
+    // Solo usuarios no administrativos ven "Mis Publicaciones" y "Favoritos"
     if (auth.user.role !== 'super_admin' && auth.user.role !== 'admin') {
         mainNavItems.push({
             title: 'Mis Publicaciones',
             href: myPublications(),
             icon: User,
+        });
+        
+        mainNavItems.push({
+            title: 'Favoritos',
+            href: '/favorites',
+            icon: Heart,
+        });
+    }
+
+    // Moderadores ven la opción de moderación
+    if (auth.user.role === 'moderador') {
+        mainNavItems.push({
+            title: 'Moderación',
+            href: '/moderation',
+            icon: AlertTriangle,
         });
     }
 

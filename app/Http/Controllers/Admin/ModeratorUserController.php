@@ -6,11 +6,14 @@ use App\Enums\RoleType;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\HandlesMiddleware;
 use App\Http\Requests\Admin\CreateModeratorRequest;
+use App\Mail\AdminUserWelcomeEmail;
 use App\Models\User;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 
 class ModeratorUserController extends Controller
@@ -60,7 +63,7 @@ class ModeratorUserController extends Controller
             'user_id' => Auth::id(),
             'user_role' => Auth::user()->role,
         ]);
-        
+
         try {
             $moderator = User::create([
                 'cedula' => $request->cedula,
@@ -74,18 +77,39 @@ class ModeratorUserController extends Controller
                 'role' => RoleType::MODERADOR->value,
                 'status' => 1, // HABILITADO
                 'is_active' => true,
-                'email_verified_at' => now(),
+                'email_verified_at' => null, // No verificar automáticamente para enviar correo de verificación al primer login
             ]);
+
+            // Enviar correo de bienvenida automáticamente
+            try {
+                Mail::to($moderator->email)->send(
+                    new AdminUserWelcomeEmail($moderator, $request->password, 'moderator')
+                );
+                
+                Log::info('Correo de bienvenida enviado al moderador', [
+                    'moderator_id' => $moderator->id,
+                    'email' => $moderator->email,
+                    'created_by' => Auth::id(),
+                ]);
+            } catch (\Exception $emailException) {
+                // Log el error del email pero no interrumpir el flujo
+                Log::error('Error al enviar correo de bienvenida al moderador', [
+                    'moderator_id' => $moderator->id,
+                    'email' => $moderator->email,
+                    'error' => $emailException->getMessage(),
+                    'created_by' => Auth::id(),
+                ]);
+            }
 
             Log::info('Moderador creado exitosamente', [
                 'moderator_id' => $moderator->id,
                 'email' => $moderator->email,
                 'created_by' => Auth::id(),
             ]);
+            event(new Registered($moderator));
 
             return redirect()->route('admin.moderators.index')
                 ->with('success', 'Moderador creado exitosamente.');
-
         } catch (\Exception $e) {
             Log::error('Error al crear moderador', [
                 'error' => $e->getMessage(),
@@ -109,7 +133,7 @@ class ModeratorUserController extends Controller
             'current_status' => $moderator->is_active,
             'user_id' => Auth::id(),
         ]);
-        
+
         // Verificar que el usuario sea realmente un moderador
         if ($moderator->role !== RoleType::MODERADOR->value) {
             abort(404, 'Usuario no encontrado.');
@@ -128,7 +152,7 @@ class ModeratorUserController extends Controller
             ]);
 
             $status = $moderator->is_active ? 'activado' : 'desactivado';
-            
+
             Log::info("Moderador {$status}", [
                 'moderator_id' => $moderator->id,
                 'email' => $moderator->email,
@@ -137,7 +161,6 @@ class ModeratorUserController extends Controller
             ]);
 
             return back()->with('success', "Moderador {$status} exitosamente.");
-
         } catch (\Exception $e) {
             Log::error('Error al cambiar estado del moderador', [
                 'moderator_id' => $moderator->id,
@@ -203,7 +226,13 @@ class ModeratorUserController extends Controller
         ]);
 
         $data = $request->only([
-            'cedula', 'name', 'surname', 'phone', 'address', 'gender', 'email'
+            'cedula',
+            'name',
+            'surname',
+            'phone',
+            'address',
+            'gender',
+            'email'
         ]);
 
         // Solo actualizar la contraseña si se proporciona
@@ -260,7 +289,7 @@ class ModeratorUserController extends Controller
     public function restore($id)
     {
         $moderator = User::onlyTrashed()->findOrFail($id);
-        
+
         // Verificar que el usuario sea realmente un moderador
         if ($moderator->role !== RoleType::MODERADOR->value) {
             abort(404, 'Usuario no encontrado.');
@@ -277,7 +306,7 @@ class ModeratorUserController extends Controller
     public function forceDelete($id)
     {
         $moderator = User::onlyTrashed()->findOrFail($id);
-        
+
         // Verificar que el usuario sea realmente un moderador
         if ($moderator->role !== RoleType::MODERADOR->value) {
             abort(404, 'Usuario no encontrado.');
@@ -286,5 +315,66 @@ class ModeratorUserController extends Controller
         $moderator->forceDelete();
 
         return redirect()->route('admin.moderators.deleted')->with('success', 'Moderador eliminado permanentemente.');
+    }
+
+    /**
+     * Reasignar casos de un moderador inactivo
+     */
+    public function reassignCases(User $moderator)
+    {
+        // Verificar que el usuario sea realmente un moderador
+        if ($moderator->role !== RoleType::MODERADOR->value) {
+            abort(404, 'Usuario no encontrado.');
+        }
+
+        try {
+            // Despachar job para reasignación automática
+            \App\Jobs\ReassignModeratorCasesJob::dispatch($moderator->id);
+
+            Log::info("Reasignación manual iniciada para moderador", [
+                'moderator_id' => $moderator->id,
+                'moderator_name' => $moderator->name . ' ' . $moderator->surname,
+                'initiated_by' => Auth::id(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Reasignación iniciada. Los casos se procesarán en segundo plano.'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Error al iniciar reasignación para moderador {$moderator->id}: " . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al iniciar la reasignación: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener moderadores inactivos con casos asignados
+     */
+    public function getInactiveModeratorsWithCases()
+    {
+        $inactiveModerators = User::where('role', RoleType::MODERADOR->value)
+            ->where(function($query) {
+                $query->where('status', 0) // INHABILITADO
+                      ->orWhere('is_active', false);
+            })
+            ->whereHas('moderationCases', function($q) {
+                $q->whereIn('status', ['pending', 'triage', 'in_review', 'appealed']);
+            })
+            ->withCount(['moderationCases' => function($query) {
+                $query->whereIn('status', ['pending', 'triage', 'in_review', 'appealed']);
+            }])
+            ->select('id', 'name', 'surname', 'email', 'status', 'is_active', 'created_at')
+            ->get();
+
+        return response()->json([
+            'inactive_moderators' => $inactiveModerators,
+            'total_count' => $inactiveModerators->count(),
+            'total_cases' => $inactiveModerators->sum('moderation_cases_count')
+        ]);
     }
 }

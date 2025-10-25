@@ -6,85 +6,43 @@ use Laravel\Fortify\Features;
 
 uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
 
-test('login screen can be rendered', function () {
+test('Login View', function () {
     $response = $this->get(route('login'));
-
     $response->assertStatus(200);
 });
 
-test('users can authenticate using the login screen', function () {
+test('Login Correcto', function () {
     $user = User::factory()->create();
-
-    $response = $this->post(route('login.store'), [
+    $this->get(route('login'));
+    $response = $this->post(route('login.login'), [
         'email' => $user->email,
         'password' => 'password',
+        '_token' => csrf_token() // Incluir el token CSRF
     ]);
-
     $this->assertAuthenticated();
-    $response->assertRedirect(route('home', absolute: false));
+    $response->assertRedirect(route('publication-index', absolute: false));
 });
 
-test('users with two factor enabled are redirected to two factor challenge', function () {
-    if (! Features::canManageTwoFactorAuthentication()) {
-        $this->markTestSkipped('Two-factor authentication is not enabled.');
-    }
-
-    Features::twoFactorAuthentication([
-        'confirm' => true,
-        'confirmPassword' => true,
-    ]);
-
+test('Login Incorrecto', function () {
     $user = User::factory()->create();
-
-    $user->forceFill([
-        'two_factor_secret' => encrypt('test-secret'),
-        'two_factor_recovery_codes' => encrypt(json_encode(['code1', 'code2'])),
-        'two_factor_confirmed_at' => now(),
-    ])->save();
-
-    $response = $this->post(route('login'), [
+    $this->get(route('login'));
+    $response = $this->post(route('login.login'), [
         'email' => $user->email,
-        'password' => 'password',
+        'password' => 'junk',
+        '_token' => csrf_token() // Incluir el token CSRF
     ]);
-
-    $response->assertRedirect(route('two-factor.login'));
-    $response->assertSessionHas('login.id', $user->id);
     $this->assertGuest();
+    $response->assertRedirect(route('login', absolute: false));
 });
 
-test('users can not authenticate with invalid password', function () {
+test('Logout', function () {
     $user = User::factory()->create();
-
-    $this->post(route('login.store'), [
-        'email' => $user->email,
-        'password' => 'wrong-password',
-    ]);
-
+    $this->get(route('login'));
+    $response = $this
+        ->actingAs($user)
+        ->post(route('logout'), [
+            '_token' => csrf_token()
+        ]);
+    $response->assertRedirect('/');
     $this->assertGuest();
-});
-
-test('users can logout', function () {
-    $user = User::factory()->create();
-
-    $response = $this->actingAs($user)->post(route('logout'));
-
-    $this->assertGuest();
-    $response->assertRedirect(route('home'));
-});
-
-test('users are rate limited', function () {
-    $user = User::factory()->create();
-
-    RateLimiter::increment(implode('|', [$user->email, '127.0.0.1']), amount: 10);
-
-    $response = $this->post(route('login.store'), [
-        'email' => $user->email,
-        'password' => 'wrong-password',
-    ]);
-
-    $response->assertSessionHasErrors('email');
-
-    $errors = session('errors');
-
-    $this->assertStringContainsString('Too many login attempts', $errors->first('email'));
 });

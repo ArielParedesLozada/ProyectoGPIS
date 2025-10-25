@@ -1,16 +1,20 @@
 import AppLayout from "@/layouts/app-layout";
 import { publicationView } from "@/routes";
-import { BreadcrumbItem, Publication } from "@/types";
-import { Head, Link } from "@inertiajs/react";
-import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { BreadcrumbItem, Publication, SharedData } from "@/types";
+import { Head, Link, usePage, router } from "@inertiajs/react";
+import { ArrowLeft } from "lucide-react";
+import { useState, useEffect } from "react";
 import MiniMap from "@/components/publications/MiniMap";
+import ReportModal from "@/components/publications/report-modal";
+import ImageGallery from "@/components/publications/ImageGallery";
 
 interface PublicationViewProps {
     publication: Publication
 }
 
 export default function PublicationView({ publication }: PublicationViewProps) {
+    const { url, auth } = usePage<SharedData>().props;
+    
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: `${publication.category.name}/${publication.title}`,
@@ -18,24 +22,107 @@ export default function PublicationView({ publication }: PublicationViewProps) {
         },
     ];
 
-    // Estado para el carrusel de imágenes
-    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    // Estado para el modal de reporte
+    const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+    const [isFavorite, setIsFavorite] = useState(false);
     
-    // Array de imágenes (puedes expandir esto con más imágenes)
-    const images = [
-        publication.image || "https://picsum.photos/800/600",
-        "https://picsum.photos/800/601",
-        "https://picsum.photos/800/602",
-        "https://picsum.photos/800/603"
-    ];
-
-    const nextImage = () => {
-        setCurrentImageIndex((prev) => (prev + 1) % images.length);
+    // Determinar la URL de regreso basada en el referrer o parámetros
+    const getBackUrl = () => {
+        // Verificar si hay un parámetro 'from' en la URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const from = urlParams.get('from');
+        
+        if (from === 'favorites') {
+            return '/favorites';
+        } else if (from === 'my-publications') {
+            return '/my-publications';
+        }
+        
+        // Si no hay parámetro, usar el referrer
+        if (document.referrer) {
+            if (document.referrer.includes('/favorites')) {
+                return '/favorites';
+            } else if (document.referrer.includes('/my-publications')) {
+                return '/my-publications';
+            }
+        }
+        
+        // Por defecto, regresar a publicaciones
+        return '/publication';
     };
+    
+    // Verificar si la publicación está en favoritos al cargar
+    useEffect(() => {
+        if (auth.user) {
+            const checkFavoriteStatus = async () => {
+                try {
+                    // Usar AbortController para cancelar requests anteriores
+                    const controller = new AbortController();
+                    const response = await fetch(`/favorites/check/${publication.id}`, {
+                        signal: controller.signal,
+                        cache: 'no-cache', // Evitar cache
+                        headers: {
+                            'Cache-Control': 'no-cache',
+                            'Pragma': 'no-cache'
+                        }
+                    });
+                    const data = await response.json();
+                    setIsFavorite(data.isFavorite);
+                } catch (error) {
+                    if (error instanceof Error && error.name !== 'AbortError') {
+                        console.error('Error checking favorite status:', error);
+                        setIsFavorite(false);
+                    }
+                }
+            };
 
-    const prevImage = () => {
-        setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+            // Ejecutar inmediatamente
+            checkFavoriteStatus();
+        }
+    }, [publication.id, auth.user]);
+
+    const handleFavoriteClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (!auth.user) {
+            router.visit('/login');
+            return;
+        }
+        
+        // Actualizar estado inmediatamente para mejor UX
+        const newFavoriteState = !isFavorite;
+        setIsFavorite(newFavoriteState);
+        
+        if (newFavoriteState) {
+            // Agregar a favoritos
+            router.post(`/favorites/${publication.id}`, {}, {
+                onSuccess: () => {
+                    // Estado ya actualizado
+                },
+                onError: () => {
+                    // Revertir estado si hay error
+                    setIsFavorite(false);
+                }
+            });
+        } else {
+            // Quitar de favoritos
+            router.delete(`/favorites/${publication.id}`, {
+                onSuccess: () => {
+                    // Estado ya actualizado
+                },
+                onError: () => {
+                    // Revertir estado si hay error
+                    setIsFavorite(true);
+                }
+            });
+        }
     };
+    
+    // Array de imágenes reales de la base de datos
+    const images = publication.images && publication.images.length > 0 
+        ? publication.images.map(img => `/storage/${img.image_url}`)
+        : [];
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={publication.title} />
@@ -47,61 +134,27 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                         <div className="lg:col-span-2">
                             {/* Flecha de regreso - posicionada absolutamente */}
                             <Link
-                                href="/publication"
-                                className="absolute top-0 left-0 z-10 inline-flex items-center justify-center w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-gray-100 rounded-full transition-colors"
+                                href={getBackUrl()}
+                                className="absolute top-0 left-0 z-10 inline-flex items-center justify-center w-8 h-8 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
                             >
                                 <ArrowLeft className="h-4 w-4" />
                             </Link>
                             
-                            <div className="bg-card rounded-2xl shadow-lg overflow-hidden">
-                                <div className="relative group">
-                                    <img
-                                        src={images[currentImageIndex]}
-                                        alt={publication.title}
-                                        className="w-full h-80 sm:h-96 lg:h-[510px] xl:h-[560px] object-cover transition-opacity duration-300"
+                            <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+                                <div className="relative">
+                                    <ImageGallery 
+                                        images={images}
+                                        title={publication.title}
+                                        className="w-full"
                                     />
                                     
-                                    {/* Controles del carrusel */}
-                                    {images.length > 1 && (
-                                        <>
-                                            <button
-                                                onClick={prevImage}
-                                                className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-card/80 hover:bg-card text-gray-800 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                                            >
-                                                <ChevronLeft className="h-4 w-4" />
-                                            </button>
-                                            <button
-                                                onClick={nextImage}
-                                                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-card/80 hover:bg-card text-gray-800 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                                            >
-                                                <ChevronRight className="h-4 w-4" />
-                                            </button>
-                                        </>
-                                    )}
-                                    
-                                    {/* Indicadores del carrusel */}
-                                    {images.length > 1 && (
-                                        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-                                            {images.map((_, index) => (
-                                                <button
-                                                    key={index}
-                                                    onClick={() => setCurrentImageIndex(index)}
-                                                    className={`w-2 h-2 rounded-full transition-all duration-200 ${
-                                                        index === currentImageIndex 
-                                                            ? 'bg-card' 
-                                                            : 'bg-card/50 hover:bg-card/75'
-                                                    }`}
-                                                />
-                                            ))}
-                                        </div>
-                                    )}
-                                    
-                                    <div className="absolute top-4 left-4">
-                                        <span className="bg-card/90 backdrop-blur-sm text-gray-800 px-3 py-1 rounded-full text-sm font-medium shadow-lg">
+                                    {/* Badges superpuestos */}
+                                    <div className="absolute top-4 left-4 z-10">
+                                        <span className="bg-white/90 backdrop-blur-sm text-gray-800 px-3 py-1 rounded-full text-sm font-medium shadow-lg">
                                             {publication.category.name}
                                         </span>
                                     </div>
-                                    <div className="absolute top-4 right-4">
+                                    <div className="absolute top-4 right-4 z-10 flex gap-2">
                                         <span className={`px-3 py-1 rounded-full text-sm font-medium shadow-lg ${
                                             publication.status === 1 
                                                 ? 'bg-green-500 text-white' 
@@ -109,6 +162,15 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                                         }`}>
                                             {publication.status === 1 ? "Disponible" : "No disponible"}
                                         </span>
+                                        <button
+                                            onClick={() => setIsReportModalOpen(true)}
+                                            className="bg-gray-800 bg-opacity-80 text-white p-2 rounded-full hover:bg-opacity-100 transition-all duration-200"
+                                            title="Reportar publicación"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                            </svg>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -128,8 +190,15 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                                     <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition">
                                         Contactar Vendedor
                                     </button>
-                                    <button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-6 rounded-xl transition">
-                                        Agregar a Favoritos
+                                    <button 
+                                        onClick={handleFavoriteClick}
+                                        className={`w-full font-semibold py-3 px-6 rounded-xl transition ${
+                                            isFavorite 
+                                                ? 'bg-red-500 hover:bg-red-600 text-white' 
+                                                : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                                        }`}
+                                    >
+                                        {isFavorite ? 'Quitar de Favoritos' : 'Agregar a Favoritos'}
                                     </button>
                                 </div>
                             </div>
@@ -142,7 +211,7 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                                         <span className="text-muted-foreground text-sm font-medium">Tipo:</span>
                                         <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                                             publication.type === 'servicio' 
-                                                ? 'bg-green-100 text-green-800' 
+                                                ? 'border border-purple-200 text-purple-800 bg-purple-50' 
                                                 : 'bg-blue-100 text-blue-800'
                                         }`}>
                                             {publication.type}
@@ -152,13 +221,72 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                                         <span className="text-muted-foreground text-sm font-medium">Código:</span>
                                         <span className="text-foreground font-mono text-sm">{publication.code}</span>
                                     </div>
-                                    {publication.horario && (
-                                        <div className="flex justify-between items-center py-2">
-                                            <span className="text-muted-foreground text-sm font-medium">Horario:</span>
-                                            <span className="text-foreground text-sm">
-                                                {publication.horario}
-                                            </span>
+                                    {publication.type === 'servicio' && (
+                                        publication.serviceHours && publication.serviceHours.length > 0 ? (
+                                            <div className="flex justify-between items-start py-2">
+                                                <span className="text-gray-600 text-sm font-medium">Horario:</span>
+                                                <div className="text-gray-900 text-sm text-right max-w-xs">
+                                                    {(() => {
+                                                        const dayNames = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+                                                        
+                                                        // Agrupar por horario
+                                                        const scheduleByTime: { [key: string]: number[] } = {};
+                                                        publication.serviceHours.forEach(hour => {
+                                                            const timeKey = `${hour.open_time.slice(0, 5)}-${hour.close_time.slice(0, 5)}`;
+                                                            if (!scheduleByTime[timeKey]) {
+                                                                scheduleByTime[timeKey] = [];
+                                                            }
+                                                            scheduleByTime[timeKey].push(hour.day_of_week);
+                                                        });
+
+                                                        // Formatear cada grupo de horario
+                                                        const formatTimeGroup = (timeKey: string, days: number[]) => {
+                                                            const sortedDays = days.sort((a, b) => a - b);
+                                                            
+                                                            // Agrupar días consecutivos
+                                                            const ranges: string[] = [];
+                                                            let start = sortedDays[0];
+                                                            let end = start;
+                                                            
+                                                            for (let i = 1; i < sortedDays.length; i++) {
+                                                                if (sortedDays[i] === end + 1) {
+                                                                    end = sortedDays[i];
+                                                                } else {
+                                                                    // Finalizar rango actual
+                                                                    if (start === end) {
+                                                                        ranges.push(dayNames[start]);
+                                                                    } else {
+                                                                        ranges.push(`${dayNames[start]} - ${dayNames[end]}`);
+                                                                    }
+                                                                    start = sortedDays[i];
+                                                                    end = start;
+                                                                }
+                                                            }
+                                                            
+                                                            // Agregar último rango
+                                                            if (start === end) {
+                                                                ranges.push(dayNames[start]);
+                                                            } else {
+                                                                ranges.push(`${dayNames[start]} - ${dayNames[end]}`);
+                                                            }
+                                                            
+                                                            return `${ranges.join(', ')}/${timeKey}`;
+                                                        };
+
+                                                        return Object.keys(scheduleByTime)
+                                                            .map(timeKey => formatTimeGroup(timeKey, scheduleByTime[timeKey]))
+                                                            .join(', ');
+                                                    })()}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="flex justify-between items-start py-2">
+                                            <span className="text-gray-600 text-sm font-medium">Horario:</span>
+                                                <div className="text-gray-900 text-sm text-right max-w-xs">
+                                                    No especificado
+                                                </div>
                                         </div>
+                                        )
                                     )}
                                     <div className="flex justify-between items-center py-2">
                                         <span className="text-muted-foreground text-sm font-medium">Publicado:</span>
@@ -176,7 +304,7 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                         <div className="bg-card rounded-2xl shadow-lg p-6">
                             <h2 className="text-lg font-semibold text-foreground mb-3">Descripción</h2>
                             <div className="prose prose-gray max-w-none">
-                                <p className="text-gray-700 leading-relaxed text-base">
+                                <p className="text-gray-700 leading-relaxed text-base break-words whitespace-pre-wrap">
                                     {publication.description}
                                 </p>
                             </div>
@@ -184,16 +312,26 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                     </div>
 
                     {/* Mapa de ubicación */}
-                    {publication.location_point && (
+                    {(publication.location_point || publication.location) && (
                         <div className="mt-8">
-                            <div className="bg-card rounded-2xl shadow-lg p-6">
-                                <h2 className="text-lg font-semibold text-foreground mb-4">Ubicación</h2>
-                                <MiniMap
-                                    lat={publication.location_point.lat}
-                                    lng={publication.location_point.lng}
-                                    location={publication.location}
-                                    className="h-64 w-full"
-                                />
+                            <div className="bg-white rounded-2xl shadow-lg p-6">
+                                <h2 className="text-lg font-semibold text-gray-900 mb-4">Ubicación</h2>
+                                {publication.location_point ? (
+                                    <MiniMap
+                                        lat={publication.location_point.lat}
+                                        lng={publication.location_point.lng}
+                                        location={publication.location}
+                                        className="h-64 w-full"
+                                    />
+                                ) : (
+                                    <div className="h-64 w-full bg-gray-100 rounded-lg flex items-center justify-center">
+                                        <div className="text-center">
+                                            <div className="text-4xl text-gray-400 mb-2">📍</div>
+                                            <p className="text-gray-600 font-medium">{publication.location}</p>
+                                            <p className="text-gray-400 text-sm">Ubicación sin coordenadas específicas</p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -220,6 +358,14 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                     </div>
                 </div>
             </div>
+            
+            {/* Modal de reporte */}
+            <ReportModal
+                isOpen={isReportModalOpen}
+                onClose={() => setIsReportModalOpen(false)}
+                publicationId={publication.id}
+                publicationTitle={publication.title}
+            />
         </AppLayout>
     )
 }
