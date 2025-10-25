@@ -282,29 +282,18 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
                 </div>
               </div>
 
-              {/* Card de acciones peligrosas */}
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h3 className="font-bold text-gray-900 mb-4 text-lg">Acciones Peligrosas</h3>
-
-                {/* Botón de apelación si la publicación está oculta */}
-                {publication.is_hidden && (
+              {/* Botón de apelación si la publicación está oculta */}
+              {publication.is_hidden && (
+                <div className="bg-white rounded-2xl shadow-lg p-6">
                   <button
                     onClick={() => setShowAppealModal(true)}
-                    className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-6 rounded-xl transition mb-3"
+                    className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-6 rounded-xl transition"
                   >
                     <MessageSquare className="w-4 h-4 mr-2 inline" />
                     Apelar Moderación
                   </button>
-                )}
-
-                <button
-                  onClick={handleDelete}
-                  className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-xl transition"
-                >
-                  <Trash2 className="w-4 h-4 mr-2 inline" />
-                  Eliminar Publicación
-                </button>
-              </div>
+                </div>
+              )}
             </div>
           </div>
 

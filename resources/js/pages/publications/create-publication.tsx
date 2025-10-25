@@ -236,11 +236,7 @@ export default function CreatePublication({ categories }: CreatePublicationProps
         // Verificar si hay errores de validación
         const hasErrors = Object.keys(validationErrors).length > 0;
         if (hasErrors) {
-            showToast({
-                type: 'error',
-                title: 'Formulario incompleto',
-                message: 'Por favor completa todos los campos requeridos correctamente.'
-            });
+            // No mostrar toast aquí, solo retornar para que el usuario vea los errores en los campos
             return;
         }
         
@@ -263,18 +259,7 @@ export default function CreatePublication({ categories }: CreatePublicationProps
         // Enviar FormData directamente
         router.post('/my-publications', formData, {
             forceFormData: true,
-            onError: (errors) => {
-                // Mostrar errores específicos con toast
-                Object.keys(errors).forEach(key => {
-                    const errorValue = errors[key];
-                    const errorMessage = Array.isArray(errorValue) ? errorValue[0] : errorValue;
-                    showToast({
-                        type: 'error',
-                        title: 'Error de validación',
-                        message: errorMessage
-                    });
-                });
-            }
+            // Los errores de validación del servidor se manejan automáticamente por FlashToastHandler
         });
     };
 

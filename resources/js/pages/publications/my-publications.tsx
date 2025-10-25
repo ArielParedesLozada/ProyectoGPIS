@@ -1,23 +1,23 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger
+import { 
+    DropdownMenu, 
+    DropdownMenuContent, 
+    DropdownMenuItem, 
+    DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import AppLayout from "@/layouts/app-layout";
 import { SharedData, Paginated, Publication, Category } from "@/types";
 import { usePage, router, Head, Link } from "@inertiajs/react";
 import { useState, useRef, useEffect } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import {
-    Plus,
-    MoreHorizontal,
-    Edit,
-    Trash2,
-    Eye,
+import { 
+    Plus, 
+    MoreHorizontal, 
+    Edit, 
+    Trash2, 
+    Eye, 
     EyeOff,
     Calendar,
     MapPin,
@@ -27,7 +27,8 @@ import {
 } from "lucide-react";
 import DeleteConfirmationModal from "@/components/publications/delete-confirmation-modal";
 import GeneralModal from "@/components/ui/general-modal";
-import { useToast, ToastProvider } from "@/hooks/useToast";
+import EmptyState from "@/components/ui/empty-state";
+// useToast removido - se usa FlashToastHandler globalmente
 
 // Componente para tooltip condicional
 const ConditionalTooltip = ({ children, content, className = "" }: {
@@ -110,21 +111,12 @@ function MyPublicationsContent() {
         };
     }>().props;
 
-    const { showToast } = useToast();
+    // showToast removido - se usa FlashToastHandler globalmente
     const [showAppealModal, setShowAppealModal] = useState(false);
     const [selectedPublication, setSelectedPublication] = useState<Publication | null>(null);
     const [appealReason, setAppealReason] = useState('');
 
-    // Mostrar toast cuando hay mensajes flash
-    useEffect(() => {
-        if (flash?.success) {
-            showToast({
-                type: 'success',
-                title: 'Éxito',
-                message: flash.success
-            });
-        }
-    }, [flash?.success, showToast]);
+    // Los toasts se manejan automáticamente por FlashToastHandler
 
     const handleDelete = (id: number) => {
         const publication = publications.data.find(p => p.id === id);
@@ -155,26 +147,8 @@ function MyPublicationsContent() {
     };
 
     const handleToggleStatus = (id: number) => {
-        const publication = publications.data.find(p => p.id === id);
-        const isCurrentlyEnabled = publication?.status === 1;
-
         router.patch(`/my-publications/${id}/toggle-status`, {}, {
-            onSuccess: () => {
-                showToast({
-                    type: 'success',
-                    title: isCurrentlyEnabled ? 'Publicación inhabilitada' : 'Publicación habilitada',
-                    message: isCurrentlyEnabled
-                        ? 'La publicación ha sido inhabilitada exitosamente.'
-                        : 'La publicación ha sido habilitada exitosamente.'
-                });
-            },
-            onError: () => {
-                showToast({
-                    type: 'error',
-                    title: 'Error al cambiar estado',
-                    message: 'No se pudo cambiar el estado de la publicación. Inténtalo de nuevo.'
-                });
-            }
+            // Los toasts se manejan automáticamente por FlashToastHandler
         });
     };
 
@@ -185,11 +159,7 @@ function MyPublicationsContent() {
 
     const handleSubmitAppeal = () => {
         if (!appealReason.trim()) {
-            showToast({
-                type: 'error',
-                title: 'Error',
-                message: 'Debes proporcionar un motivo para la apelación.'
-            });
+            alert('Debes proporcionar un motivo para la apelación.');
             return;
         }
 
@@ -199,21 +169,10 @@ function MyPublicationsContent() {
             reason: appealReason
         }, {
             onSuccess: () => {
-                showToast({
-                    type: 'success',
-                    title: 'Apelación enviada',
-                    message: 'Tu apelación ha sido enviada y será revisada por un moderador.'
-                });
                 setShowAppealModal(false);
                 setAppealReason('');
                 setSelectedPublication(null);
-            },
-            onError: () => {
-                showToast({
-                    type: 'error',
-                    title: 'Error al enviar apelación',
-                    message: 'No se pudo enviar la apelación. Inténtalo de nuevo.'
-                });
+                // Los toasts se manejan automáticamente por FlashToastHandler
             }
         });
     };
@@ -258,25 +217,20 @@ function MyPublicationsContent() {
                 href: '/my-publications',
             }]}>
             <Head title="Mis Publicaciones" />
-
+            
             <div className="bg-gray-50 min-h-screen space-y-8 px-6 py-6">
                 {/* Header */}
                 <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 text-white mb-8">
-                    <div className="flex justify-between items-start">
-                        <div>
+                        <div className="flex justify-between items-start">
+                            <div>
                             <h1 className="text-3xl font-bold mb-2">Mis Publicaciones</h1>
                             <p className="text-blue-100 text-lg">Gestiona tus productos y servicios</p>
-                            {publications.data.length > 0 && (
-                                <p className="text-sm text-blue-200 mt-2">
-                                    Mostrando {publications.data.length} publicaciones
-                                </p>
-                            )}
-                        </div>
+                            </div>
                         <Link href="/my-publications/create">
                             <Button variant="secondary" className="bg-white/20 text-white border-white/30 hover:bg-white/30">
-                                <Plus className="w-4 h-4 mr-2" />
-                                Crear Publicación
-                            </Button>
+                                        <Plus className="w-4 h-4 mr-2" />
+                                        Crear Publicación
+                                    </Button>
                         </Link>
                     </div>
                 </div>
@@ -338,8 +292,8 @@ function MyPublicationsContent() {
                                                 className="text-lg line-clamp-2 mb-2"
                                             >
                                                 <CardTitle>
-                                                    {publication.title}
-                                                </CardTitle>
+                                                {publication.title}
+                                            </CardTitle>
                                             </ConditionalTooltip>
                                             <div className="flex gap-2 mb-2">
                                                 {getStatusBadge(publication)}
@@ -360,29 +314,29 @@ function MyPublicationsContent() {
                                                     </Link>
                                                 </DropdownMenuItem>
                                                 {!publication.is_hidden && (
-                                                    <DropdownMenuItem asChild>
-                                                        <Link href={`/my-publications/${publication.id}/edit`}>
-                                                            <Edit className="mr-2 h-4 w-4" />
-                                                            Editar
-                                                        </Link>
-                                                    </DropdownMenuItem>
+                                                <DropdownMenuItem asChild>
+                                                    <Link href={`/my-publications/${publication.id}/edit`}>
+                                                        <Edit className="mr-2 h-4 w-4" />
+                                                        Editar
+                                                    </Link>
+                                                </DropdownMenuItem>
                                                 )}
                                                 {!publication.is_hidden && (
-                                                    <DropdownMenuItem
-                                                        onClick={() => handleToggleStatus(publication.id)}
-                                                    >
-                                                        {publication.status === 1 ? (
-                                                            <>
-                                                                <EyeOff className="mr-2 h-4 w-4" />
-                                                                Inhabilitar
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <Eye className="mr-2 h-4 w-4" />
-                                                                Habilitar
-                                                            </>
-                                                        )}
-                                                    </DropdownMenuItem>
+                                                <DropdownMenuItem 
+                                                    onClick={() => handleToggleStatus(publication.id)}
+                                                >
+                                                    {publication.status === 1 ? (
+                                                        <>
+                                                            <EyeOff className="mr-2 h-4 w-4" />
+                                                            Inhabilitar
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Eye className="mr-2 h-4 w-4" />
+                                                            Habilitar
+                                                        </>
+                                                    )}
+                                                </DropdownMenuItem>
                                                 )}
                                                 {publication.is_hidden && publication.can_appeal && (
                                                     <DropdownMenuItem
@@ -402,7 +356,7 @@ function MyPublicationsContent() {
                                                         Apelar Moderación (No disponible)
                                                     </DropdownMenuItem>
                                                 )}
-                                                <DropdownMenuItem
+                                                <DropdownMenuItem 
                                                     onClick={() => handleDelete(publication.id)}
                                                     className="text-red-600"
                                                 >
@@ -435,8 +389,8 @@ function MyPublicationsContent() {
                                             className="text-sm text-gray-600 line-clamp-2"
                                         >
                                             <p>
-                                                {publication.description}
-                                            </p>
+                                            {publication.description}
+                                        </p>
                                         </ConditionalTooltip>
 
                                         {/* Location */}
@@ -460,14 +414,14 @@ function MyPublicationsContent() {
                                                     <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
                                                     <div className="flex-1">
                                                         <h4 className="text-sm font-medium text-red-800 mb-1">
-                                                            {publication.is_final_decision ? 'Decisión Final de Moderación:' : 'Motivo de ocultación:'}
+                                                            {(publication as any).is_final_decision ? 'Decisión Final de Moderación:' : 'Motivo de ocultación:'}
                                                         </h4>
                                                         <p className="text-sm text-red-700">
                                                             {publication.moderation_reason}
                                                         </p>
                                                         {publication.moderation_date && (
                                                             <p className="text-xs text-red-600 mt-1">
-                                                                {publication.is_final_decision ? 'Decisión final el' : 'Oculto el'} {new Date(publication.moderation_date).toLocaleDateString()}
+                                                                {(publication as any).is_final_decision ? 'Decisión final el' : 'Oculto el'} {new Date(publication.moderation_date).toLocaleDateString()}
                                                             </p>
                                                         )}
                                                     </div>
@@ -526,23 +480,16 @@ function MyPublicationsContent() {
 
                     {/* Empty State */}
                     {publications.data.length === 0 && (
-                        <div className="text-center py-12">
-                            <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                                <Plus className="w-12 h-12 text-gray-400" />
-                            </div>
-                            <h3 className="text-lg font-medium text-foreground mb-2">
-                                No tienes publicaciones
-                            </h3>
-                            <p className="text-gray-500 mb-6">
-                                Comienza creando tu primera publicación
-                            </p>
-                            <Link href="/my-publications/create">
-                                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                                    <Plus className="w-4 h-4 mr-2" />
-                                    Crear Primera Publicación
-                                </Button>
-                            </Link>
-                        </div>
+                        <EmptyState
+                            icon={Plus}
+                            title="No tienes publicaciones"
+                            description="Comienza creando tu primera publicación"
+                            buttonText="Crear Primera Publicación"
+                            buttonHref="/my-publications/create"
+                            buttonIcon={Plus}
+                            buttonVariant="default"
+                            buttonClassName="bg-blue-600 hover:bg-blue-700 text-white"
+                        />
                     )}
 
                 </div>
@@ -616,12 +563,8 @@ function MyPublicationsContent() {
     );
 }
 
-// Componente principal que envuelve con ToastProvider
+// Componente principal
 export default function MyPublications() {
-    return (
-        <ToastProvider>
-            <MyPublicationsContent />;
-        </ToastProvider>
-    )
+    return <MyPublicationsContent />;
 }
 

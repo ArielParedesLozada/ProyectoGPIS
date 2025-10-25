@@ -159,7 +159,7 @@ export default function PublicationCard({ publication }: PublicationCardProps) {
                                     </TooltipContent>
                                 </Tooltip>
                             </div>
-                            <button className="bg-gray-200 text-gray-800 px-3 py-1 rounded text-sm font-medium">
+                            <button className="bg-green-500 text-white px-3 py-1 rounded text-sm font-medium">
                                 Disponible
                             </button>
                         </div>
