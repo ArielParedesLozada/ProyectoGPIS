@@ -324,20 +324,6 @@ function MyPublicationsContent() {
                                 <p className="text-sm text-gray-600">No visibles al público</p>
                             </CardContent>
                         </Card>
-                        <Card className="border-l-4 border-l-red-500 hover:shadow-lg transition-all duration-200 bg-white/95 backdrop-blur-sm border border-gray-200/50">
-                            <CardHeader className="pb-3">
-                                <CardTitle className="text-sm font-semibold text-gray-700 flex items-center">
-                                    <EyeOff className="h-5 w-5 mr-2 text-red-600" />
-                                    Inhabilitadas
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-3xl font-bold text-red-600 mb-2">
-                                    {publications.data.filter(p => p.status === 2).length}
-                                </div>
-                                <p className="text-sm text-gray-600">No visibles al público</p>
-                            </CardContent>
-                        </Card>
                     </div>
 
                     {/* Publications Grid */}
@@ -444,7 +430,6 @@ function MyPublicationsContent() {
                                         </div>
 
                                         {/* Description */}
-                                        {/* Description */}
                                         <ConditionalTooltip
                                             content={publication.description || ''}
                                             className="text-sm text-gray-600 line-clamp-2"
@@ -453,7 +438,7 @@ function MyPublicationsContent() {
                                                 {publication.description}
                                             </p>
                                         </ConditionalTooltip>
-                                        {/* Location */}
+                                        {/* Moderacion */}
                                         {publication.is_hidden && publication.moderation_reason && (
                                             <div className="bg-red-50 border border-red-200 rounded-lg p-3 mt-2">
                                                 <div className="flex items-start gap-2">

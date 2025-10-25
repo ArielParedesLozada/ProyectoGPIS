@@ -222,10 +222,15 @@ class PublicationController extends Controller
                 'images' => 'nullable|array|max:5',
                 'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:5120', // 5MB max
             ]);
+            Log::info('DATOS DESDE EL FRONT', [
+                'title' => $request->title,
+                'horario' => $request->horario,
+                'schedule' => $request->schedule
+            ]);
 
             // Validar horario requerido para servicios
-            if ($request->type === 'servicio' && empty($request->horario)) {
-                return redirect()->back()->withErrors(['horario' => 'El horario es obligatorio para servicios.']);
+            if ($request->type === 'servicio' && empty($request->schedule)) {
+                return redirect()->back()->withErrors(['schedule' => 'El horario es obligatorio para servicios.']);
             }
             // Verificar contenido inapropiado para auto-moderación
             $profanityService = new SimpleProfanityService();
@@ -296,7 +301,7 @@ class PublicationController extends Controller
                 'status' => StatusType::HABILITADO, // Siempre crear como HABILITADO
                 'type' => $request->type,
                 'published_at' => now(),
-                'horario' => $request->horario,
+                'schedule' => $request->schedule,
                 'is_hidden' => $autoModerationInfo['has_profanity'], // Ocultar si tiene contenido inadecuado
             ];
 

@@ -79,6 +79,9 @@ export interface Publication {
         close_time: string;
     }>;
     is_hidden?: boolean;
+    can_appeal?: boolean;
+    moderation_reason?: string;
+    moderation_date?: Date
 }
 
 export interface Paginated<T> {

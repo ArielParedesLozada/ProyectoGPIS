@@ -109,7 +109,7 @@ export default function CreatePublication({ categories }: CreatePublicationProps
                 
             case 'schedule':
                 if (data.type === 'servicio' && (!value || (Array.isArray(value) && value.length === 0))) {
-                    newErrors.schedule = 'El horario es requerido para servicios';
+                    newErrors.schedule = 'El horario es requerido para servicios sigma';
                 } else {
                     delete newErrors.schedule;
                 }
