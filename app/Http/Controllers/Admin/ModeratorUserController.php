@@ -310,4 +310,65 @@ class ModeratorUserController extends Controller
 
         return redirect()->route('admin.moderators.deleted')->with('success', 'Moderador eliminado permanentemente.');
     }
+
+    /**
+     * Reasignar casos de un moderador inactivo
+     */
+    public function reassignCases(User $moderator)
+    {
+        // Verificar que el usuario sea realmente un moderador
+        if ($moderator->role !== RoleType::MODERADOR->value) {
+            abort(404, 'Usuario no encontrado.');
+        }
+
+        try {
+            // Despachar job para reasignación automática
+            \App\Jobs\ReassignModeratorCasesJob::dispatch($moderator->id);
+
+            Log::info("Reasignación manual iniciada para moderador", [
+                'moderator_id' => $moderator->id,
+                'moderator_name' => $moderator->name . ' ' . $moderator->surname,
+                'initiated_by' => Auth::id(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Reasignación iniciada. Los casos se procesarán en segundo plano.'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Error al iniciar reasignación para moderador {$moderator->id}: " . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al iniciar la reasignación: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener moderadores inactivos con casos asignados
+     */
+    public function getInactiveModeratorsWithCases()
+    {
+        $inactiveModerators = User::where('role', RoleType::MODERADOR->value)
+            ->where(function($query) {
+                $query->where('status', 0) // INHABILITADO
+                      ->orWhere('is_active', false);
+            })
+            ->whereHas('moderationCases', function($q) {
+                $q->whereIn('status', ['pending', 'triage', 'in_review', 'appealed']);
+            })
+            ->withCount(['moderationCases' => function($query) {
+                $query->whereIn('status', ['pending', 'triage', 'in_review', 'appealed']);
+            }])
+            ->select('id', 'name', 'surname', 'email', 'status', 'is_active', 'created_at')
+            ->get();
+
+        return response()->json([
+            'inactive_moderators' => $inactiveModerators,
+            'total_count' => $inactiveModerators->count(),
+            'total_cases' => $inactiveModerators->sum('moderation_cases_count')
+        ]);
+    }
 }
