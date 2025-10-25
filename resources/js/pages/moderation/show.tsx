@@ -80,6 +80,7 @@ interface ModerationCase {
 interface ButtonStates {
     canHidePublication: boolean;
     canRestorePublication: boolean;
+    canConfirmHideDecision: boolean;
     canDismissCase: boolean;
     isAssignedToMe: boolean;
     isCompleted: boolean;
@@ -105,8 +106,10 @@ export default function ModerationShow({ case: caseItem, buttonStates }: Moderat
 
     const [showDismissModal, setShowDismissModal] = useState(false);
     const [showHideModal, setShowHideModal] = useState(false);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [notes, setNotes] = useState(caseItem.resolution_notes || '');
     const [hideReason, setHideReason] = useState('');
+    const [confirmNotes, setConfirmNotes] = useState('');
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -166,6 +169,30 @@ export default function ModerationShow({ case: caseItem, buttonStates }: Moderat
             onError: (errors) => {
                 console.error('Error:', errors);
                 alert('Error al descartar el caso');
+            }
+        });
+    };
+
+    const handleConfirmHideDecision = () => {
+        if (!confirmNotes.trim()) {
+            alert('Debes proporcionar un motivo para confirmar la decisión');
+            return;
+        }
+
+        router.post(`/moderation/${caseItem.id}/confirm-hide-decision`, {
+            notes: confirmNotes,
+        }, {
+            onSuccess: () => {
+                setShowConfirmModal(false);
+                setConfirmNotes('');
+                // Recargar la página para actualizar el estado
+                window.location.reload();
+            },
+            onError: (errors) => {
+                console.error('Error al confirmar decisión:', errors);
+                // Mostrar error más específico
+                const errorMessage = errors?.notes?.[0] || errors?.error || 'Error al confirmar la decisión';
+                alert(errorMessage);
             }
         });
     };
@@ -351,46 +378,47 @@ export default function ModerationShow({ case: caseItem, buttonStates }: Moderat
                                 
                                 
                                 <div className="space-y-3">
-                                    {!caseItem.publication.is_hidden ? (
+                                    {!caseItem.publication.is_hidden && buttonStates.canHidePublication && (
                                         <button
                                             onClick={() => setShowHideModal(true)}
-                                            disabled={!buttonStates.canHidePublication}
-                                            className={`w-full font-semibold py-3 px-6 rounded-xl transition ${
-                                                buttonStates.canHidePublication
-                                                    ? 'bg-red-600 hover:bg-red-700 text-white'
-                                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                            }`}
+                                            className="w-full font-semibold py-3 px-6 rounded-xl transition bg-red-600 hover:bg-red-700 text-white"
                                         >
                                             <EyeOff className="w-4 h-4 mr-2 inline" />
                                             Ocultar Publicación
                                         </button>
-                                    ) : (
-                                        <button
-                                            onClick={handleRestorePublication}
-                                            disabled={!buttonStates.canRestorePublication}
-                                            className={`w-full font-semibold py-3 px-6 rounded-xl transition ${
-                                                buttonStates.canRestorePublication
-                                                    ? 'bg-green-600 hover:bg-green-700 text-white'
-                                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                            }`}
-                                        >
-                                            <Eye className="w-4 h-4 mr-2 inline" />
-                                            Restaurar Publicación
-                                        </button>
+                                    )}
+                                    {caseItem.publication.is_hidden && (
+                                        <>
+                                            {buttonStates.canRestorePublication && (
+                                                <button
+                                                    onClick={handleRestorePublication}
+                                                    className="w-full font-semibold py-3 px-6 rounded-xl transition bg-green-600 hover:bg-green-700 text-white"
+                                                >
+                                                    <Eye className="w-4 h-4 mr-2 inline" />
+                                                    Restaurar Publicación
+                                                </button>
+                                            )}
+                                            {buttonStates.canConfirmHideDecision && (
+                                                <button
+                                                    onClick={() => setShowConfirmModal(true)}
+                                                    className="w-full font-semibold py-3 px-6 rounded-xl transition bg-orange-600 hover:bg-orange-700 text-white"
+                                                >
+                                                    <Shield className="w-4 h-4 mr-2 inline" />
+                                                    Confirmar Decisión de Ocultar
+                                                </button>
+                                            )}
+                                        </>
                                     )}
 
-                                    <button
-                                        onClick={() => setShowDismissModal(true)}
-                                        disabled={!buttonStates.canDismissCase}
-                                        className={`w-full font-semibold py-3 px-6 rounded-xl transition ${
-                                            buttonStates.canDismissCase
-                                                ? 'bg-gray-600 hover:bg-gray-700 text-white'
-                                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                        }`}
-                                    >
-                                        <X className="w-4 h-4 mr-2 inline" />
-                                        Descartar Caso
-                                    </button>
+                                    {buttonStates.canDismissCase && (
+                                        <button
+                                            onClick={() => setShowDismissModal(true)}
+                                            className="w-full font-semibold py-3 px-6 rounded-xl transition bg-gray-600 hover:bg-gray-700 text-white"
+                                        >
+                                            <X className="w-4 h-4 mr-2 inline" />
+                                            Descartar Caso
+                                        </button>
+                                    )}
 
 
                                 </div>
@@ -500,6 +528,49 @@ export default function ModerationShow({ case: caseItem, buttonStates }: Moderat
                         </button>
                         <button
                             onClick={() => setShowHideModal(false)}
+                            className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 font-semibold py-2 px-4 rounded-lg transition"
+                        >
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            </GeneralModal>
+
+            {/* Modal para confirmar decisión de ocultar */}
+            <GeneralModal
+                isOpen={showConfirmModal}
+                onClose={() => setShowConfirmModal(false)}
+                title="Confirmar Decisión de Ocultar"
+            >
+                <div className="space-y-4">
+                    <p className="text-gray-600">
+                        Estás confirmando la decisión de ocultar esta publicación tras la apelación.
+                        Esta será la decisión final y cerrará el caso definitivamente.
+                    </p>
+                    
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Motivo de confirmación
+                        </label>
+                        <textarea
+                            value={confirmNotes}
+                            onChange={(e) => setConfirmNotes(e.target.value)}
+                            rows={4}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                            placeholder="Explica por qué confirmas la decisión de ocultar esta publicación..."
+                            required
+                        />
+                    </div>
+
+                    <div className="flex gap-3 pt-4">
+                        <button
+                            onClick={handleConfirmHideDecision}
+                            className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 px-4 rounded-lg transition"
+                        >
+                            Confirmar Decisión
+                        </button>
+                        <button
+                            onClick={() => setShowConfirmModal(false)}
                             className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 font-semibold py-2 px-4 rounded-lg transition"
                         >
                             Cancelar

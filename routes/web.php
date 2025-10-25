@@ -50,6 +50,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/{id}/assign-to-me', [ModerationController::class, 'assignToMe'])->name('moderation.assign-to-me');
         Route::post('/{id}/hide-publication', [ModerationController::class, 'hidePublication'])->name('moderation.hide-publication');
         Route::post('/{id}/restore-publication', [ModerationController::class, 'restorePublication'])->name('moderation.restore-publication');
+        Route::post('/{id}/confirm-hide-decision', [ModerationController::class, 'confirmHideDecision'])->name('moderation.confirm-hide-decision');
         Route::post('/{id}/dismiss', [ModerationController::class, 'dismissCase'])->name('moderation.dismiss');
         Route::post('/{id}/review-appeal', [ModerationController::class, 'reviewAppeal'])->name('moderation.review-appeal');
     });

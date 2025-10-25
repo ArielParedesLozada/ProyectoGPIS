@@ -131,19 +131,41 @@ class ModerationController extends Controller
         $currentUserId = Auth::id();
         $isAssignedToMe = $case->assigned_moderator_id === $currentUserId;
         $isAppealed = $case->status === 'appealed';
-        $isCompleted = in_array($case->status, ['closed', 'action_taken']);
+        $isCompleted = in_array($case->status, ['closed', 'dismissed']);
+        $isActionTaken = $case->status === 'action_taken';
         $hasAppeal = $case->appeals()->whereNull('reviewed_at')->exists();
+        $publicationIsHidden = $case->publication->is_hidden;
+
+        // Verificar si el moderador actual es el que tomó la decisión inicial
+        $isOriginalModerator = false;
+        if ($isActionTaken || $isAppealed) {
+            $originalAction = $case->actions()
+                ->whereIn('action_type', ['hide_publication', 'dismiss_case'])
+                ->first();
+            $isOriginalModerator = $originalAction && $originalAction->moderator_id === $currentUserId;
+        }
 
         // Lógica estricta: Solo permitir acciones si está asignado a mí Y no está completado
         $canPerformActions = $isAssignedToMe && !$isCompleted;
 
         return [
-            'canHidePublication' => $canPerformActions && !$isAppealed && !$hasAppeal,
-            'canRestorePublication' => $canPerformActions && !$isCompleted,
-            'canDismissCase' => $canPerformActions && !$isCompleted,
+            // Solo permitir ocultar si no hay apelación pendiente y no está oculta
+            'canHidePublication' => $canPerformActions && !$isAppealed && !$hasAppeal && !$publicationIsHidden && !$isActionTaken,
+            
+            // Solo permitir restaurar si está en apelación y es el segundo moderador
+            'canRestorePublication' => $canPerformActions && $isAppealed && $publicationIsHidden && !$isOriginalModerator,
+            
+            // Solo permitir confirmar decisión si está en apelación y es el segundo moderador
+            'canConfirmHideDecision' => $canPerformActions && $isAppealed && $publicationIsHidden && !$isOriginalModerator,
+            
+            // Permitir descartar solo en primera revisión (no en apelaciones)
+            'canDismissCase' => $canPerformActions && !$isCompleted && !$isActionTaken && !$isAppealed,
+            
             'isAssignedToMe' => $isAssignedToMe,
             'isCompleted' => $isCompleted,
             'isAppealed' => $isAppealed,
+            'isActionTaken' => $isActionTaken,
+            'isOriginalModerator' => $isOriginalModerator,
         ];
     }
 
@@ -213,7 +235,7 @@ class ModerationController extends Controller
 
             // Actualizar el caso
             $case->update([
-                'status' => 'closed',
+                'status' => 'action_taken',
                 'resolution_notes' => $request->reason,
                 'resolved_at' => now(),
             ]);
@@ -278,9 +300,10 @@ class ModerationController extends Controller
             // Restaurar la publicación
             $case->publication->update(['is_hidden' => false]);
 
-            // Actualizar el caso
+            // Actualizar el caso - decisión final, cerrar definitivamente
             $case->update([
-                'status' => 'action_taken',
+                'status' => 'closed',
+                'resolution_notes' => 'Publicación restaurada tras apelación',
                 'resolved_at' => now(),
             ]);
 
@@ -305,6 +328,75 @@ class ModerationController extends Controller
             Log::error('Error al restaurar publicación: ' . $e->getMessage());
             
             return redirect()->back()->withErrors(['error' => 'Error al restaurar la publicación']);
+        }
+    }
+
+    /**
+     * Confirmar decisión de ocultar (decisión final del segundo moderador)
+     */
+    public function confirmHideDecision(Request $request, $id)
+    {
+        $this->checkModeratorPermissions();
+        
+        $request->validate([
+            'notes' => 'required|string|max:1000',
+        ], [
+            'notes.required' => 'El motivo de confirmación es obligatorio.',
+            'notes.string' => 'El motivo debe ser texto.',
+            'notes.max' => 'El motivo no puede exceder 1000 caracteres.',
+        ]);
+
+        $case = ModerationCase::with('publication')->findOrFail($id);
+        
+        // Validaciones de estado del caso
+        $buttonStates = $this->getButtonStates($case);
+        
+        // Validación estricta: No permitir si no está asignado a mí
+        if (!$buttonStates['isAssignedToMe']) {
+            return redirect()->back()->withErrors(['error' => 'Este caso no está asignado a ti. No puedes realizar esta acción.']);
+        }
+        
+        // Solo permitir si el caso está en 'appealed'
+        if ($case->status !== 'appealed') {
+            return redirect()->back()->withErrors(['error' => 'Este caso no está en estado de apelación.']);
+        }
+
+        DB::beginTransaction();
+
+        try {
+            // Asegurar que la publicación esté oculta
+            $case->publication->update(['is_hidden' => true]);
+
+            // Cerrar el caso definitivamente
+            $case->update([
+                'status' => 'closed',
+                'resolution_notes' => $request->notes,
+                'resolved_at' => now(),
+            ]);
+
+            // Registrar la acción
+            ModerationAction::create([
+                'moderation_case_id' => $case->id,
+                'moderator_id' => Auth::id(),
+                'action_type' => 'close_case',
+                'action_description' => 'Decisión de ocultar confirmada tras apelación',
+                'metadata' => [
+                    'publication_id' => $case->publication->id,
+                    'publication_title' => $case->publication->title,
+                    'notes' => $request->notes,
+                    'action_subtype' => 'confirm_hide_decision'
+                ]
+            ]);
+
+            DB::commit();
+
+            return redirect()->back()->with('success', 'Decisión de ocultar confirmada. El caso ha sido cerrado definitivamente.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al confirmar decisión de ocultar: ' . $e->getMessage());
+            
+            return redirect()->back()->withErrors(['error' => 'Error al confirmar la decisión']);
         }
     }
 
@@ -341,8 +433,16 @@ class ModerationController extends Controller
         DB::beginTransaction();
 
         try {
+            // Verificar si la publicación está oculta antes de restaurarla
+            $wasHidden = $case->publication->is_hidden;
+            
+            // Si la publicación está oculta, restaurarla al descartar el caso
+            if ($wasHidden) {
+                $case->publication->update(['is_hidden' => false]);
+            }
+
             $case->update([
-                'status' => 'closed',
+                'status' => 'dismissed',
                 'resolution_notes' => $request->notes,
                 'resolved_at' => now(),
             ]);
@@ -352,9 +452,10 @@ class ModerationController extends Controller
                 'moderation_case_id' => $case->id,
                 'moderator_id' => Auth::id(),
                 'action_type' => 'dismiss_case',
-                'action_description' => 'Caso descartado',
+                'action_description' => $wasHidden ? 'Caso descartado - Publicación restaurada' : 'Caso descartado',
                 'metadata' => [
                     'notes' => $request->notes,
+                    'publication_restored' => $wasHidden,
                 ]
             ]);
 

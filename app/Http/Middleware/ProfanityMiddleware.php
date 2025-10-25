@@ -4,7 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use App\Services\ProfanityService;
+use App\Services\SimpleProfanityService;
 use App\Exceptions\ProfanityDetectedException;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -12,7 +12,7 @@ class ProfanityMiddleware
 {
     protected $profanityService;
 
-    public function __construct(ProfanityService $profanityService)
+    public function __construct(SimpleProfanityService $profanityService)
     {
         $this->profanityService = $profanityService;
     }
