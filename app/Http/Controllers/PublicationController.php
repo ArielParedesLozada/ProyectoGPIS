@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\StatusType;
 use App\Enums\PublicationType;
 use App\Models\Category;
+use App\Models\Favorite;
 use App\Models\Publication;
 use App\Models\PublicationImage;
 use App\Models\ModerationCase;
@@ -718,6 +719,91 @@ class PublicationController extends Controller
         } catch (\Exception $e) {
             Log::error('Error in myView: ' . $e->getMessage());
             return redirect()->route('my-publications')->withErrors(['error' => 'Error al cargar la publicación']);
+        }
+    }
+
+    public function favorites()
+    {
+        try {
+            $favorites = Auth::user()->favorites()
+                ->with(['publication.category', 'publication.images', 'publication.serviceHours'])
+                ->paginate(12);
+
+            // Transformar los datos para que sean compatibles con el frontend
+            $favoritesData = $favorites->through(function ($favorite) {
+                $publication = $favorite->publication;
+                $publicationData = $publication->toArray();
+                $publicationData['serviceHours'] = $publication->serviceHours->toArray();
+                return $publicationData;
+            });
+
+            return Inertia::render('publications/favorites', [
+                'favorites' => $favoritesData,
+                'categories' => Category::all()
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error in favorites: ' . $e->getMessage());
+            return redirect()->back()->withErrors(['error' => 'Error al cargar los favoritos']);
+        }
+    }
+
+    public function addToFavorites($id)
+    {
+        try {
+            $publication = Publication::findOrFail($id);
+            
+            // Verificar si ya está en favoritos
+            $existingFavorite = Favorite::where('user_id', Auth::id())
+                ->where('publication_id', $id)
+                ->first();
+
+            if ($existingFavorite) {
+                return back()->with('error', 'Ya está en favoritos');
+            }
+
+            Favorite::create([
+                'user_id' => Auth::id(),
+                'publication_id' => $id
+            ]);
+
+            return back()->with('success', 'Agregado a favoritos');
+        } catch (\Exception $e) {
+            Log::error('Error adding to favorites: ' . $e->getMessage());
+            return back()->with('error', 'Error al agregar a favoritos');
+        }
+    }
+
+    public function removeFromFavorites($id)
+    {
+        try {
+            $favorite = Favorite::where('user_id', Auth::id())
+                ->where('publication_id', $id)
+                ->first();
+
+            if (!$favorite) {
+                return back()->with('error', 'No está en favoritos');
+            }
+
+            $favorite->delete();
+
+            return back()->with('success', 'Eliminado de favoritos');
+        } catch (\Exception $e) {
+            Log::error('Error removing from favorites: ' . $e->getMessage());
+            return back()->with('error', 'Error al eliminar de favoritos');
+        }
+    }
+
+    public function checkFavorite($id)
+    {
+        try {
+            $isFavorite = Favorite::where('user_id', Auth::id())
+                ->where('publication_id', $id)
+                ->exists();
+
+            return response()->json(['isFavorite' => $isFavorite]);
+        } catch (\Exception $e) {
+            Log::error('Error checking favorite: ' . $e->getMessage());
+            return response()->json(['isFavorite' => false]);
         }
     }
 

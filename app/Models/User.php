@@ -110,4 +110,9 @@ class User extends Authenticatable implements MustVerifyEmail
             new \App\Mail\CustomEmailVerification($this)
         );
     }
+
+    public function favorites(): HasMany
+    {
+        return $this->hasMany(Favorite::class);
+    }
 }

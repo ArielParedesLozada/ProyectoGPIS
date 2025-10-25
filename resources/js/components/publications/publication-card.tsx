@@ -1,16 +1,45 @@
 import { publicationView } from "@/routes";
 import { Publication } from "@/types";
-import { Link } from "@inertiajs/react";
-import { useState } from "react";
+import { Link, router, usePage } from "@inertiajs/react";
+import { useState, useEffect } from "react";
 import ReportModal from "./report-modal";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { Heart } from "lucide-react";
 
 interface PublicationCardProps {
     publication: Publication;
 }
 
 export default function PublicationCard({ publication }: PublicationCardProps) {
+    const { url } = usePage();
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+    const [isFavorite, setIsFavorite] = useState(false);
+    
+    // Determinar el parámetro 'from' basado en la URL actual
+    const getFromParam = () => {
+        if (url.includes('/favorites')) {
+            return 'favorites';
+        } else if (url.includes('/my-publications')) {
+            return 'my-publications';
+        }
+        return null;
+    };
+
+    // Verificar si la publicación está en favoritos al cargar
+    useEffect(() => {
+        const checkFavoriteStatus = async () => {
+            try {
+                const response = await fetch(`/favorites/check/${publication.id}`);
+                const data = await response.json();
+                setIsFavorite(data.isFavorite);
+            } catch (error) {
+                console.error('Error checking favorite status:', error);
+                setIsFavorite(false);
+            }
+        };
+
+        checkFavoriteStatus();
+    }, [publication.id]);
 
     const handleReportClick = (e: React.MouseEvent) => {
         e.preventDefault();
@@ -18,9 +47,30 @@ export default function PublicationCard({ publication }: PublicationCardProps) {
         setIsReportModalOpen(true);
     };
 
+    const handleFavoriteClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (isFavorite) {
+            // Quitar de favoritos
+            router.delete(`/favorites/${publication.id}`, {
+                onSuccess: () => {
+                    setIsFavorite(false);
+                }
+            });
+        } else {
+            // Agregar a favoritos
+            router.post(`/favorites/${publication.id}`, {}, {
+                onSuccess: () => {
+                    setIsFavorite(true);
+                }
+            });
+        }
+    };
+
     return (
         <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border border-gray-100 overflow-hidden h-full flex flex-col relative group">
-            <Link href={publicationView(publication.id)} className="group">
+            <div>
                 <div className="bg-card rounded-lg shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden h-full flex flex-col">
                     {/* Imagen del producto */}
                     <div className="relative">
@@ -50,6 +100,20 @@ export default function PublicationCard({ publication }: PublicationCardProps) {
                                 </svg>
                             </button>
                         </div>
+                                            <div className="absolute bottom-3 left-3 z-10">
+                        <button
+                            onClick={handleFavoriteClick}
+                            className={`p-2 rounded-full transition-all duration-200 ${
+                                isFavorite 
+                                    ? 'bg-red-500 text-white' 
+                                    : 'bg-white bg-opacity-80 text-gray-600 hover:bg-opacity-100'
+                            }`}
+                            title={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
+                        >
+                            <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
+                        </button>
+                    </div>
+
                     </div>
 
                     {/* Contenido de la card */}
@@ -101,10 +165,14 @@ export default function PublicationCard({ publication }: PublicationCardProps) {
                         </div>
                     </div>
 
-                    {/* Link wrapper para hacer toda la card clickeable */}
-                    <Link href={publicationView(publication.id)} className="absolute inset-0 z-0" style={{ pointerEvents: isReportModalOpen ? 'none' : 'auto' }}></Link>
+                {/* Link wrapper para hacer toda la card clickeable */}
+                <Link 
+                    href={`${publicationView(publication.id).url}${getFromParam() ? `?from=${getFromParam()}` : ''}`} 
+                    className="absolute inset-0 z-0" 
+                    style={{pointerEvents: isReportModalOpen ? 'none' : 'auto'}}
+                ></Link>
                 </div>
-            </Link>
+            </div>
 
             {/* Modal de reporte */}
             <ReportModal
