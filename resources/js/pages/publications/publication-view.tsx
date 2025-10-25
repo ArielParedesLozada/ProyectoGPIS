@@ -2,10 +2,11 @@ import AppLayout from "@/layouts/app-layout";
 import { publicationView } from "@/routes";
 import { BreadcrumbItem, Publication } from "@/types";
 import { Head, Link } from "@inertiajs/react";
-import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import MiniMap from "@/components/publications/MiniMap";
 import ReportModal from "@/components/publications/report-modal";
+import ImageGallery from "@/components/publications/ImageGallery";
 
 interface PublicationViewProps {
     publication: Publication
@@ -19,24 +20,13 @@ export default function PublicationView({ publication }: PublicationViewProps) {
         },
     ];
 
-    // Estado para el carrusel de imágenes
-    const [currentImageIndex, setCurrentImageIndex] = useState(0);
-    
     // Estado para el modal de reporte
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
     
     // Array de imágenes reales de la base de datos
     const images = publication.images && publication.images.length > 0 
         ? publication.images.map(img => `/storage/${img.image_url}`)
-        : ["https://picsum.photos/800/600"]; // Solo placeholder si no hay imágenes
-
-    const nextImage = () => {
-        setCurrentImageIndex((prev) => (prev + 1) % images.length);
-    };
-
-    const prevImage = () => {
-        setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
-    };
+        : [];
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={publication.title} />
@@ -55,54 +45,20 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                             </Link>
                             
                             <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-                                <div className="relative group">
-                                    <img
-                                        src={images[currentImageIndex]}
-                                        alt={publication.title}
-                                        className="w-full h-80 sm:h-96 lg:h-[510px] xl:h-[560px] object-cover transition-opacity duration-300"
+                                <div className="relative">
+                                    <ImageGallery 
+                                        images={images}
+                                        title={publication.title}
+                                        className="w-full"
                                     />
                                     
-                                    {/* Controles del carrusel */}
-                                    {images.length > 1 && (
-                                        <>
-                                            <button
-                                                onClick={prevImage}
-                                                className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                                            >
-                                                <ChevronLeft className="h-4 w-4" />
-                                            </button>
-                                            <button
-                                                onClick={nextImage}
-                                                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                                            >
-                                                <ChevronRight className="h-4 w-4" />
-                                            </button>
-                                        </>
-                                    )}
-                                    
-                                    {/* Indicadores del carrusel */}
-                                    {images.length > 1 && (
-                                        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-                                            {images.map((_, index) => (
-                                                <button
-                                                    key={index}
-                                                    onClick={() => setCurrentImageIndex(index)}
-                                                    className={`w-2 h-2 rounded-full transition-all duration-200 ${
-                                                        index === currentImageIndex 
-                                                            ? 'bg-white' 
-                                                            : 'bg-white/50 hover:bg-white/75'
-                                                    }`}
-                                                />
-                                            ))}
-                                        </div>
-                                    )}
-                                    
-                                    <div className="absolute top-4 left-4">
+                                    {/* Badges superpuestos */}
+                                    <div className="absolute top-4 left-4 z-10">
                                         <span className="bg-white/90 backdrop-blur-sm text-gray-800 px-3 py-1 rounded-full text-sm font-medium shadow-lg">
                                             {publication.category.name}
                                         </span>
                                     </div>
-                                    <div className="absolute top-4 right-4 flex gap-2">
+                                    <div className="absolute top-4 right-4 z-10 flex gap-2">
                                         <span className={`px-3 py-1 rounded-full text-sm font-medium shadow-lg ${
                                             publication.status === 1 
                                                 ? 'bg-green-500 text-white' 

@@ -1,10 +1,11 @@
 import AppLayout from "@/layouts/app-layout";
 import { BreadcrumbItem, Publication } from "@/types";
 import { Head, Link, router } from "@inertiajs/react";
-import { ArrowLeft, Edit, Eye, EyeOff, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
-import { useState, useEffect } from "react";
+import { ArrowLeft, Edit, Eye, EyeOff, Trash2 } from "lucide-react";
+import { useState } from "react";
 import MiniMap from "@/components/publications/MiniMap";
 import DeleteConfirmationModal from "@/components/publications/delete-confirmation-modal";
+import ImageGallery from "@/components/publications/ImageGallery";
 
 interface MyPublicationViewProps {
   publication: Publication;
@@ -18,9 +19,6 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
     },
   ];
 
-  // Estado para el carrusel de imágenes
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  
   // Estado para el modal de confirmación de eliminación
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -30,23 +28,6 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
     publication.images && publication.images.length > 0
       ? publication.images.map((img) => `/storage/${img.image_url}`)
       : [];
-
-  // Resetear el índice cuando cambien las imágenes
-  useEffect(() => {
-    setCurrentImageIndex(0);
-  }, [publication.images]);
-
-  const nextImage = () => {
-    if (images.length > 0) {
-      setCurrentImageIndex((prev) => (prev + 1) % images.length);
-    }
-  };
-
-  const prevImage = () => {
-    if (images.length > 0) {
-      setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
-    }
-  };
 
   const handleDelete = () => {
     setDeleteModalOpen(true);
@@ -92,62 +73,20 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
               </Link>
 
               <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-                <div className="relative group">
-                  {images.length > 0 ? (
-                    <img
-                      src={images[currentImageIndex]}
-                      alt={publication.title}
-                      className="w-full h-80 sm:h-96 lg:h-[510px] xl:h-[560px] object-cover transition-opacity duration-300"
-                    />
-                  ) : (
-                    <div className="w-full h-80 sm:h-96 lg:h-[510px] xl:h-[560px] bg-gray-200 flex items-center justify-center">
-                      <div className="text-center">
-                        <div className="text-6xl text-gray-400 mb-4">📷</div>
-                        <p className="text-gray-500 text-lg">Sin imágenes</p>
-                        <p className="text-gray-400 text-sm">Esta publicación no tiene imágenes</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Controles del carrusel */}
-                  {images.length > 1 && (
-                    <>
-                      <button
-                        onClick={prevImage}
-                        className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={nextImage}
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </button>
-                    </>
-                  )}
-
-                  {/* Indicadores del carrusel */}
-                  {images.length > 1 && (
-                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-                      {images.map((_, index) => (
-                        <button
-                          key={index}
-                          onClick={() => setCurrentImageIndex(index)}
-                          className={`w-2 h-2 rounded-full transition-all duration-200 ${
-                            index === currentImageIndex ? "bg-white" : "bg-white/50 hover:bg-white/75"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="absolute top-4 left-4">
+                <div className="relative">
+                  <ImageGallery 
+                    images={images}
+                    title={publication.title}
+                    className="w-full"
+                  />
+                  
+                  {/* Badges superpuestos */}
+                  <div className="absolute top-4 left-4 z-10">
                     <span className="bg-white/90 backdrop-blur-sm text-gray-800 px-3 py-1 rounded-full text-sm font-medium shadow-lg">
                       {publication.category.name}
                     </span>
                   </div>
-                  <div className="absolute top-4 right-4">
+                  <div className="absolute top-4 right-4 z-10">
                     <span
                       className={`px-3 py-1 rounded-full text-sm font-medium shadow-lg ${
                         publication.status === 1 ? "bg-green-500 text-white" : "bg-red-500 text-white"
