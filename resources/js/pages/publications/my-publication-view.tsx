@@ -5,6 +5,7 @@ import { ArrowLeft, Edit, Eye, EyeOff, Trash2, ChevronLeft, ChevronRight, Messag
 import { useState, useEffect } from "react";
 import MiniMap from "@/components/publications/MiniMap";
 import DeleteConfirmationModal from "@/components/publications/delete-confirmation-modal";
+import ImageGallery from "@/components/publications/ImageGallery";
 
 interface MyPublicationViewProps {
   publication: Publication;
@@ -17,9 +18,6 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
       href: `/my-publications/${publication.id}`,
     },
   ];
-
-  // Estado para el carrusel de imágenes
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   // Estado para el modal de apelación
   const [showAppealModal, setShowAppealModal] = useState(false);
@@ -34,23 +32,6 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
     publication.images && publication.images.length > 0
       ? publication.images.map((img) => `/storage/${img.image_url}`)
       : [];
-
-  // Resetear el índice cuando cambien las imágenes
-  useEffect(() => {
-    setCurrentImageIndex(0);
-  }, [publication.images]);
-
-  const nextImage = () => {
-    if (images.length > 0) {
-      setCurrentImageIndex((prev) => (prev + 1) % images.length);
-    }
-  };
-
-  const prevImage = () => {
-    if (images.length > 0) {
-      setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
-    }
-  };
 
   const handleDelete = () => {
     setDeleteModalOpen(true);
@@ -130,61 +111,20 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
               </Link>
 
               <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-                <div className="relative group">
-                  {images.length > 0 ? (
-                    <img
-                      src={images[currentImageIndex]}
-                      alt={publication.title}
-                      className="w-full h-80 sm:h-96 lg:h-[510px] xl:h-[560px] object-cover transition-opacity duration-300"
-                    />
-                  ) : (
-                    <div className="w-full h-80 sm:h-96 lg:h-[510px] xl:h-[560px] bg-gray-200 flex items-center justify-center">
-                      <div className="text-center">
-                        <div className="text-6xl text-gray-400 mb-4">📷</div>
-                        <p className="text-gray-500 text-lg">Sin imágenes</p>
-                        <p className="text-gray-400 text-sm">Esta publicación no tiene imágenes</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Controles del carrusel */}
-                  {images.length > 1 && (
-                    <>
-                      <button
-                        onClick={prevImage}
-                        className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={nextImage}
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </button>
-                    </>
-                  )}
-
-                  {/* Indicadores del carrusel */}
-                  {images.length > 1 && (
-                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-                      {images.map((_, index) => (
-                        <button
-                          key={index}
-                          onClick={() => setCurrentImageIndex(index)}
-                          className={`w-2 h-2 rounded-full transition-all duration-200 ${index === currentImageIndex ? "bg-white" : "bg-white/50 hover:bg-white/75"
-                            }`}
-                        />
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="absolute top-4 left-4">
+                <div className="relative">
+                  <ImageGallery 
+                    images={images}
+                    title={publication.title}
+                    className="w-full"
+                  />
+                  
+                  {/* Badges superpuestos */}
+                  <div className="absolute top-4 left-4 z-10">
                     <span className="bg-white/90 backdrop-blur-sm text-gray-800 px-3 py-1 rounded-full text-sm font-medium shadow-lg">
                       {publication.category.name}
                     </span>
                   </div>
-                  <div className="absolute top-4 right-4">
+                  <div className="absolute top-4 right-4 z-10">
                     <span
                       className={`px-3 py-1 rounded-full text-sm font-medium shadow-lg ${publication.status === 1 ? "bg-green-500 text-white" : "bg-red-500 text-white"
                         }`}
@@ -253,8 +193,9 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
                   <div className="flex justify-between items-center py-2">
                     <span className="text-gray-600 text-sm font-medium">Tipo:</span>
                     <span
-                      className={`px-3 py-1 rounded-full text-sm font-medium ${publication.type === "servicio"
-                          ? "bg-green-100 text-green-800"
+                      className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        publication.type === "servicio"
+                          ? "border border-purple-200 text-purple-800 bg-purple-50"
                           : "bg-blue-100 text-blue-800"
                         }`}
                     >
@@ -265,70 +206,72 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
                     <span className="text-gray-600 text-sm font-medium">Código:</span>
                     <span className="text-gray-900 font-mono text-sm">{publication.code}</span>
                   </div>
-                  {publication.serviceHours && publication.serviceHours.length > 0 ? (
-                    <div className="flex justify-between items-start py-2">
-                      <span className="text-gray-600 text-sm font-medium">Horario:</span>
-                      <div className="text-gray-900 text-sm text-right max-w-xs">
-                        {(() => {
-                          const dayNames = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-
-                          // Agrupar por horario
-                          const scheduleByTime: { [key: string]: number[] } = {};
-                          publication.serviceHours.forEach(hour => {
-                            const timeKey = `${hour.open_time.slice(0, 5)}-${hour.close_time.slice(0, 5)}`;
-                            if (!scheduleByTime[timeKey]) {
-                              scheduleByTime[timeKey] = [];
-                            }
-                            scheduleByTime[timeKey].push(hour.day_of_week);
-                          });
-
-                          // Formatear cada grupo de horario
-                          const formatTimeGroup = (timeKey: string, days: number[]) => {
-                            const sortedDays = days.sort((a, b) => a - b);
-
-                            // Agrupar días consecutivos
-                            const ranges: string[] = [];
-                            let start = sortedDays[0];
-                            let end = start;
-
-                            for (let i = 1; i < sortedDays.length; i++) {
-                              if (sortedDays[i] === end + 1) {
-                                end = sortedDays[i];
-                              } else {
-                                // Finalizar rango actual
-                                if (start === end) {
-                                  ranges.push(dayNames[start]);
-                                } else {
-                                  ranges.push(`${dayNames[start]} - ${dayNames[end]}`);
-                                }
-                                start = sortedDays[i];
-                                end = start;
+                  {publication.type === 'servicio' && (
+                    publication.serviceHours && publication.serviceHours.length > 0 ? (
+                      <div className="flex justify-between items-start py-2">
+                        <span className="text-gray-600 text-sm font-medium">Horario:</span>
+                        <div className="text-gray-900 text-sm text-right max-w-xs">
+                          {(() => {
+                            const dayNames = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+                            
+                            // Agrupar por horario
+                            const scheduleByTime: { [key: string]: number[] } = {};
+                            publication.serviceHours.forEach(hour => {
+                              const timeKey = `${hour.open_time.slice(0, 5)}-${hour.close_time.slice(0, 5)}`;
+                              if (!scheduleByTime[timeKey]) {
+                                scheduleByTime[timeKey] = [];
                               }
-                            }
+                              scheduleByTime[timeKey].push(hour.day_of_week);
+                            });
 
-                            // Agregar último rango
-                            if (start === end) {
-                              ranges.push(dayNames[start]);
-                            } else {
-                              ranges.push(`${dayNames[start]} - ${dayNames[end]}`);
-                            }
+                            // Formatear cada grupo de horario
+                            const formatTimeGroup = (timeKey: string, days: number[]) => {
+                              const sortedDays = days.sort((a, b) => a - b);
+                              
+                              // Agrupar días consecutivos
+                              const ranges: string[] = [];
+                              let start = sortedDays[0];
+                              let end = start;
+                              
+                              for (let i = 1; i < sortedDays.length; i++) {
+                                if (sortedDays[i] === end + 1) {
+                                  end = sortedDays[i];
+                                } else {
+                                  // Finalizar rango actual
+                                  if (start === end) {
+                                    ranges.push(dayNames[start]);
+                                  } else {
+                                    ranges.push(`${dayNames[start]} - ${dayNames[end]}`);
+                                  }
+                                  start = sortedDays[i];
+                                  end = start;
+                                }
+                              }
+                              
+                              // Agregar último rango
+                              if (start === end) {
+                                ranges.push(dayNames[start]);
+                              } else {
+                                ranges.push(`${dayNames[start]} - ${dayNames[end]}`);
+                              }
+                              
+                              return `${ranges.join(', ')}/${timeKey}`;
+                            };
 
-                            return `${ranges.join(', ')}/${timeKey}`;
-                          };
-
-                          return Object.keys(scheduleByTime)
-                            .map(timeKey => formatTimeGroup(timeKey, scheduleByTime[timeKey]))
-                            .join(', ');
-                        })()}
+                            return Object.keys(scheduleByTime)
+                              .map(timeKey => formatTimeGroup(timeKey, scheduleByTime[timeKey]))
+                              .join(', ');
+                          })()}
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="flex justify-between items-start py-2">
-                      <span className="text-gray-600 text-sm font-medium">Horario:</span>
-                      <div className="text-gray-900 text-sm text-right max-w-xs">
-                        No especificado
+                    ) : (
+                      <div className="flex justify-between items-start py-2">
+                        <span className="text-gray-600 text-sm font-medium">Horario:</span>
+                        <div className="text-gray-900 text-sm text-right max-w-xs">
+                          No especificado
+                        </div>
                       </div>
-                    </div>
+                    )
                   )}
                   <div className="flex justify-between items-center py-2">
                     <span className="text-gray-600 text-sm font-medium">Publicado:</span>

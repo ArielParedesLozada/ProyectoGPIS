@@ -85,7 +85,16 @@ export default function PublicationCard({ publication }: PublicationCardProps) {
 
                         {/* Precio y botón - siempre al final */}
                         <div className="flex items-center justify-between mt-auto">
-                            <p className="text-2xl font-bold text-foreground">${publication.price}</p>
+                            <div className="mb-3">
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <p className="text-2xl font-bold text-gray-900 cursor-help">${publication.price}</p>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Precio: ${publication.price}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </div>
                             <button className="bg-gray-200 text-gray-800 px-3 py-1 rounded text-sm font-medium">
                                 Disponible
                             </button>

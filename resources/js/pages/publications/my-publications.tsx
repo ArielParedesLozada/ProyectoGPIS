@@ -258,92 +258,103 @@ function MyPublicationsContent() {
                 href: '/my-publications',
             }]}>
             <Head title="Mis Publicaciones" />
-            <div className="bg-gray-50 min-h-screen">
+            
+            <div className="bg-gray-50 min-h-screen space-y-8 px-6 py-6">
                 {/* Header */}
-                <div className="bg-card border-b border-gray-200 px-6 py-8">
-                    <div className="max-w-7xl mx-auto">
+                <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 text-white mb-8">
                         <div className="flex justify-between items-start">
                             <div>
-                                <h1 className="text-3xl font-bold text-foreground mb-2">Mis Publicaciones</h1>
-                                <p className="text-muted-foreground">Gestiona tus productos y servicios</p>
-                                {publications.data.length > 0 && (
-                                    <p className="text-sm text-gray-500 mt-2">
-                                        Mostrando {publications.data.length} publicaciones
-                                    </p>
-                                )}
+                            <h1 className="text-3xl font-bold mb-2">Mis Publicaciones</h1>
+                            <p className="text-blue-100 text-lg">Gestiona tus productos y servicios</p>
+                            {publications.data.length > 0 && (
+                                <p className="text-sm text-blue-200 mt-2">
+                                    Mostrando {publications.data.length} publicaciones
+                                </p>
+                            )}
                             </div>
-                            <Link href="/my-publications/create">
-                                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                                    <Plus className="w-4 h-4 mr-2" />
-                                    Crear Publicación
-                                </Button>
-                            </Link>
-                        </div>
+                        <Link href="/my-publications/create">
+                            <Button variant="secondary" className="bg-white/20 text-white border-white/30 hover:bg-white/30">
+                                        <Plus className="w-4 h-4 mr-2" />
+                                        Crear Publicación
+                                    </Button>
+                        </Link>
                     </div>
                 </div>
 
                 {/* Stats Cards */}
-                <div className="max-w-7xl mx-auto px-6 py-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Total Publicaciones</CardTitle>
-                                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <div className="max-w-7xl mx-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+                        <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 bg-white/95 backdrop-blur-sm border border-gray-200/50">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm font-semibold text-gray-700 flex items-center">
+                                    <DollarSign className="h-5 w-5 mr-2 text-blue-600" />
+                                    Total Publicaciones
+                                </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{publications.data.length}</div>
+                                <div className="text-3xl font-bold text-blue-600 mb-2">{publications.data.length}</div>
+                                <p className="text-sm text-gray-600">Registradas en el sistema</p>
                             </CardContent>
                         </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Habilitadas</CardTitle>
-                                <Eye className="h-4 w-4 text-muted-foreground" />
+                        <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-all duration-200 bg-white/95 backdrop-blur-sm border border-gray-200/50">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm font-semibold text-gray-700 flex items-center">
+                                    <Eye className="h-5 w-5 mr-2 text-green-600" />
+                                    Habilitadas
+                                </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">
+                                <div className="text-3xl font-bold text-green-600 mb-2">
                                     {publications.data.filter(p => p.status === 1).length}
                                 </div>
+                                <p className="text-sm text-gray-600">Visibles al público </p>
                             </CardContent>
                         </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Inhabilitadas</CardTitle>
-                                <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        <Card className="border-l-4 border-l-red-500 hover:shadow-lg transition-all duration-200 bg-white/95 backdrop-blur-sm border border-gray-200/50">
+                            <CardHeader className="pb-3" >
+                                <CardTitle className="text-sm font-semibold text-gray-700 flex items-center">
+                                    <EyeOff className="h-5 w-5 mr-2 text-red-600" />
+                                    Inhabilitadas
+                                </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">
+                                <div className="text-3xl font-bold text-red-600 mb-2" >
                                     {publications.data.filter(p => p.status === 2).length}
                                 </div>
+                                <p className="text-sm text-gray-600">No visibles al público</p>
                             </CardContent>
                         </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Ocultas por Moderación</CardTitle>
-                                <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                        <Card className="border-l-4 border-l-red-500 hover:shadow-lg transition-all duration-200 bg-white/95 backdrop-blur-sm border border-gray-200/50">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm font-semibold text-gray-700 flex items-center">
+                                    <EyeOff className="h-5 w-5 mr-2 text-red-600" />
+                                    Inhabilitadas
+                                </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">
-                                    {publications.data.filter(p => p.is_hidden).length}
+                                <div className="text-3xl font-bold text-red-600 mb-2">
+                                    {publications.data.filter(p => p.status === 2).length}
                                 </div>
+                                <p className="text-sm text-gray-600">No visibles al público</p>
                             </CardContent>
                         </Card>
                     </div>
 
                     {/* Publications Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {publications.data.map((publication) => (
-                            <Card key={publication.id} className="group hover:shadow-lg transition-shadow">
+                            <Card key={publication.id} className="group hover:shadow-lg transition-all duration-200 bg-white/95 backdrop-blur-sm border border-gray-200/50 overflow-hidden">
                                 <CardHeader className="pb-3">
                                     <div className="flex justify-between items-start">
-                                        <div className="flex-1 min-w-0">
-                                            <ConditionalTooltip
-                                                content={publication.title}
-                                                className="text-lg line-clamp-2 mb-2"
-                                            >
-                                                <CardTitle>
-                                                    {publication.title}
-                                                </CardTitle>
-                                            </ConditionalTooltip>
+                                            <div className="flex-1 min-w-0">
+                                                <ConditionalTooltip 
+                                                    content={publication.title}
+                                                    className="text-lg line-clamp-2 mb-2"
+                                                >
+                                                    <CardTitle>
+                                                {publication.title}
+                                            </CardTitle>
+                                                </ConditionalTooltip>
                                             <div className="flex gap-2 mb-2">
                                                 {getStatusBadge(publication)}
                                                 {getTypeBadge(publication.type)}
@@ -430,9 +441,10 @@ function MyPublicationsContent() {
                                             className="text-sm text-gray-600 line-clamp-2"
                                         >
                                             <p>
-                                                {publication.description}
-                                            </p>
+                                            {publication.description}
+                                        </p>
                                         </ConditionalTooltip>
+                                        {/* Location */}
                                         {publication.is_hidden && publication.moderation_reason && (
                                             <div className="bg-red-50 border border-red-200 rounded-lg p-3 mt-2">
                                                 <div className="flex items-start gap-2">
@@ -453,20 +465,19 @@ function MyPublicationsContent() {
                                                 </div>
                                             </div>
                                         )}
-                                        {/* Price and Location */}
-                                        <div className="flex justify-between items-center">
-                                            <div className="flex items-center text-sm text-gray-500">
-                                                <MapPin className="w-4 h-4 mr-1" />
-                                                <span className="truncate">{publication.location}</span>
-                                            </div>
-                                            <div className="text-xl font-bold text-foreground">
+
+                                        {/* Price */}
+                                        <div className="mb-3">
+                                            <div className="text-xl font-bold text-gray-900">
                                                 ${publication.price}
                                             </div>
                                         </div>
 
                                         {/* Date */}
                                         <div className="flex items-center text-xs text-gray-500">
-                                            <Calendar className="w-3 h-3 mr-1" />
+                                            <svg className="w-3 h-3 text-blue-500 mr-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                                            </svg>
                                             <span>
                                                 {new Date(publication.published_at).toLocaleDateString()}
                                             </span>
