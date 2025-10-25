@@ -1,9 +1,9 @@
 import AppLayout from "@/layouts/app-layout";
 import { publicationView } from "@/routes";
-import { BreadcrumbItem, Publication } from "@/types";
-import { Head, Link, usePage } from "@inertiajs/react";
+import { BreadcrumbItem, Publication, SharedData } from "@/types";
+import { Head, Link, usePage, router } from "@inertiajs/react";
 import { ArrowLeft } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import MiniMap from "@/components/publications/MiniMap";
 import ReportModal from "@/components/publications/report-modal";
 import ImageGallery from "@/components/publications/ImageGallery";
@@ -13,7 +13,7 @@ interface PublicationViewProps {
 }
 
 export default function PublicationView({ publication }: PublicationViewProps) {
-    const { url } = usePage();
+    const { url, auth } = usePage<SharedData>().props;
     
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -24,6 +24,7 @@ export default function PublicationView({ publication }: PublicationViewProps) {
 
     // Estado para el modal de reporte
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+    const [isFavorite, setIsFavorite] = useState(false);
     
     // Determinar la URL de regreso basada en el referrer o parámetros
     const getBackUrl = () => {
@@ -48,6 +49,74 @@ export default function PublicationView({ publication }: PublicationViewProps) {
         
         // Por defecto, regresar a publicaciones
         return '/publication';
+    };
+    
+    // Verificar si la publicación está en favoritos al cargar
+    useEffect(() => {
+        if (auth.user) {
+            const checkFavoriteStatus = async () => {
+                try {
+                    // Usar AbortController para cancelar requests anteriores
+                    const controller = new AbortController();
+                    const response = await fetch(`/favorites/check/${publication.id}`, {
+                        signal: controller.signal,
+                        cache: 'no-cache', // Evitar cache
+                        headers: {
+                            'Cache-Control': 'no-cache',
+                            'Pragma': 'no-cache'
+                        }
+                    });
+                    const data = await response.json();
+                    setIsFavorite(data.isFavorite);
+                } catch (error) {
+                    if (error instanceof Error && error.name !== 'AbortError') {
+                        console.error('Error checking favorite status:', error);
+                        setIsFavorite(false);
+                    }
+                }
+            };
+
+            // Ejecutar inmediatamente
+            checkFavoriteStatus();
+        }
+    }, [publication.id, auth.user]);
+
+    const handleFavoriteClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (!auth.user) {
+            router.visit('/login');
+            return;
+        }
+        
+        // Actualizar estado inmediatamente para mejor UX
+        const newFavoriteState = !isFavorite;
+        setIsFavorite(newFavoriteState);
+        
+        if (newFavoriteState) {
+            // Agregar a favoritos
+            router.post(`/favorites/${publication.id}`, {}, {
+                onSuccess: () => {
+                    // Estado ya actualizado
+                },
+                onError: () => {
+                    // Revertir estado si hay error
+                    setIsFavorite(false);
+                }
+            });
+        } else {
+            // Quitar de favoritos
+            router.delete(`/favorites/${publication.id}`, {
+                onSuccess: () => {
+                    // Estado ya actualizado
+                },
+                onError: () => {
+                    // Revertir estado si hay error
+                    setIsFavorite(true);
+                }
+            });
+        }
     };
     
     // Array de imágenes reales de la base de datos
@@ -121,8 +190,15 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                                     <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition">
                                         Contactar Vendedor
                                     </button>
-                                    <button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-6 rounded-xl transition">
-                                        Agregar a Favoritos
+                                    <button 
+                                        onClick={handleFavoriteClick}
+                                        className={`w-full font-semibold py-3 px-6 rounded-xl transition ${
+                                            isFavorite 
+                                                ? 'bg-red-500 hover:bg-red-600 text-white' 
+                                                : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                                        }`}
+                                    >
+                                        {isFavorite ? 'Quitar de Favoritos' : 'Agregar a Favoritos'}
                                     </button>
                                 </div>
                             </div>
