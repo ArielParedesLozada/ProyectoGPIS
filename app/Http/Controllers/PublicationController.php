@@ -1068,22 +1068,46 @@ class PublicationController extends Controller
                     'assigned_moderator_id' => null,
                     'assigned_at' => null,
                 ]);
+                
+                // Asignar a un moderador diferente para revisar la apelación
+                Log::info('Asignando apelación a moderador diferente');
+                $this->assignAppealToDifferentModerator($moderationCase, $originalModeratorId);
+                
+                DB::commit();
+                Log::info('Apelación procesada exitosamente');
+                
+                return redirect()->back()->with('success', 'Apelación enviada correctamente. Un moderador diferente revisará tu caso.');
             } else {
-                // Si ya está en "appealed", solo desasignar al moderador actual
-                $moderationCase->update([
-                    'assigned_moderator_id' => null,
-                    'assigned_at' => null,
-                ]);
+                // Si ya está en "appealed", verificar si ya tiene un moderador asignado
+                if ($moderationCase->assigned_moderator_id) {
+                    // Ya hay un moderador asignado para revisar apelaciones
+                    // Las apelaciones adicionales siguen siendo del mismo moderador
+                    Log::info('Caso ya tiene moderador asignado para apelaciones', [
+                        'assigned_moderator_id' => $moderationCase->assigned_moderator_id,
+                        'case_id' => $moderationCase->id
+                    ]);
+                    
+                    DB::commit();
+                    Log::info('Apelación adicional procesada - manteniendo moderador actual');
+                    
+                    return redirect()->back()->with('success', 'Apelación enviada correctamente. El moderador asignado revisará tu caso.');
+                } else {
+                    // No hay moderador asignado, desasignar y buscar uno nuevo
+                    $moderationCase->update([
+                        'assigned_moderator_id' => null,
+                        'assigned_at' => null,
+                    ]);
+                    
+                    // Asignar a un moderador diferente
+                    Log::info('Asignando apelación a moderador diferente');
+                    $this->assignAppealToDifferentModerator($moderationCase, $originalModeratorId);
+                    
+                    DB::commit();
+                    Log::info('Apelación procesada exitosamente');
+                    
+                    return redirect()->back()->with('success', 'Apelación enviada correctamente. Un moderador diferente revisará tu caso.');
+                }
             }
-
-            // Asignar a un moderador diferente
-            Log::info('Asignando apelación a moderador diferente');
-            $this->assignAppealToDifferentModerator($moderationCase, $originalModeratorId);
-
-            DB::commit();
-            Log::info('Apelación procesada exitosamente');
-
-            return redirect()->back()->with('success', 'Apelación enviada correctamente. Un moderador diferente revisará tu caso.');
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al enviar apelación: ' . $e->getMessage(), [
