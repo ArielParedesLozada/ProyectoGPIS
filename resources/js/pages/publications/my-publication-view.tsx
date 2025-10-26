@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import MiniMap from "@/components/publications/MiniMap";
 import DeleteConfirmationModal from "@/components/publications/delete-confirmation-modal";
 import ImageGallery from "@/components/publications/ImageGallery";
+import HeightSync from "@/components/layout/HeightSync";
 
 interface MyPublicationViewProps {
   publication: Publication;
@@ -99,45 +100,46 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
 
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
+          {/* Flecha de regreso - fuera del grid */}
+          <div className="mb-2">
+            <Link
+              href="/my-publications"
+              className="inline-flex items-center justify-center w-7 h-7 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             {/* Columna izquierda - Imagen */}
             <div className="lg:col-span-2">
-              {/* Flecha de regreso - posicionada absolutamente */}
-              <Link
-                href="/my-publications"
-                className="absolute top-0 left-0 z-10 inline-flex items-center justify-center w-8 h-8 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Link>
-
-              <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-                <div className="relative">
-                  <ImageGallery 
-                    images={images}
-                    title={publication.title}
-                    className="w-full"
-                  />
-                  
-                  {/* Badges superpuestos */}
-                  <div className="absolute top-4 left-4 z-10">
-                    <span className="bg-white/90 backdrop-blur-sm text-gray-800 px-3 py-1 rounded-full text-sm font-medium shadow-lg">
-                      {publication.category.name}
-                    </span>
-                  </div>
-                  <div className="absolute top-4 right-4 z-10">
-                    <span
-                      className={`px-3 py-1 rounded-full text-sm font-medium shadow-lg ${publication.status === 1 ? "bg-green-500 text-white" : "bg-red-500 text-white"
-                        }`}
-                    >
-                      {publication.status === 1 ? "Habilitado" : "Inhabilitado"}
-                    </span>
+              <HeightSync syncWith="#right-detail-panel" enableFrom="lg" minHeight={360} maxHeight={900}>
+                <div className="bg-white rounded-2xl shadow-lg overflow-hidden h-full">
+                  <div className="relative h-full">
+                    <ImageGallery 
+                      images={images}
+                      title={publication.title}
+                      className="w-full h-full"
+                    />
+                    
+                    {/* badges existentes */}
+                    <div className="absolute top-4 left-4 z-10">
+                      <span className="bg-white/90 backdrop-blur-sm text-gray-800 px-3 py-1 rounded-full text-sm font-medium shadow-lg">
+                        {publication.category.name}
+                      </span>
+                    </div>
+                    <div className="absolute top-4 right-4 z-10">
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium shadow-lg ${publication.status === 1 ? "bg-green-500 text-white" : "bg-red-500 text-white"}`}>
+                        {publication.status === 1 ? "Habilitado" : "Inhabilitado"}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </HeightSync>
             </div>
 
             {/* Columna derecha - Información */}
-            <div className="flex flex-col space-y-6 justify-start">
+            <div id="right-detail-panel" className="flex flex-col space-y-6 justify-start">
               {/* Card de precio */}
               <div className="bg-white rounded-2xl shadow-lg p-6">
                 <div className="text-center mb-6">
@@ -282,29 +284,18 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
                 </div>
               </div>
 
-              {/* Card de acciones peligrosas */}
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h3 className="font-bold text-gray-900 mb-4 text-lg">Acciones Peligrosas</h3>
-
-                {/* Botón de apelación si la publicación está oculta */}
-                {publication.is_hidden && (
+              {/* Botón de apelación si la publicación está oculta */}
+              {publication.is_hidden && (
+                <div className="bg-white rounded-2xl shadow-lg p-6">
                   <button
                     onClick={() => setShowAppealModal(true)}
-                    className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-6 rounded-xl transition mb-3"
+                    className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-6 rounded-xl transition"
                   >
                     <MessageSquare className="w-4 h-4 mr-2 inline" />
                     Apelar Moderación
                   </button>
-                )}
-
-                <button
-                  onClick={handleDelete}
-                  className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-xl transition"
-                >
-                  <Trash2 className="w-4 h-4 mr-2 inline" />
-                  Eliminar Publicación
-                </button>
-              </div>
+                </div>
+              )}
             </div>
           </div>
 

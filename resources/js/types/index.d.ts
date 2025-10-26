@@ -81,7 +81,8 @@ export interface Publication {
     is_hidden?: boolean;
     can_appeal?: boolean;
     moderation_reason?: string;
-    moderation_date?: Date
+    moderation_date?: Date;
+    is_final_decision?: boolean;
 }
 
 export interface Paginated<T> {
