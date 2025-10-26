@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import MiniMap from "@/components/publications/MiniMap";
 import DeleteConfirmationModal from "@/components/publications/delete-confirmation-modal";
 import ImageGallery from "@/components/publications/ImageGallery";
-import SmartImage from "@/components/ui/smart-image";
+import HeightSync from "@/components/layout/HeightSync";
 
 interface MyPublicationViewProps {
   publication: Publication;
@@ -102,8 +102,8 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             {/* Columna izquierda - Imagen */}
-            <div className="lg:col-span-2">
-              {/* Flecha de regreso - posicionada absolutamente */}
+            <div className="lg:col-span-2 relative">
+              {/* Flecha de regreso absoluta fuera del HeightSync */}
               <Link
                 href="/my-publications"
                 className="absolute top-0 left-0 z-10 inline-flex items-center justify-center w-8 h-8 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
@@ -111,34 +111,33 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
                 <ArrowLeft className="h-4 w-4" />
               </Link>
 
-              <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-                <div className="relative">
-                  <ImageGallery 
-                    images={images}
-                    title={publication.title}
-                    className="w-full"
-                  />
-                  
-                  {/* Badges superpuestos */}
-                  <div className="absolute top-4 left-4 z-10">
-                    <span className="bg-white/90 backdrop-blur-sm text-gray-800 px-3 py-1 rounded-full text-sm font-medium shadow-lg">
-                      {publication.category.name}
-                    </span>
-                  </div>
-                  <div className="absolute top-4 right-4 z-10">
-                    <span
-                      className={`px-3 py-1 rounded-full text-sm font-medium shadow-lg ${publication.status === 1 ? "bg-green-500 text-white" : "bg-red-500 text-white"
-                        }`}
-                    >
-                      {publication.status === 1 ? "Habilitado" : "Inhabilitado"}
-                    </span>
+              <HeightSync syncWith="#right-detail-panel" enableFrom="lg" minHeight={360} maxHeight={900}>
+                <div className="bg-white rounded-2xl shadow-lg overflow-hidden h-full">
+                  <div className="relative h-full">
+                    <ImageGallery 
+                      images={images}
+                      title={publication.title}
+                      className="w-full h-full"
+                    />
+                    
+                    {/* badges existentes */}
+                    <div className="absolute top-4 left-4 z-10">
+                      <span className="bg-white/90 backdrop-blur-sm text-gray-800 px-3 py-1 rounded-full text-sm font-medium shadow-lg">
+                        {publication.category.name}
+                      </span>
+                    </div>
+                    <div className="absolute top-4 right-4 z-10">
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium shadow-lg ${publication.status === 1 ? "bg-green-500 text-white" : "bg-red-500 text-white"}`}>
+                        {publication.status === 1 ? "Habilitado" : "Inhabilitado"}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </HeightSync>
             </div>
 
             {/* Columna derecha - Información */}
-            <div className="flex flex-col space-y-6 justify-start">
+            <div id="right-detail-panel" className="flex flex-col space-y-6 justify-start">
               {/* Card de precio */}
               <div className="bg-white rounded-2xl shadow-lg p-6">
                 <div className="text-center mb-6">

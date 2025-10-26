@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import ReportModal from "./report-modal";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { Heart } from "lucide-react";
-import SmartImage from "../ui/smart-image";
+import SmartThumbnail from "../ui/smart-thumbnail";
 
 interface PublicationCardProps {
     publication: Publication;
@@ -72,13 +72,13 @@ export default function PublicationCard({ publication }: PublicationCardProps) {
     return (
             <div className="group relative bg-white dark:bg-slate-800 rounded-2xl shadow-sm hover:shadow-xl dark:hover:shadow-2xl transition-all duration-300 border border-gray-100 dark:border-slate-700 overflow-hidden h-full flex flex-col">
             {/* Imagen del producto */}
-            <div className="relative overflow-hidden">
-                <SmartImage
+            <div className="relative overflow-hidden h-48">
+                <SmartThumbnail
                     src={publication.images && publication.images.length > 0
                         ? `/storage/${publication.images[0].image_url}`
                         : "https://picsum.photos/300/200"}
                     alt={publication.title}
-                    className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                    className="group-hover:scale-105 transition-transform duration-300"
                 />
                 
                 {/* Overlay con gradiente sutil */}

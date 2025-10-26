@@ -28,7 +28,7 @@ import {
 import DeleteConfirmationModal from "@/components/publications/delete-confirmation-modal";
 import GeneralModal from "@/components/ui/general-modal";
 import EmptyState from "@/components/ui/empty-state";
-import SmartImage from "@/components/ui/smart-image";
+import SmartThumbnail from "@/components/ui/smart-thumbnail";
 // useToast removido - se usa FlashToastHandler globalmente
 
 // Componente para tooltip condicional
@@ -294,7 +294,7 @@ function MyPublicationsContent() {
                                                 className="text-lg line-clamp-2 mb-3"
                                             >
                                                 <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100 leading-tight">
-                                                    {publication.title}
+                                                {publication.title}
                                                 </h3>
                                             </ConditionalTooltip>
                                             <div className="flex gap-2 mb-3">
@@ -372,18 +372,18 @@ function MyPublicationsContent() {
                                 </div>
 
                                 {/* Imagen */}
-                                <div className="relative mx-5 mb-4">
-                                    <SmartImage
-                                        src={publication.images?.[0]?.image_url ? `/storage/${publication.images[0].image_url}` : "https://picsum.photos/300/200"}
-                                        alt={publication.title}
-                                        className="w-full h-40 rounded-xl object-cover group-hover:scale-105 transition-transform duration-300"
-                                    />
+                                <div className="relative mx-5 mb-4 h-40">
+                                    <SmartThumbnail
+                                                src={publication.images?.[0]?.image_url ? `/storage/${publication.images[0].image_url}` : "https://picsum.photos/300/200"}
+                                                alt={publication.title}
+                                        className="rounded-xl group-hover:scale-105 transition-transform duration-300"
+                                            />
                                     <div className="absolute top-3 left-3">
                                         <Badge variant="secondary" className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm text-slate-700 dark:text-slate-200 text-xs font-semibold px-3 py-1.5 rounded-full shadow-sm border border-gray-200/50 dark:border-slate-600/50">
-                                            {publication.category.name}
-                                        </Badge>
-                                    </div>
-                                </div>
+                                                    {publication.category.name}
+                                                </Badge>
+                                            </div>
+                                        </div>
 
                                 {/* Contenido */}
                                 <div className="px-5 pb-5 flex flex-col flex-grow">
@@ -398,7 +398,7 @@ function MyPublicationsContent() {
                                     </ConditionalTooltip>
 
                                     {/* Ubicación */}
-                                    <div className="flex items-center text-sm text-slate-500 dark:text-slate-400 mb-4">
+                                    <div className="flex items-center text-sm text-slate-500 dark:text-slate-400 mb-2">
                                         <svg className="w-4 h-4 text-red-500 dark:text-red-400 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                             <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                                         </svg>
@@ -429,14 +429,14 @@ function MyPublicationsContent() {
                                                             {(publication as any).is_final_decision ? 'Decisión final el' : 'Oculto el'} {new Date(publication.moderation_date).toLocaleDateString()}
                                                         </p>
                                                     )}
-                                                </div>
+                                            </div>
                                             </div>
                                         </div>
                                     )}
 
                                     {/* Precio y fecha */}
-                                    <div className="mt-auto pt-4 border-t border-gray-100 dark:border-slate-700">
-                                        <div className="flex justify-between items-center mb-3">
+                                    <div className="mt-auto pt-2 border-t border-gray-100 dark:border-slate-700">
+                                        <div className="flex justify-between items-center">
                                             <div>
                                                 <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">${publication.price}</p>
                                             </div>

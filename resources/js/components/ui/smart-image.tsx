@@ -1,63 +1,81 @@
 import { useState, useRef, useEffect } from "react";
 
 interface SmartImageProps {
-    src: string;
-    alt: string;
-    className?: string;
-    style?: React.CSSProperties;
+  src: string;
+  alt: string;
+  className?: string;
+  style?: React.CSSProperties;
+
+  /** Autoswitch por relación de aspecto o forzar */
+  fit?: "auto" | "contain" | "cover";
+
+  /** Fondo cuando usamos contain (bandas) */
+  backdropColor?: string;
 }
 
-export default function SmartImage({ src, alt, className = "", style = {} }: SmartImageProps) {
-    const [imageStyle, setImageStyle] = useState({
-        objectFit: 'cover' as 'cover' | 'contain',
-        backgroundColor: 'transparent'
-    });
-    const imgRef = useRef<HTMLImageElement>(null);
+export default function SmartImage({
+  src,
+  alt,
+  className = "",
+  style = {},
+  fit = "auto",
+  backdropColor = "transparent",
+}: SmartImageProps) {
+  const [imageStyle, setImageStyle] = useState<{
+    objectFit: "cover" | "contain";
+    backgroundColor: string;
+  }>({
+    objectFit: "cover",
+    backgroundColor: "transparent",
+  });
 
-    useEffect(() => {
-        const img = imgRef.current;
-        if (!img) return;
+  const imgRef = useRef<HTMLImageElement>(null);
 
-        const handleLoad = () => {
-            const aspectRatio = img.naturalWidth / img.naturalHeight;
-            // Si la imagen es más alta que ancha (ratio < 1), usar contain
-            // Si es más ancha que alta (ratio >= 1), usar cover
-            if (aspectRatio < 1) {
-                setImageStyle({
-                    objectFit: 'contain',
-                    backgroundColor: '#f3f4f6'
-                });
-            } else {
-                setImageStyle({
-                    objectFit: 'cover',
-                    backgroundColor: 'transparent'
-                });
-            }
-        };
+  useEffect(() => {
+    const img = imgRef.current;
+    if (!img) return;
 
-        // Si la imagen ya está cargada
-        if (img.complete) {
-            handleLoad();
-        } else {
-            img.addEventListener('load', handleLoad);
-        }
+    if (fit !== "auto") {
+      setImageStyle({ objectFit: fit, backgroundColor: backdropColor });
+      return;
+    }
 
-        return () => {
-            img.removeEventListener('load', handleLoad);
-        };
-    }, [src]);
+    const handleLoad = () => {
+      const r = img.naturalWidth / img.naturalHeight;
+      if (r > 1.1) {
+        // Horizontal → llenar
+        setImageStyle({ objectFit: "cover", backgroundColor: "transparent" });
+      } else if (r < 0.9) {
+        // Vertical → mostrar completa
+        setImageStyle({ objectFit: "contain", backgroundColor: "#f3f4f6" });
+      } else {
+        // Cuadrada o intermedia
+        setImageStyle({ objectFit: "cover", backgroundColor: "transparent" });
+      }
+    };
 
-    return (
-        <img
-            ref={imgRef}
-            src={src}
-            alt={alt}
-            className={className}
-            style={{
-                objectFit: imageStyle.objectFit,
-                backgroundColor: imageStyle.backgroundColor,
-                ...style
-            }}
-        />
-    );
+    if (img.complete) handleLoad();
+    else img.addEventListener("load", handleLoad);
+    return () => img.removeEventListener("load", handleLoad);
+  }, [src, fit, backdropColor]);
+
+  return (
+    <img
+      ref={imgRef}
+      src={src}
+      alt={alt}
+      draggable={false}
+      className={`block w-full h-full ${className}`}
+      style={{
+        objectFit: imageStyle.objectFit,
+        backgroundColor: imageStyle.backgroundColor,
+
+        // Passthrough útil para el zoom del viewer
+        transform: style?.transform,
+        transformOrigin: style?.transformOrigin,
+        cursor: style?.cursor,
+        willChange: style?.willChange,
+      }}
+    />
+  );
 }
