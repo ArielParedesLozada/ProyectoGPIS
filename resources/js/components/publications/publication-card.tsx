@@ -1,5 +1,5 @@
 import { publicationView } from "@/routes";
-import { Publication } from "@/types";
+import { Publication, SharedData } from "@/types";
 import { Link, router, usePage } from "@inertiajs/react";
 import { useState, useEffect } from "react";
 import ReportModal from "./report-modal";
@@ -12,7 +12,7 @@ interface PublicationCardProps {
 }
 
 export default function PublicationCard({ publication }: PublicationCardProps) {
-    const { url } = usePage();
+    const { url, auth } = usePage<SharedData>();
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
     const [isFavorite, setIsFavorite] = useState(false);
     
@@ -92,6 +92,7 @@ export default function PublicationCard({ publication }: PublicationCardProps) {
                 </div>
 
                 {/* Botón de reportar - esquina superior derecha */}
+                {publication.created_by !== auth?.user?.id && (
                 <div className="absolute top-3 right-3 z-20">
                     <button
                         onClick={handleReportClick}
@@ -103,6 +104,7 @@ export default function PublicationCard({ publication }: PublicationCardProps) {
                         </svg>
                     </button>
                 </div>
+                )}
 
                 {/* Botón de favoritos - esquina inferior izquierda */}
                 <div className="absolute bottom-3 left-3 z-20">

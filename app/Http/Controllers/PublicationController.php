@@ -230,6 +230,11 @@ class PublicationController extends Controller
 
     public function create()
     {
+        // Restringir creación de publicaciones para el rol comprador
+        if (Auth::user()->role === 'comprador') {
+            return redirect()->route('publication-index')->with('error', 'Los compradores no pueden crear publicaciones.');
+        }
+
         $categories = Category::select('id', 'name')->get();
 
         return Inertia::render('publications/create-publication', [
@@ -240,6 +245,11 @@ class PublicationController extends Controller
     public function store(Request $request)
     {
         try {
+            // Restringir creación de publicaciones para el rol comprador
+            if (Auth::user()->role === 'comprador') {
+                return redirect()->route('publication-index')->with('error', 'Los compradores no pueden crear publicaciones.');
+            }
+
             // Validación actualizada - lat y lng son obligatorios
             $request->validate([
                 'title' => 'required|string|max:255',
@@ -755,8 +765,10 @@ class PublicationController extends Controller
     public function favorites()
     {
         try {
-            $favorites = Auth::user()->favorites()
+            // Obtener favoritos paginados usando la relación
+            $favorites = Favorite::where('user_id', Auth::id())
                 ->with(['publication.category', 'publication.images', 'publication.serviceHours'])
+                ->orderBy('created_at', 'desc')
                 ->paginate(12);
 
             // Transformar los datos para que sean compatibles con el frontend
@@ -850,6 +862,11 @@ class PublicationController extends Controller
         try {
             $publication = Publication::findOrFail($id);
             $reporterId = Auth::id();
+
+            // Verificar que el usuario no esté reportando su propia publicación
+            if ($publication->created_by === $reporterId) {
+                return back()->withErrors(['error' => 'No puedes reportar tu propia publicación.']);
+            }
 
             // Rate limiting: verificar si el usuario ya reportó esta publicación en los últimos 60 minutos
             $recentReport = ModerationReport::where('reporter_id', $reporterId)

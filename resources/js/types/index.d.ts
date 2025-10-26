@@ -68,6 +68,7 @@ export interface Publication {
     category_id: number;
     user: User,
     category: Category;
+    created_by?: number;
     images?: Array<{
         id: number;
         image_url: string;
