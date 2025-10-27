@@ -30,6 +30,26 @@ class PublicationController extends Controller
 {
     public function index(Request $request)
     {
+        // Validar precios
+        if ($request->filled('min_price') && $request->filled('max_price')) {
+            $minPrice = (float) $request->min_price;
+            $maxPrice = (float) $request->max_price;
+            
+            if ($minPrice > $maxPrice) {
+                return redirect()->back()->with('error', 'El precio mínimo no puede ser mayor que el precio máximo.');
+            }
+        }
+        
+        // Mostrar mensaje informativo cuando solo se selecciona precio mínimo
+        if ($request->filled('min_price') && !$request->filled('max_price')) {
+            return redirect()->back()->with('info', 'Para filtrar por precio, selecciona también el precio máximo.');
+        }
+        
+        // Mostrar mensaje informativo cuando solo se selecciona precio máximo
+        if (!$request->filled('min_price') && $request->filled('max_price')) {
+            return redirect()->back()->with('info', 'Para filtrar por precio, selecciona también el precio mínimo.');
+        }
+        
         $query = Publication::query()->with(['category', 'images']);
         if ($request->filled('category_id')) {
             $query->where('category_id', $request->category_id);
@@ -52,7 +72,7 @@ class PublicationController extends Controller
 
             $query->whereRaw(
                 "ST_DWithin(location_point, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?)",
-                [$lng, $lat, $radiusKm * 1000] // Convertir km a metros
+                [$lng, $lat, $radiusKm * 1000] // ST_MakePoint usa (longitud, latitud) - convertir km a metros
             );
         }
 
@@ -230,6 +250,11 @@ class PublicationController extends Controller
 
     public function create()
     {
+        // Restringir creación de publicaciones para el rol comprador
+        if (Auth::user()->role === 'comprador') {
+            return redirect()->route('publication-index')->with('error', 'Los compradores no pueden crear publicaciones.');
+        }
+
         $categories = Category::select('id', 'name')->get();
 
         return Inertia::render('publications/create-publication', [
@@ -240,6 +265,11 @@ class PublicationController extends Controller
     public function store(Request $request)
     {
         try {
+            // Restringir creación de publicaciones para el rol comprador
+            if (Auth::user()->role === 'comprador') {
+                return redirect()->route('publication-index')->with('error', 'Los compradores no pueden crear publicaciones.');
+            }
+
             // Validación actualizada - lat y lng son obligatorios
             $request->validate([
                 'title' => 'required|string|max:255',
@@ -739,9 +769,19 @@ class PublicationController extends Controller
                 $publication->location_point = null;
             }
 
+            // Verificar estado de moderación
+            $moderationCase = ModerationCase::where('publication_id', $id)->first();
+            $hasFinalDecision = false;
+            
+            if ($moderationCase && $moderationCase->status === 'closed' && $publication->is_hidden) {
+                // Si el caso está cerrado y la publicación está oculta, es una decisión final
+                $hasFinalDecision = true;
+            }
+
             // Forzar serialización correcta
             $publicationData = $publication->toArray();
             $publicationData['serviceHours'] = $publication->serviceHours->toArray();
+            $publicationData['has_final_moderation_decision'] = $hasFinalDecision;
 
             return Inertia::render('publications/my-publication-view', [
                 'publication' => $publicationData
@@ -755,8 +795,10 @@ class PublicationController extends Controller
     public function favorites()
     {
         try {
-            $favorites = Auth::user()->favorites()
+            // Obtener favoritos paginados usando la relación
+            $favorites = Favorite::where('user_id', Auth::id())
                 ->with(['publication.category', 'publication.images', 'publication.serviceHours'])
+                ->orderBy('created_at', 'desc')
                 ->paginate(12);
 
             // Transformar los datos para que sean compatibles con el frontend
@@ -850,6 +892,11 @@ class PublicationController extends Controller
         try {
             $publication = Publication::findOrFail($id);
             $reporterId = Auth::id();
+
+            // Verificar que el usuario no esté reportando su propia publicación
+            if ($publication->created_by === $reporterId) {
+                return back()->withErrors(['error' => 'No puedes reportar tu propia publicación.']);
+            }
 
             // Rate limiting: verificar si el usuario ya reportó esta publicación en los últimos 60 minutos
             $recentReport = ModerationReport::where('reporter_id', $reporterId)
@@ -1051,22 +1098,46 @@ class PublicationController extends Controller
                     'assigned_moderator_id' => null,
                     'assigned_at' => null,
                 ]);
+                
+                // Asignar a un moderador diferente para revisar la apelación
+                Log::info('Asignando apelación a moderador diferente');
+                $this->assignAppealToDifferentModerator($moderationCase, $originalModeratorId);
+                
+                DB::commit();
+                Log::info('Apelación procesada exitosamente');
+                
+                return redirect()->back()->with('success', 'Apelación enviada correctamente. Un moderador diferente revisará tu caso.');
             } else {
-                // Si ya está en "appealed", solo desasignar al moderador actual
-                $moderationCase->update([
-                    'assigned_moderator_id' => null,
-                    'assigned_at' => null,
-                ]);
+                // Si ya está en "appealed", verificar si ya tiene un moderador asignado
+                if ($moderationCase->assigned_moderator_id) {
+                    // Ya hay un moderador asignado para revisar apelaciones
+                    // Las apelaciones adicionales siguen siendo del mismo moderador
+                    Log::info('Caso ya tiene moderador asignado para apelaciones', [
+                        'assigned_moderator_id' => $moderationCase->assigned_moderator_id,
+                        'case_id' => $moderationCase->id
+                    ]);
+                    
+                    DB::commit();
+                    Log::info('Apelación adicional procesada - manteniendo moderador actual');
+                    
+                    return redirect()->back()->with('success', 'Apelación enviada correctamente. El moderador asignado revisará tu caso.');
+                } else {
+                    // No hay moderador asignado, desasignar y buscar uno nuevo
+                    $moderationCase->update([
+                        'assigned_moderator_id' => null,
+                        'assigned_at' => null,
+                    ]);
+                    
+                    // Asignar a un moderador diferente
+                    Log::info('Asignando apelación a moderador diferente');
+                    $this->assignAppealToDifferentModerator($moderationCase, $originalModeratorId);
+                    
+                    DB::commit();
+                    Log::info('Apelación procesada exitosamente');
+                    
+                    return redirect()->back()->with('success', 'Apelación enviada correctamente. Un moderador diferente revisará tu caso.');
+                }
             }
-
-            // Asignar a un moderador diferente
-            Log::info('Asignando apelación a moderador diferente');
-            $this->assignAppealToDifferentModerator($moderationCase, $originalModeratorId);
-
-            DB::commit();
-            Log::info('Apelación procesada exitosamente');
-
-            return redirect()->back()->with('success', 'Apelación enviada correctamente. Un moderador diferente revisará tu caso.');
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al enviar apelación: ' . $e->getMessage(), [

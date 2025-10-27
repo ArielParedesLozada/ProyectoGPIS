@@ -81,6 +81,31 @@ export function useFieldValidation() {
                 // Aquí necesitaríamos acceso a la contraseña original para comparar
                 // Por ahora solo validamos que no esté vacío
                 break;
+            // Validaciones para crear publicación
+            case 'title':
+                if (!value.trim()) return 'El título es obligatorio.';
+                if (value.trim().length < 3) return 'El título debe tener al menos 3 caracteres.';
+                break;
+            case 'description':
+                if (!value.trim()) return 'La descripción es obligatoria.';
+                if (value.trim().length < 10) return 'La descripción debe tener al menos 10 caracteres.';
+                break;
+            case 'price':
+                if (!value.trim()) return 'El precio es obligatorio.';
+                if (isNaN(Number(value)) || Number(value) <= 0) return 'El precio debe ser un número válido mayor a 0.';
+                break;
+            case 'category_id':
+                if (!value.trim()) return 'La categoría es obligatoria.';
+                break;
+            case 'type':
+                if (!value.trim()) return 'El tipo es obligatorio.';
+                break;
+            case 'location':
+                if (!value.trim()) return 'Debes seleccionar una ubicación en el mapa.';
+                break;
+            case 'images':
+                if (!value.trim()) return 'Debes subir al menos una imagen.';
+                break;
         }
         return undefined;
     };
