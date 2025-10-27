@@ -1,12 +1,10 @@
-import { Head, Link, router } from '@inertiajs/react';
-import { Button } from '@/components/ui/button';
+import { Head, Link } from '@inertiajs/react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Edit, Trash2, UserCheck, UserX, Mail, Phone, MapPin, Calendar, IdCard } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, MapPin, Calendar, IdCard, UserCheck } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import { SharedData } from '@/types';
 import { usePage } from '@inertiajs/react';
-import { useState } from 'react';
 
 interface AdminUser {
     id: number;
@@ -28,26 +26,12 @@ interface AdminDetailsProps {
 
 export default function AdminDetails({ admin }: AdminDetailsProps) {
     const { auth } = usePage<SharedData>().props;
-    const [processing, setProcessing] = useState<number | null>(null);
 
     const breadcrumbs = [
         { title: 'Administración', href: '#' },
         { title: 'Administradores', href: '/admin/admins' },
         { title: admin.name + ' ' + admin.surname, href: '#' },
     ];
-
-    const handleToggleStatus = () => {
-        setProcessing(admin.id);
-        router.patch(`/admin/admins/${admin.id}/toggle-status`, {}, {
-            onFinish: () => setProcessing(null),
-        });
-    };
-
-    const handleDelete = () => {
-        if (confirm('¿Estás seguro de que quieres eliminar este administrador? Esta acción no se puede deshacer.')) {
-            router.delete(`/admin/admins/${admin.id}`);
-        }
-    };
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('es-ES', {
@@ -102,45 +86,6 @@ export default function AdminDetails({ admin }: AdminDetailsProps) {
                                             </Badge>
                                         </div>
                                     </div>
-                                </div>
-                                <div className="flex space-x-2">
-                                    <Button variant="outline" size="sm" asChild>
-                                        <Link href={`/admin/admins/${admin.id}/edit`}>
-                                            <Edit className="h-4 w-4 mr-2" />
-                                            Editar
-                                        </Link>
-                                    </Button>
-                                    <Button 
-                                        variant="outline" 
-                                        size="sm"
-                                        onClick={handleToggleStatus}
-                                        disabled={processing === admin.id}
-                                        className={admin.is_active 
-                                            ? "text-red-600 hover:text-red-700 border-red-200" 
-                                            : "text-green-600 hover:text-green-700 border-green-200"
-                                        }
-                                    >
-                                        {admin.is_active ? (
-                                            <>
-                                                <UserX className="h-4 w-4 mr-2" />
-                                                Desactivar
-                                            </>
-                                        ) : (
-                                            <>
-                                                <UserCheck className="h-4 w-4 mr-2" />
-                                                Activar
-                                            </>
-                                        )}
-                                    </Button>
-                                    <Button 
-                                        variant="outline" 
-                                        size="sm"
-                                        onClick={handleDelete}
-                                        className="text-red-600 hover:text-red-700 border-red-200"
-                                    >
-                                        <Trash2 className="h-4 w-4 mr-2" />
-                                        Eliminar
-                                    </Button>
                                 </div>
                             </div>
                         </div>

@@ -100,7 +100,9 @@ class AdminUserController extends Controller
                 'email' => $admin->email,
                 'created_by' => Auth::id(),
             ]);
-            event(new Registered($admin));
+            
+            // No disparar evento Registered para evitar envío inmediato de correo de verificación
+            // El correo de verificación se enviará cuando el usuario inicie sesión por primera vez
 
             return redirect()->route('admin.admins.index')
                 ->with('success', 'Administrador creado exitosamente.');

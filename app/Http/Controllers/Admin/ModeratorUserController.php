@@ -106,10 +106,20 @@ class ModeratorUserController extends Controller
                 'email' => $moderator->email,
                 'created_by' => Auth::id(),
             ]);
-            event(new Registered($moderator));
+            
+            // No disparar evento Registered para evitar envío inmediato de correo de verificación
+            // El correo de verificación se enviará cuando el usuario inicie sesión por primera vez
+
+            // Asignar automáticamente casos pendientes al nuevo moderador
+            $assignedCasesCount = $this->assignPendingCasesToNewModerator($moderator->id);
+
+            $successMessage = "Moderador creado exitosamente.";
+            if ($assignedCasesCount > 0) {
+                $successMessage .= " Se asignaron {$assignedCasesCount} casos pendientes.";
+            }
 
             return redirect()->route('admin.moderators.index')
-                ->with('success', 'Moderador creado exitosamente.');
+                ->with('success', $successMessage);
         } catch (\Exception $e) {
             Log::error('Error al crear moderador', [
                 'error' => $e->getMessage(),
@@ -376,5 +386,111 @@ class ModeratorUserController extends Controller
             'total_count' => $inactiveModerators->count(),
             'total_cases' => $inactiveModerators->sum('moderation_cases_count')
         ]);
+    }
+
+    /**
+     * Asignar automáticamente casos pendientes a un nuevo moderador
+     */
+    private function assignPendingCasesToNewModerator($moderatorId)
+    {
+        try {
+            $assignedCount = 0;
+            $appealCount = 0;
+
+            // 1. Buscar casos pendientes sin asignar (reportes normales)
+            $pendingCases = \App\Models\ModerationCase::whereNull('assigned_moderator_id')
+                ->whereIn('status', ['pending', 'triage', 'in_review'])
+                ->orderBy('created_at', 'asc') // Asignar los más antiguos primero
+                ->get();
+
+            foreach ($pendingCases as $case) {
+                // Asignar el caso al nuevo moderador
+                $case->update([
+                    'assigned_moderator_id' => $moderatorId,
+                    'assigned_at' => now(),
+                ]);
+
+                // Registrar la acción de asignación automática
+                \App\Models\ModerationAction::create([
+                    'moderation_case_id' => $case->id,
+                    'moderator_id' => $moderatorId,
+                    'action_type' => 'auto_assigned_to_new_moderator',
+                    'action_description' => 'Caso asignado automáticamente a nuevo moderador',
+                    'metadata' => [
+                        'assigned_to' => \App\Models\User::find($moderatorId)->name . ' ' . \App\Models\User::find($moderatorId)->surname,
+                        'was_pending' => true,
+                        'pending_duration' => $case->created_at->diffInHours(now()) . ' horas',
+                        'auto_assignment' => true,
+                        'case_type' => 'normal_report'
+                    ]
+                ]);
+
+                $assignedCount++;
+            }
+
+            // 2. Buscar apelaciones pendientes sin asignar
+            $pendingAppeals = \App\Models\ModerationCase::whereNull('assigned_moderator_id')
+                ->where('status', 'appealed')
+                ->whereHas('actions', function($query) {
+                    $query->where('action_type', 'close_case')
+                          ->where('metadata->waiting_for_moderator', true);
+                })
+                ->orderBy('created_at', 'asc') // Asignar las más antiguas primero
+                ->get();
+
+            foreach ($pendingAppeals as $case) {
+                // Verificar que el nuevo moderador no sea el moderador original
+                $originalModeratorId = $case->actions()
+                    ->where('action_type', 'hide_publication')
+                    ->first()?->moderator_id;
+
+                // Solo asignar si el nuevo moderador es diferente al original
+                if (!$originalModeratorId || $originalModeratorId !== $moderatorId) {
+                    // Asignar la apelación al nuevo moderador
+                    $case->update([
+                        'assigned_moderator_id' => $moderatorId,
+                        'assigned_at' => now(),
+                    ]);
+
+                    // Registrar la acción de asignación automática de apelación
+                    \App\Models\ModerationAction::create([
+                        'moderation_case_id' => $case->id,
+                        'moderator_id' => $moderatorId,
+                        'action_type' => 'auto_assigned_appeal_to_new_moderator',
+                        'action_description' => 'Apelación asignada automáticamente a nuevo moderador',
+                        'metadata' => [
+                            'assigned_to' => \App\Models\User::find($moderatorId)->name . ' ' . \App\Models\User::find($moderatorId)->surname,
+                            'was_appeal_pending' => true,
+                            'waiting_duration' => $case->created_at->diffInHours(now()) . ' horas',
+                            'auto_assignment' => true,
+                            'case_type' => 'appeal',
+                            'original_moderator_id' => $originalModeratorId,
+                            'appeal_assignment' => true
+                        ]
+                    ]);
+
+                    $appealCount++;
+                }
+            }
+
+            Log::info('Casos y apelaciones asignados automáticamente a nuevo moderador', [
+                'moderator_id' => $moderatorId,
+                'normal_cases_assigned' => $assignedCount,
+                'appeals_assigned' => $appealCount,
+                'total_assigned' => $assignedCount + $appealCount,
+                'assigned_by' => Auth::id(),
+            ]);
+
+            return $assignedCount + $appealCount;
+
+        } catch (\Exception $e) {
+            Log::error('Error al asignar casos y apelaciones automáticamente a nuevo moderador', [
+                'moderator_id' => $moderatorId,
+                'error' => $e->getMessage(),
+                'assigned_by' => Auth::id(),
+            ]);
+
+            return 0;
+        }
     }
 }

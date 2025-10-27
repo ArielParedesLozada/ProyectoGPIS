@@ -378,49 +378,73 @@ export default function ModerationShow({ case: caseItem, buttonStates }: Moderat
                                 
                                 
                                 <div className="space-y-3">
-                                    {!caseItem.publication.is_hidden && buttonStates.canHidePublication && (
+                                    {/* Botón Ocultar Publicación */}
+                                    {!caseItem.publication.is_hidden && (
                                         <button
-                                            onClick={() => setShowHideModal(true)}
-                                            className="w-full font-semibold py-3 px-6 rounded-xl transition bg-red-600 hover:bg-red-700 text-white"
+                                            onClick={buttonStates.canHidePublication ? () => setShowHideModal(true) : undefined}
+                                            disabled={!buttonStates.canHidePublication}
+                                            className={`w-full font-semibold py-3 px-6 rounded-xl transition ${
+                                                buttonStates.canHidePublication 
+                                                    ? 'bg-red-600 hover:bg-red-700 text-white cursor-pointer' 
+                                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                            }`}
+                                            title={!buttonStates.canHidePublication ? 'No puedes tomar esta acción porque ya tomaste una acción anterior en este caso' : ''}
                                         >
                                             <EyeOff className="w-4 h-4 mr-2 inline" />
                                             Ocultar Publicación
                                         </button>
                                     )}
+
+                                    {/* Botón Restaurar Publicación */}
                                     {caseItem.publication.is_hidden && (
-                                        <>
-                                            {buttonStates.canRestorePublication && (
-                                                <button
-                                                    onClick={handleRestorePublication}
-                                                    className="w-full font-semibold py-3 px-6 rounded-xl transition bg-green-600 hover:bg-green-700 text-white"
-                                                >
-                                                    <Eye className="w-4 h-4 mr-2 inline" />
-                                                    Restaurar Publicación
-                                                </button>
-                                            )}
-                                            {buttonStates.canConfirmHideDecision && (
-                                                <button
-                                                    onClick={() => setShowConfirmModal(true)}
-                                                    className="w-full font-semibold py-3 px-6 rounded-xl transition bg-orange-600 hover:bg-orange-700 text-white"
-                                                >
-                                                    <Shield className="w-4 h-4 mr-2 inline" />
-                                                    Confirmar Decisión de Ocultar
-                                                </button>
-                                            )}
-                                        </>
+                                        <button
+                                            onClick={buttonStates.canRestorePublication ? handleRestorePublication : undefined}
+                                            disabled={!buttonStates.canRestorePublication}
+                                            className={`w-full font-semibold py-3 px-6 rounded-xl transition ${
+                                                buttonStates.canRestorePublication 
+                                                    ? 'bg-green-600 hover:bg-green-700 text-white cursor-pointer' 
+                                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                            }`}
+                                            title={!buttonStates.canRestorePublication ? 'No puedes restaurar porque ya tomaste una acción anterior en este caso' : ''}
+                                        >
+                                            <Eye className="w-4 h-4 mr-2 inline" />
+                                            Restaurar Publicación
+                                        </button>
                                     )}
 
-                                    {buttonStates.canDismissCase && (
+                                    {/* Botón Confirmar Decisión de Ocultar */}
+                                    {caseItem.publication.is_hidden && (
                                         <button
-                                            onClick={() => setShowDismissModal(true)}
-                                            className="w-full font-semibold py-3 px-6 rounded-xl transition bg-gray-600 hover:bg-gray-700 text-white"
+                                            onClick={buttonStates.canConfirmHideDecision ? () => setShowConfirmModal(true) : undefined}
+                                            disabled={!buttonStates.canConfirmHideDecision}
+                                            className={`w-full font-semibold py-3 px-6 rounded-xl transition ${
+                                                buttonStates.canConfirmHideDecision 
+                                                    ? 'bg-orange-600 hover:bg-orange-700 text-white cursor-pointer' 
+                                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                            }`}
+                                            title={!buttonStates.canConfirmHideDecision ? 'No puedes confirmar porque ya tomaste una acción anterior en este caso' : ''}
+                                        >
+                                            <Shield className="w-4 h-4 mr-2 inline" />
+                                            Confirmar Decisión de Ocultar
+                                        </button>
+                                    )}
+
+                                    {/* Botón Descartar Caso - Solo mostrar cuando NO está en apelación NI action_taken */}
+                                    {!buttonStates.isAppealed && !buttonStates.isActionTaken && (
+                                        <button
+                                            onClick={buttonStates.canDismissCase ? () => setShowDismissModal(true) : undefined}
+                                            disabled={!buttonStates.canDismissCase}
+                                            className={`w-full font-semibold py-3 px-6 rounded-xl transition ${
+                                                buttonStates.canDismissCase 
+                                                    ? 'bg-gray-600 hover:bg-gray-700 text-white cursor-pointer' 
+                                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                            }`}
+                                            title={!buttonStates.canDismissCase ? 'No puedes descartar porque ya tomaste una acción anterior en este caso' : ''}
                                         >
                                             <X className="w-4 h-4 mr-2 inline" />
                                             Descartar Caso
                                         </button>
                                     )}
-
-
                                 </div>
                             </div>
 

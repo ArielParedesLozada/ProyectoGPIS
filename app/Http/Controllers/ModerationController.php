@@ -39,6 +39,31 @@ class ModerationController extends Controller
     {
         $this->checkModeratorPermissions();
         
+        // Mostrar mensaje de éxito cuando se limpian los filtros
+        if ($request->has('clear_filters')) {
+            return redirect()->route('moderation.index')->with('success', 'Se han eliminado todos los filtros aplicados.');
+        }
+        
+        // Validar fechas
+        if ($request->filled('date_from') && $request->filled('date_to')) {
+            $dateFrom = \Carbon\Carbon::parse($request->date_from);
+            $dateTo = \Carbon\Carbon::parse($request->date_to);
+            
+            if ($dateFrom->gt($dateTo)) {
+                return redirect()->back()->with('error', 'La fecha de inicio no puede ser mayor que la fecha final.');
+            }
+        }
+        
+        // Mostrar mensaje informativo cuando solo se selecciona fecha desde
+        if ($request->filled('date_from') && !$request->filled('date_to')) {
+            return redirect()->back()->with('info', 'Para filtrar por fechas, selecciona también la fecha final.');
+        }
+        
+        // Mostrar mensaje informativo cuando solo se selecciona fecha hasta
+        if (!$request->filled('date_from') && $request->filled('date_to')) {
+            return redirect()->back()->with('info', 'Para filtrar por fechas, selecciona también la fecha inicial.');
+        }
+        
         $query = ModerationCase::with(['publication.category', 'assignedModerator', 'reports.reporter'])
             ->orderBy('created_at', 'desc');
 
@@ -81,9 +106,7 @@ class ModerationController extends Controller
             'pending_cases' => ModerationCase::where('status', 'pending')->count(),
             'in_review_cases' => ModerationCase::where('status', 'in_review')->count(),
             'appealed_cases' => ModerationCase::where('status', 'appealed')->count(),
-            'my_cases' => ModerationCase::where('assigned_moderator_id', Auth::id())
-                ->whereIn('status', ['pending', 'triage', 'in_review', 'appealed'])
-                ->count(),
+            'my_cases' => ModerationCase::where('assigned_moderator_id', Auth::id())->count(),
             'unassigned_cases' => ModerationCase::whereNull('assigned_moderator_id')
                 ->whereIn('status', ['pending', 'triage', 'in_review', 'appealed'])
                 ->count(),

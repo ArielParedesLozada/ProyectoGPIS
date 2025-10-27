@@ -3,13 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import AppLayout from "@/layouts/app-layout";
 import { SharedData, Paginated, Publication, Category, BreadcrumbItem } from "@/types";
-import { usePage, Head, Link } from "@inertiajs/react";
+import { usePage, Head, Link, router } from "@inertiajs/react";
 import { 
     Heart, 
     DollarSign
 } from "lucide-react";
 import PublicationCard from "@/components/publications/publication-card";
 import EmptyState from "@/components/ui/empty-state";
+import { useEffect } from "react";
 
 
 function FavoritesContent() {
@@ -24,6 +25,12 @@ function FavoritesContent() {
         favorites: Paginated<Publication>,
         categories: Category[],
     }>().props;
+
+    // Refrescar automáticamente cuando se navega a esta página
+    useEffect(() => {
+        // Refrescar los datos para asegurar que estén actualizados
+        router.reload({ only: ['favorites'] });
+    }, []);
 
     return (
         <>

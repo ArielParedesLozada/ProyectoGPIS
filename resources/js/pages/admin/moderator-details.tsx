@@ -1,12 +1,10 @@
-import { Head, Link, router } from '@inertiajs/react';
-import { Button } from '@/components/ui/button';
+import { Head, Link } from '@inertiajs/react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Edit, Trash2, UserCheck, UserX, Mail, Phone, MapPin, Calendar, IdCard } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, MapPin, Calendar, IdCard, UserCheck } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import { SharedData } from '@/types';
 import { usePage } from '@inertiajs/react';
-import { useState } from 'react';
 
 interface ModeratorUser {
     id: number;
@@ -28,26 +26,12 @@ interface ModeratorDetailsProps {
 
 export default function ModeratorDetails({ moderator }: ModeratorDetailsProps) {
     const { auth } = usePage<SharedData>().props;
-    const [processing, setProcessing] = useState<number | null>(null);
 
     const breadcrumbs = [
         { title: 'Administración', href: '#' },
         { title: 'Moderadores', href: '/admin/moderators' },
         { title: moderator.name + ' ' + moderator.surname, href: '#' },
     ];
-
-    const handleToggleStatus = () => {
-        setProcessing(moderator.id);
-        router.patch(`/admin/moderators/${moderator.id}/toggle-status`, {}, {
-            onFinish: () => setProcessing(null),
-        });
-    };
-
-    const handleDelete = () => {
-        if (confirm('¿Estás seguro de que quieres eliminar este moderador? Esta acción no se puede deshacer.')) {
-            router.delete(`/admin/moderators/${moderator.id}`);
-        }
-    };
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('es-ES', {
@@ -102,45 +86,6 @@ export default function ModeratorDetails({ moderator }: ModeratorDetailsProps) {
                                             </Badge>
                                         </div>
                                     </div>
-                                </div>
-                                <div className="flex space-x-2">
-                                    <Button variant="outline" size="sm" asChild>
-                                        <Link href={`/admin/moderators/${moderator.id}/edit`}>
-                                            <Edit className="h-4 w-4 mr-2" />
-                                            Editar
-                                        </Link>
-                                    </Button>
-                                    <Button 
-                                        variant="outline" 
-                                        size="sm"
-                                        onClick={handleToggleStatus}
-                                        disabled={processing === moderator.id}
-                                        className={moderator.is_active 
-                                            ? "text-red-600 hover:text-red-700 border-red-200" 
-                                            : "text-green-600 hover:text-green-700 border-green-200"
-                                        }
-                                    >
-                                        {moderator.is_active ? (
-                                            <>
-                                                <UserX className="h-4 w-4 mr-2" />
-                                                Desactivar
-                                            </>
-                                        ) : (
-                                            <>
-                                                <UserCheck className="h-4 w-4 mr-2" />
-                                                Activar
-                                            </>
-                                        )}
-                                    </Button>
-                                    <Button 
-                                        variant="outline" 
-                                        size="sm"
-                                        onClick={handleDelete}
-                                        className="text-red-600 hover:text-red-700 border-red-200"
-                                    >
-                                        <Trash2 className="h-4 w-4 mr-2" />
-                                        Eliminar
-                                    </Button>
                                 </div>
                             </div>
                         </div>

@@ -151,13 +151,23 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
 
                 {/* BOTONES: ahora con separación real */}
                 <div className="flex flex-col gap-3">
-                  <Link href={`/my-publications/${publication.id}/edit`}>
-                    <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition">
+                  {/* Botón Editar */}
+                  <Link href={publication.has_final_moderation_decision ? '#' : `/my-publications/${publication.id}/edit`}>
+                    <button 
+                      disabled={publication.has_final_moderation_decision}
+                      className={`w-full font-semibold py-3 px-6 rounded-xl transition ${
+                        publication.has_final_moderation_decision
+                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          : 'bg-blue-600 hover:bg-blue-700 text-white'
+                      }`}
+                      title={publication.has_final_moderation_decision ? 'No puedes editar esta publicación porque ya tiene una decisión final de moderación' : ''}
+                    >
                       <Edit className="w-4 h-4 mr-2 inline" />
                       Editar Publicación
                     </button>
                   </Link>
 
+                  {/* Botón Eliminar - Siempre disponible */}
                   <button
                     onClick={handleDelete}
                     className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-xl transition"
@@ -166,12 +176,18 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
                     Eliminar Publicación
                   </button>
 
+                  {/* Botón Inhabilitar/Habilitar */}
                   <button
-                    onClick={handleToggleStatus}
-                    className={`w-full font-semibold py-3 px-6 rounded-xl transition ${publication.status === 1
+                    onClick={publication.has_final_moderation_decision ? undefined : handleToggleStatus}
+                    disabled={publication.has_final_moderation_decision}
+                    className={`w-full font-semibold py-3 px-6 rounded-xl transition ${
+                      publication.has_final_moderation_decision
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : publication.status === 1
                         ? "bg-red-100 hover:bg-red-200 text-red-700"
                         : "bg-green-100 hover:bg-green-200 text-green-700"
-                      }`}
+                    }`}
+                    title={publication.has_final_moderation_decision ? 'No puedes cambiar el estado de esta publicación porque ya tiene una decisión final de moderación' : ''}
                   >
                     {publication.status === 1 ? (
                       <>
@@ -284,8 +300,8 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
                 </div>
               </div>
 
-              {/* Botón de apelación si la publicación está oculta */}
-              {publication.is_hidden && (
+              {/* Botón de apelación si la publicación está oculta Y NO tiene decisión final */}
+              {publication.is_hidden && !publication.has_final_moderation_decision && (
                 <div className="bg-white rounded-2xl shadow-lg p-6">
                   <button
                     onClick={() => setShowAppealModal(true)}

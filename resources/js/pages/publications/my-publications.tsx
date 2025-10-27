@@ -240,7 +240,7 @@ function MyPublicationsContent() {
 
                 {/* Stats Cards */}
                 <div className="max-w-7xl mx-auto">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                         <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 bg-white/95 backdrop-blur-sm border border-gray-200/50">
                             <CardHeader className="pb-3">
                                 <CardTitle className="text-sm font-semibold text-gray-700 flex items-center">
@@ -262,9 +262,9 @@ function MyPublicationsContent() {
                             </CardHeader>
                             <CardContent>
                                 <div className="text-3xl font-bold text-green-600 mb-2">
-                                    {publications.data.filter(p => p.status === 1).length}
+                                    {publications.data.filter(p => p.status === 1 && !p.is_hidden).length}
                                 </div>
-                                <p className="text-sm text-gray-600">Visibles al público </p>
+                                <p className="text-sm text-gray-600">Visibles al público</p>
                             </CardContent>
                         </Card>
                         <Card className="border-l-4 border-l-red-500 hover:shadow-lg transition-all duration-200 bg-white/95 backdrop-blur-sm border border-gray-200/50">
@@ -279,6 +279,20 @@ function MyPublicationsContent() {
                                     {publications.data.filter(p => p.status === 2).length}
                                 </div>
                                 <p className="text-sm text-gray-600">No visibles al público</p>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-l-4 border-l-orange-500 hover:shadow-lg transition-all duration-200 bg-white/95 backdrop-blur-sm border border-gray-200/50">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm font-semibold text-gray-700 flex items-center">
+                                    <AlertTriangle className="h-5 w-5 mr-2 text-orange-600" />
+                                    Ocultas por Moderación
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-3xl font-bold text-orange-600 mb-2">
+                                    {publications.data.filter(p => p.is_hidden).length}
+                                </div>
+                                <p className="text-sm text-gray-600">En revisión o sancionadas</p>
                             </CardContent>
                         </Card>
                     </div>

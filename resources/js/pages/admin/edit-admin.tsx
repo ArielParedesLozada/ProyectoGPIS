@@ -8,7 +8,7 @@ import { ArrowLeft, LoaderCircle } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import { SharedData } from '@/types';
 import { usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import CustomError from '@/components/custom-error';
 import PasswordInput from '@/components/password-input';
 import { useFieldValidation } from '@/hooks/use-field-validation';
@@ -45,6 +45,56 @@ export default function EditAdmin({ admin }: EditAdminProps) {
         password_confirmation: ''
     });
 
+    const [hasChanges, setHasChanges] = useState(false);
+
+    // Detectar cambios en los campos editables
+    useEffect(() => {
+        const originalValues = {
+            name: admin.name || '',
+            surname: admin.surname || '',
+            phone: admin.phone || '',
+            address: admin.address || '',
+            gender: admin.gender || ''
+        };
+
+        const currentValues = {
+            name: fieldValues.name,
+            surname: fieldValues.surname,
+            phone: fieldValues.phone,
+            address: fieldValues.address,
+            gender: fieldValues.gender
+        };
+
+        const hasFieldChanges = Object.keys(originalValues).some(
+            key => originalValues[key as keyof typeof originalValues] !== currentValues[key as keyof typeof currentValues]
+        );
+
+        const hasPasswordChanges = fieldValues.password.trim() !== '' || fieldValues.password_confirmation.trim() !== '';
+
+        setHasChanges(hasFieldChanges || hasPasswordChanges);
+    }, [fieldValues, admin]);
+
+    const isFormValid = () => {
+        const basicFieldsValid = fieldValues.name.trim() !== '' &&
+                                fieldValues.surname.trim() !== '' &&
+                                fieldValues.phone.trim() !== '' &&
+                                fieldValues.phone.length === 10 &&
+                                fieldValues.address.trim() !== '' &&
+                                fieldValues.gender !== '';
+        
+        // Si no se está cambiando la contraseña, solo validar campos básicos y cambios
+        if (fieldValues.password.trim() === '' && fieldValues.password_confirmation.trim() === '') {
+            return basicFieldsValid && hasChanges;
+        }
+        
+        // Si se está cambiando la contraseña, validar que coincidan y que haya cambios
+        return basicFieldsValid &&
+               hasChanges &&
+               fieldValues.password.trim() !== '' &&
+               fieldValues.password_confirmation.trim() !== '' &&
+               fieldValues.password === fieldValues.password_confirmation;
+    };
+
     const breadcrumbs = [
         { title: 'Administración', href: '#' },
         { title: 'Administradores', href: '/admin/admins' },
@@ -79,6 +129,10 @@ export default function EditAdmin({ admin }: EditAdminProps) {
                             >
                             {({ processing, errors }) => (
                                 <>
+                                    {/* Campos ocultos para datos bloqueados */}
+                                    <input type="hidden" name="cedula" value={fieldValues.cedula} />
+                                    <input type="hidden" name="email" value={fieldValues.email} />
+                                    
                                     {errors.general && (
                                         <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                                             <p className="text-red-600 text-sm">{errors.general}</p>
@@ -95,23 +149,9 @@ export default function EditAdmin({ admin }: EditAdminProps) {
                                                 id="cedula"
                                                 name="cedula"
                                                 type="text"
-                                                inputMode="numeric"
-                                                pattern="[0-9]*"
-                                                maxLength={10}
-                                                placeholder="1234567890"
                                                 value={fieldValues.cedula}
-                                                onChange={(e) => {
-                                                    const onlyNumbers = e.target.value.replace(/\D/g, '');
-                                                    if (onlyNumbers.length <= 10) {
-                                                        setFieldValues(prev => ({ ...prev, cedula: onlyNumbers }));
-                                                    }
-                                                }}
-                                                onBlur={(e) => markFieldAsTouched('cedula', e.target.value)}
-                                                className="w-full"
-                                            />
-                                            <CustomError
-                                                message={getErrorMessage('cedula', errors.cedula, fieldValues.cedula)}
-                                                show={shouldShowError('cedula', errors.cedula, fieldValues.cedula)}
+                                                disabled
+                                                className="w-full bg-muted cursor-not-allowed"
                                             />
                                         </div>
 
@@ -186,6 +226,9 @@ export default function EditAdmin({ admin }: EditAdminProps) {
                                                     message={getErrorMessage('phone', errors.phone, fieldValues.phone)}
                                                     show={shouldShowError('phone', errors.phone, fieldValues.phone)}
                                                 />
+                                                {fieldValues.phone.length > 0 && fieldValues.phone.length !== 10 && (
+                                                    <p className="text-red-600 text-xs mt-1">El teléfono debe tener exactamente 10 dígitos</p>
+                                                )}
                                             </div>
 
                                             <div>
@@ -245,15 +288,9 @@ export default function EditAdmin({ admin }: EditAdminProps) {
                                                 id="email"
                                                 name="email"
                                                 type="email"
-                                                placeholder="admin@example.com"
                                                 value={fieldValues.email}
-                                                onChange={(e) => setFieldValues(prev => ({ ...prev, email: e.target.value }))}
-                                                onBlur={(e) => markFieldAsTouched('email', e.target.value)}
-                                                className="w-full"
-                                            />
-                                            <CustomError
-                                                message={getErrorMessage('email', errors.email, fieldValues.email)}
-                                                show={shouldShowError('email', errors.email, fieldValues.email)}
+                                                disabled
+                                                className="w-full bg-muted cursor-not-allowed"
                                             />
                                         </div>
 
@@ -307,9 +344,9 @@ export default function EditAdmin({ admin }: EditAdminProps) {
                                         <Button type="button" variant="outline" size="lg" asChild>
                                             <Link href="/admin/admins">Cancelar</Link>
                                         </Button>
-                                        <Button type="submit" size="lg" disabled={processing} className="bg-blue-600 hover:bg-blue-700">
+                                        <Button type="submit" size="lg" disabled={processing || !isFormValid()} className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed">
                                             {processing && <LoaderCircle className="h-4 w-4 mr-2 animate-spin" />}
-                                            Actualizar Administrador
+                                            {hasChanges ? 'Actualizar Administrador' : 'Sin cambios para guardar'}
                                         </Button>
                                     </div>
                                 </>
