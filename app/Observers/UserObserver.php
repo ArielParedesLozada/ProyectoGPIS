@@ -209,75 +209,123 @@ class UserObserver
         try {
             Log::info("Moderador activado detectado: {$user->name} {$user->surname} (ID: {$user->id})");
 
-            // Buscar apelaciones pendientes que esperan moderador
-            $pendingAppeals = \App\Models\ModerationCase::where('status', 'appealed')
-                ->whereNull('assigned_moderator_id')
-                ->whereHas('actions', function($query) {
-                    $query->where('action_type', 'close_case')
-                          ->where('metadata->waiting_for_moderator', true);
-                })
-                ->get();
-
-            if ($pendingAppeals->isEmpty()) {
-                Log::info("No hay apelaciones pendientes para asignar al moderador ID: {$user->id}");
-                return;
-            }
-
-            Log::info("Encontradas {$pendingAppeals->count()} apelaciones pendientes para asignar al moderador ID: {$user->id}");
-
-            $assignedCount = 0;
-
-            foreach ($pendingAppeals as $case) {
-                try {
-                    \Illuminate\Support\Facades\DB::beginTransaction();
-
-                    // Verificar que no sea el mismo moderador que tomó la decisión original
-                    $originalModeratorId = $case->actions()
-                        ->where('action_type', 'hide_publication')
-                        ->first()?->moderator_id;
-
-                    if ($originalModeratorId && $originalModeratorId == $user->id) {
-                        Log::info("Saltando caso {$case->id} - El moderador {$user->id} fue quien tomó la decisión original");
-                        \Illuminate\Support\Facades\DB::rollBack();
-                        continue;
-                    }
-
-                    // Asignar el caso al moderador activado
-                    $case->update([
-                        'assigned_moderator_id' => $user->id,
-                        'assigned_at' => now(),
-                    ]);
-
-                    // Registrar la asignación
-                    \App\Models\ModerationAction::create([
-                        'moderation_case_id' => $case->id,
-                        'moderator_id' => $user->id,
-                        'action_type' => 'reassign_case',
-                        'action_description' => 'Apelación asignada automáticamente a moderador recién activado',
-                        'metadata' => [
-                            'assigned_to' => $user->name . ' ' . $user->surname,
-                            'assigned_by' => 'system_automation',
-                            'reason' => 'moderator_activated',
-                            'was_waiting' => true,
-                            'original_moderator_id' => $originalModeratorId,
-                        ]
-                    ]);
-
-                    $assignedCount++;
-                    Log::info("Apelación {$case->id} asignada al moderador {$user->id}");
-
-                    \Illuminate\Support\Facades\DB::commit();
-
-                } catch (\Exception $e) {
-                    \Illuminate\Support\Facades\DB::rollBack();
-                    Log::error("Error al asignar apelación {$case->id} al moderador {$user->id}: " . $e->getMessage());
-                }
-            }
-
-            Log::info("Se asignaron {$assignedCount} apelaciones al moderador ID: {$user->id}");
+            // Asignar TODOS los casos pendientes (reportes y apelaciones)
+            $this->assignPendingCasesToModerator($user);
 
         } catch (\Exception $e) {
             Log::error("Error al manejar activación de moderador {$user->id}: " . $e->getMessage());
         }
+    }
+
+    /**
+     * Asignar casos pendientes a un moderador
+     */
+    private function assignPendingCasesToModerator(User $user): void
+    {
+        // Buscar TODOS los casos sin asignar (reportes normales)
+        $pendingCases = \App\Models\ModerationCase::whereNull('assigned_moderator_id')
+            ->whereIn('status', ['pending', 'triage', 'in_review'])
+            ->get();
+
+        // Buscar apelaciones pendientes
+        $pendingAppeals = \App\Models\ModerationCase::where('status', 'appealed')
+            ->whereNull('assigned_moderator_id')
+            ->get();
+
+        $totalPending = $pendingCases->count() + $pendingAppeals->count();
+
+        if ($totalPending === 0) {
+            Log::info("No hay casos pendientes para asignar al moderador ID: {$user->id}");
+            return;
+        }
+
+        Log::info("Encontrados {$totalPending} casos pendientes para asignar al moderador ID: {$user->id}");
+
+        $assignedCount = 0;
+
+        // Asignar casos normales
+        foreach ($pendingCases as $case) {
+            try {
+                \Illuminate\Support\Facades\DB::beginTransaction();
+
+                // Asignar el caso al moderador
+                $case->update([
+                    'assigned_moderator_id' => $user->id,
+                    'assigned_at' => now(),
+                ]);
+
+                // Registrar la asignación
+                \App\Models\ModerationAction::create([
+                    'moderation_case_id' => $case->id,
+                    'moderator_id' => $user->id,
+                    'action_type' => 'assign_case',
+                    'action_description' => 'Caso asignado automáticamente a nuevo moderador',
+                    'metadata' => [
+                        'assigned_to' => $user->name . ' ' . $user->surname,
+                        'assigned_by' => 'system_automation',
+                        'reason' => 'new_moderator_activation',
+                    ]
+                ]);
+
+                $assignedCount++;
+                Log::info("Caso {$case->id} asignado al moderador {$user->id}");
+
+                \Illuminate\Support\Facades\DB::commit();
+
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\DB::rollBack();
+                Log::error("Error al asignar caso {$case->id} al moderador {$user->id}: " . $e->getMessage());
+            }
+        }
+
+        // Asignar apelaciones (misma lógica que antes)
+        foreach ($pendingAppeals as $case) {
+            try {
+                \Illuminate\Support\Facades\DB::beginTransaction();
+
+                // Verificar que no sea el mismo moderador que tomó la decisión original
+                $originalModeratorId = $case->actions()
+                    ->where('action_type', 'hide_publication')
+                    ->first()?->moderator_id;
+
+                if ($originalModeratorId && $originalModeratorId == $user->id) {
+                    Log::info("Saltando apelación {$case->id} - El moderador {$user->id} fue quien tomó la decisión original");
+                    \Illuminate\Support\Facades\DB::rollBack();
+                    continue;
+                }
+
+                // Asignar el caso al moderador activado
+                $case->update([
+                    'assigned_moderator_id' => $user->id,
+                    'assigned_at' => now(),
+                ]);
+
+                // Registrar la asignación
+                \App\Models\ModerationAction::create([
+                    'moderation_case_id' => $case->id,
+                    'moderator_id' => $user->id,
+                    'action_type' => 'reassign_case',
+                    'action_description' => 'Apelación asignada automáticamente a moderador recién activado',
+                    'metadata' => [
+                        'assigned_to' => $user->name . ' ' . $user->surname,
+                        'assigned_by' => 'system_automation',
+                        'reason' => 'moderator_activated',
+                        'was_waiting' => true,
+                        'original_moderator_id' => $originalModeratorId,
+                    ]
+                ]);
+
+                $assignedCount++;
+                Log::info("Apelación {$case->id} asignada al moderador {$user->id}");
+
+                \Illuminate\Support\Facades\DB::commit();
+
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\DB::rollBack();
+                Log::error("Error al asignar apelación {$case->id} al moderador {$user->id}: " . $e->getMessage());
+            }
+        }
+
+        Log::info("Se asignaron {$assignedCount} casos al moderador ID: {$user->id}");
     }
 }

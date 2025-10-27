@@ -888,6 +888,11 @@ class PublicationController extends Controller
             $publication = Publication::findOrFail($id);
             $reporterId = Auth::id();
 
+            // Verificar que no estés reportando tu propia publicación
+            if ($publication->created_by === $reporterId) {
+                return back()->withErrors(['error' => 'No puedes reportar tu propia publicación.']);
+            }
+
             // Rate limiting: verificar si el usuario ya reportó esta publicación en los últimos 60 minutos
             $recentReport = ModerationReport::where('reporter_id', $reporterId)
                 ->whereHas('moderationCase', function ($query) use ($id) {
