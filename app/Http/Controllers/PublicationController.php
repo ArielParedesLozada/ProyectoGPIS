@@ -78,6 +78,16 @@ class PublicationController extends Controller
             );
         }
 
+        // Filtro por productos comprados por el usuario
+        if ($request->filled('my_products') && $request->my_products === 'true') {
+            $userId = Auth::id();
+            if ($userId) {
+                $query->whereHas('purchases', function ($q) use ($userId) {
+                    $q->where('buyer_id', $userId);
+                });
+            }
+        }
+
         $query->where('status', StatusType::HABILITADO)
             ->where('is_hidden', false);
 
@@ -109,6 +119,7 @@ class PublicationController extends Controller
             'nearLat' => $request->near_lat,
             'nearLng' => $request->near_lng,
             'radiusKm' => $request->radius_km,
+            'myProducts' => $request->my_products === 'true',
         ]);
     }
 

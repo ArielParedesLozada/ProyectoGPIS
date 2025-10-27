@@ -14,7 +14,7 @@ export default function PublicationIndex() {
             href: publicationIndex().url,
         },
     ];
-    const { auth, publications, categories, selectedCategory, selectedType, selectedMinPrice, selectedMaxPrice, nearLat, nearLng, radiusKm } = usePage<SharedData & {
+    const { auth, publications, categories, selectedCategory, selectedType, selectedMinPrice, selectedMaxPrice, nearLat, nearLng, radiusKm, myProducts } = usePage<SharedData & {
         publications: Paginated<Publication>,
         categories: Category[],
         selectedCategory?: number;
@@ -24,6 +24,7 @@ export default function PublicationIndex() {
         nearLat?: number;
         nearLng?: number;
         radiusKm?: number;
+        myProducts?: boolean;
     }>().props;
 
     const [category, setCategory] = useState(selectedCategory || 'all');
@@ -66,6 +67,7 @@ export default function PublicationIndex() {
                 nearLat={nearLat}
                 nearLng={nearLng}
                 radiusKm={radiusKm}
+                myProducts={myProducts}
             />
         </AppLayout>
     );

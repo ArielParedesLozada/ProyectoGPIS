@@ -15,6 +15,7 @@ interface PublicationListProps {
     nearLat?: number;
     nearLng?: number;
     radiusKm?: number;
+    myProducts?: boolean;
 }
 
 export default function PublicationList({ 
@@ -26,7 +27,8 @@ export default function PublicationList({
     selectedMaxPrice,
     nearLat,
     nearLng,
-    radiusKm
+    radiusKm,
+    myProducts
 }: PublicationListProps) {
     return (
         <div className="bg-background min-h-screen">
@@ -57,6 +59,7 @@ export default function PublicationList({
                         nearLat={nearLat}
                         nearLng={nearLng}
                         radiusKm={radiusKm}
+                        myProducts={myProducts}
                     />
                 </div>
             </div>
@@ -100,7 +103,7 @@ export default function PublicationList({
                 ) : (
                     // Detectar si hay filtros activos
                     (() => {
-                        const hasActiveFilters = selectedCategory || selectedType || selectedMinPrice || selectedMaxPrice || nearLat;
+                        const hasActiveFilters = selectedCategory || selectedType || selectedMinPrice || selectedMaxPrice || nearLat || myProducts;
                         
                         if (hasActiveFilters) {
                             // Hay filtros aplicados

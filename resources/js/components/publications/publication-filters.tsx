@@ -16,6 +16,7 @@ interface PublicationFiltersProps {
     nearLat?: number;
     nearLng?: number;
     radiusKm?: number;
+    myProducts?: boolean;
 }
 
 export default function PublicationFilters({ 
@@ -26,7 +27,8 @@ export default function PublicationFilters({
     selectedMaxPrice,
     nearLat,
     nearLng,
-    radiusKm
+    radiusKm,
+    myProducts
 }: PublicationFiltersProps) {
     const { showToast } = useToast();
     const [category, setCategory] = useState(selectedCategory?.toString() || 'all');
@@ -38,6 +40,7 @@ export default function PublicationFilters({
     const [radius, setRadius] = useState(radiusKm?.toString() || '10');
     const [isGettingLocation, setIsGettingLocation] = useState(false);
     const [showFilters, setShowFilters] = useState(false);
+    const [myProductsFilter, setMyProductsFilter] = useState(myProducts || false);
 
     // Sincronizar estado con props cuando cambien
     useEffect(() => {
@@ -47,7 +50,8 @@ export default function PublicationFilters({
         setMaxPrice(selectedMaxPrice?.toString() || '');
         setNearMe(!!nearLat && !!nearLng);
         setRadius(radiusKm?.toString() || '10');
-    }, [selectedCategory, selectedType, selectedMinPrice, selectedMaxPrice, nearLat, nearLng, radiusKm]);
+        setMyProductsFilter(myProducts || false);
+    }, [selectedCategory, selectedType, selectedMinPrice, selectedMaxPrice, nearLat, nearLng, radiusKm, myProducts]);
 
     // Mostrar alerta cuando se ingresa precio mínimo sin máximo
     useEffect(() => {
@@ -70,7 +74,8 @@ export default function PublicationFilters({
                type !== 'all' || 
                minPrice !== '' || 
                maxPrice !== '' || 
-               nearMe;
+               nearMe ||
+               myProductsFilter;
     };
 
     const getCurrentLocation = () => {
@@ -85,7 +90,7 @@ export default function PublicationFilters({
                 const { latitude, longitude } = position.coords;
                 setNearMe(true);
                 // Aplicar filtros inmediatamente con la ubicación obtenida
-                applyFilters(category, type, minPrice, maxPrice, latitude, longitude, radius);
+                applyFilters(category, type, minPrice, maxPrice, latitude, longitude, radius, myProductsFilter);
                 setIsGettingLocation(false);
             },
             (error) => {
@@ -101,7 +106,7 @@ export default function PublicationFilters({
         );
     };
 
-    const applyFilters = (cat: string, typ: string, min: string, max: string, lat?: number, lng?: number, rad?: string) => {
+    const applyFilters = (cat: string, typ: string, min: string, max: string, lat?: number, lng?: number, rad?: string, myProd?: boolean) => {
         const query: Record<string, string | null> = {};
         
         if (cat !== 'all') query.category_id = cat;
@@ -113,6 +118,7 @@ export default function PublicationFilters({
             query.near_lng = lng.toString();
             query.radius_km = rad;
         }
+        if (myProd) query.my_products = 'true';
 
         router.get('/publication', query, {
             preserveState: true,
@@ -125,9 +131,9 @@ export default function PublicationFilters({
         setType(newType);
         // Mantener filtros de ubicación si están activos
         if (nearMe && nearLat && nearLng) {
-            applyFilters(newCategory, newType, minPrice, maxPrice, nearLat, nearLng, radius);
+            applyFilters(newCategory, newType, minPrice, maxPrice, nearLat, nearLng, radius, myProductsFilter);
         } else {
-            applyFilters(newCategory, newType, minPrice, maxPrice);
+            applyFilters(newCategory, newType, minPrice, maxPrice, undefined, undefined, undefined, myProductsFilter);
         }
     };
 
@@ -154,16 +160,16 @@ export default function PublicationFilters({
 
         // Mantener filtros de ubicación si están activos
         if (nearMe && nearLat && nearLng) {
-            applyFilters(category, type, minPrice, maxPrice, nearLat, nearLng, radius);
+            applyFilters(category, type, minPrice, maxPrice, nearLat, nearLng, radius, myProductsFilter);
         } else {
-            applyFilters(category, type, minPrice, maxPrice);
+            applyFilters(category, type, minPrice, maxPrice, undefined, undefined, undefined, myProductsFilter);
         }
     };
 
     const handleNearMeToggle = () => {
         if (nearMe) {
             setNearMe(false);
-            applyFilters(category, type, minPrice, maxPrice);
+            applyFilters(category, type, minPrice, maxPrice, undefined, undefined, undefined, myProductsFilter);
         } else {
             getCurrentLocation();
         }
@@ -172,7 +178,7 @@ export default function PublicationFilters({
     const handleRadiusChange = (newRadius: string) => {
         setRadius(newRadius);
         if (nearMe && nearLat && nearLng) {
-            applyFilters(category, type, minPrice, maxPrice, nearLat, nearLng, newRadius);
+            applyFilters(category, type, minPrice, maxPrice, nearLat, nearLng, newRadius, myProductsFilter);
         }
     };
 
@@ -183,6 +189,7 @@ export default function PublicationFilters({
         setMaxPrice('');
         setNearMe(false);
         setRadius('10');
+        setMyProductsFilter(false);
         router.get('/publication', {}, {
             preserveState: true,
             replace: true,
@@ -211,7 +218,7 @@ export default function PublicationFilters({
             </div>
 
             {/* Filtros principales - siempre visibles */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 {/* Categoría */}
                 <div>
                     <Label className="block text-sm font-medium text-gray-700 mb-2">Categoría</Label>
@@ -247,6 +254,32 @@ export default function PublicationFilters({
                             <SelectItem value="all">Todos los tipos</SelectItem>
                             <SelectItem value="producto">Producto</SelectItem>
                             <SelectItem value="servicio">Servicio</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                {/* Mis Productos */}
+                <div>
+                    <Label className="block text-sm font-medium text-gray-700 mb-2">Mis Productos</Label>
+                    <Select 
+                        value={myProductsFilter ? 'true' : 'false'} 
+                        onValueChange={(value) => {
+                            const isMyProducts = value === 'true';
+                            setMyProductsFilter(isMyProducts);
+                            // Mantener filtros de ubicación si están activos
+                            if (nearMe && nearLat && nearLng) {
+                                applyFilters(category, type, minPrice, maxPrice, nearLat, nearLng, radius, isMyProducts);
+                            } else {
+                                applyFilters(category, type, minPrice, maxPrice, undefined, undefined, undefined, isMyProducts);
+                            }
+                        }}
+                    >
+                        <SelectTrigger className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <SelectValue placeholder="Todos los productos" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="false">Todos los productos</SelectItem>
+                            <SelectItem value="true">Mis productos comprados</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
