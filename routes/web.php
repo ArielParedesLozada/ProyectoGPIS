@@ -27,6 +27,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/', [PublicationController::class, 'index'])->name('publication-index');
         Route::get('/{id}', [PublicationController::class, 'view'])->name('publication-view');
         Route::post('/{id}/report', [PublicationController::class, 'report'])->name('publication-report');
+        Route::post('/{id}/buy', [PublicationController::class, 'buy'])->name('publication-buy');
     });
     
     // Rutas para Mis Publicaciones

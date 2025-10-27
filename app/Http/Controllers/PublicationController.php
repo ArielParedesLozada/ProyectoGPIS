@@ -12,6 +12,7 @@ use App\Models\ModerationCase;
 use App\Models\ModerationReport;
 use App\Models\ModerationAppeal;
 use App\Models\ModerationAction;
+use App\Models\Purchase;
 use App\Models\User;
 use App\Models\PublicationServiceHour;
 use App\Services\GeocodingService;
@@ -50,6 +51,7 @@ class PublicationController extends Controller
             return redirect()->back()->with('info', 'Para filtrar por precio, selecciona también el precio mínimo.');
         }
         
+        // Mostrar todas las publicaciones (disponibles y no disponibles)
         $query = Publication::query()->with(['category', 'images']);
         if ($request->filled('category_id')) {
             $query->where('category_id', $request->category_id);
@@ -1297,5 +1299,90 @@ class PublicationController extends Controller
                 'waiting_for_moderator' => true
             ]
         ]);
+    }
+
+    /**
+     * Comprar una publicación
+     */
+    public function buy($id)
+    {
+        try {
+            Log::info('Iniciando proceso de compra', ['publication_id' => $id]);
+            
+            $user = Auth::user();
+            
+            // Validar autenticación
+            if (!$user) {
+                Log::warning('Usuario no autenticado intentando comprar', ['publication_id' => $id]);
+                return back()->withErrors(['error' => 'Debes iniciar sesión para comprar.']);
+            }
+
+            Log::info('Usuario autenticado', ['user_id' => $user->id, 'role' => $user->role]);
+
+            // Validar rol del comprador
+            if (!in_array($user->role, ['comprador', 'vendedor'])) {
+                Log::warning('Usuario con rol inválido intentando comprar', ['user_id' => $user->id, 'role' => $user->role]);
+                return back()->withErrors(['error' => 'Tu rol no te permite realizar compras.']);
+            }
+
+            $publication = Publication::findOrFail($id);
+            Log::info('Publicación encontrada', ['publication_id' => $publication->id, 'disponibility' => $publication->disponibility, 'created_by' => $publication->created_by]);
+
+            // Validar que no esté comprando su propia publicación
+            if ($publication->created_by === $user->id) {
+                return back()->withErrors(['error' => 'No puedes comprar tu propia publicación.']);
+            }
+
+            // Validar disponibilidad
+            if (!$publication->disponibility) {
+                return back()->withErrors(['error' => 'Este producto ya no está disponible.']);
+            }
+
+            // Validar estado de la cuenta del vendedor
+            $seller = User::findOrFail($publication->created_by);
+            if ($seller->status === StatusType::INHABILITADO->value || !$seller->is_active) {
+                return back()->withErrors(['error' => 'El vendedor tiene su cuenta desactivada.']);
+            }
+
+            DB::beginTransaction();
+
+            // Actualizar disponibilidad de la publicación
+            $publication->disponibility = false;
+            $publication->save();
+
+            // Crear registro de compra
+            $purchase = Purchase::create([
+                'publication_id' => $publication->id,
+                'buyer_id' => $user->id,
+                'seller_id' => $seller->id,
+                'price' => $publication->price,
+                'status' => 'completed',
+            ]);
+
+            DB::commit();
+
+            Log::info('Compra realizada exitosamente', [
+                'publication_id' => $publication->id,
+                'buyer_id' => $user->id,
+                'seller_id' => $seller->id,
+                'price' => $publication->price,
+                'disponibility_after' => $publication->disponibility,
+                'purchase_id' => $purchase->id,
+            ]);
+
+            return back()->with('success', '¡Compra realizada exitosamente! El producto ya no está disponible.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al procesar la compra', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'publication_id' => $id,
+                'user_id' => Auth::id(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            return back()->withErrors(['error' => 'Error al procesar la compra. Inténtalo nuevamente. Detalles: ' . $e->getMessage()]);
+        }
     }
 }

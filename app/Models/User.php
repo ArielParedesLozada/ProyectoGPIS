@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Enums\RoleType;
 use App\Models\Favorite;
 use App\Models\ModerationCase;
+use App\Models\Purchase;
 use App\Models\Publication;
 use App\Notifications\CustomVerifyEmail;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -117,5 +118,15 @@ class User extends Authenticatable implements MustVerifyEmail
     public function favorites(): HasMany
     {
         return $this->hasMany(Favorite::class);
+    }
+
+    public function purchasesAsBuyer(): HasMany
+    {
+        return $this->hasMany(Purchase::class, 'buyer_id');
+    }
+
+    public function purchasesAsSeller(): HasMany
+    {
+        return $this->hasMany(Purchase::class, 'seller_id');
     }
 }
