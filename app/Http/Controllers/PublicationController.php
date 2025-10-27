@@ -230,11 +230,6 @@ class PublicationController extends Controller
 
     public function create()
     {
-        // Restringir creación de publicaciones para el rol comprador
-        if (Auth::user()->role === 'comprador') {
-            return redirect()->route('publication-index')->with('error', 'Los compradores no pueden crear publicaciones.');
-        }
-
         $categories = Category::select('id', 'name')->get();
 
         return Inertia::render('publications/create-publication', [
@@ -245,11 +240,6 @@ class PublicationController extends Controller
     public function store(Request $request)
     {
         try {
-            // Restringir creación de publicaciones para el rol comprador
-            if (Auth::user()->role === 'comprador') {
-                return redirect()->route('publication-index')->with('error', 'Los compradores no pueden crear publicaciones.');
-            }
-
             // Validación actualizada - lat y lng son obligatorios
             $request->validate([
                 'title' => 'required|string|max:255',
@@ -765,10 +755,15 @@ class PublicationController extends Controller
     public function favorites()
     {
         try {
-            // Obtener favoritos paginados usando la relación
-            $favorites = Favorite::where('user_id', Auth::id())
+            /** @var \App\Models\User|null $user */
+            $user = Auth::user();
+            
+            if (!$user) {
+                return redirect()->route('login');
+            }
+            
+            $favorites = $user->favorites()
                 ->with(['publication.category', 'publication.images', 'publication.serviceHours'])
-                ->orderBy('created_at', 'desc')
                 ->paginate(12);
 
             // Transformar los datos para que sean compatibles con el frontend
@@ -863,11 +858,6 @@ class PublicationController extends Controller
             $publication = Publication::findOrFail($id);
             $reporterId = Auth::id();
 
-            // Verificar que el usuario no esté reportando su propia publicación
-            if ($publication->created_by === $reporterId) {
-                return back()->withErrors(['error' => 'No puedes reportar tu propia publicación.']);
-            }
-
             // Rate limiting: verificar si el usuario ya reportó esta publicación en los últimos 60 minutos
             $recentReport = ModerationReport::where('reporter_id', $reporterId)
                 ->whereHas('moderationCase', function ($query) use ($id) {
@@ -941,8 +931,8 @@ class PublicationController extends Controller
      */
     private function assignToModerator(ModerationCase $case)
     {
-        // Buscar moderadores activos disponibles (SOLO moderadores)
-        $moderator = User::where('role', 'moderador') // Solo moderadores, no admins
+        // Buscar moderadores y admins activos disponibles (NO super_admin)
+        $moderator = User::whereIn('role', ['moderador', 'admin']) // Solo moderadores y admins
             ->where('status', StatusType::HABILITADO->value) // Solo activos
             ->where('is_active', true) // Solo activos
             ->withCount(['moderationCases' => function ($query) {
@@ -1201,8 +1191,8 @@ class PublicationController extends Controller
             return;
         }
 
-        // Buscar moderadores diferentes al original (SOLO moderadores)
-        $moderator = User::where('role', 'moderador') // Solo moderadores, no admins
+        // Buscar moderadores y admins diferentes al original (NO super_admin)
+        $moderator = User::whereIn('role', ['moderador', 'admin']) // Solo moderadores y admins
             ->where('id', '!=', $originalModeratorId) // Excluir al moderador original
             ->where('status', StatusType::HABILITADO->value) // Solo activos
             ->where('is_active', true) // Solo activos

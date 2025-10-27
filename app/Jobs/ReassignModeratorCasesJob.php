@@ -154,11 +154,11 @@ class ReassignModeratorCasesJob implements ShouldQueue
     }
 
     /**
-     * Encontrar moderador activo disponible (SOLO moderadores regulares)
+     * Encontrar moderador activo disponible (moderadores y admins, NO super_admin)
      */
     private function findAvailableModerator(): ?User
     {
-        return User::where('role', 'moderador')
+        return User::whereIn('role', ['moderador', 'admin']) // Solo moderadores y admins
             ->where('status', StatusType::HABILITADO->value)
             ->where('is_active', true)
             ->where('id', '!=', $this->moderatorId) // Excluir el moderador desactivado

@@ -127,8 +127,8 @@ class UserObserver
             return;
         }
 
-        // Buscar moderador activo disponible (SOLO moderadores regulares)
-        $newModerator = \App\Models\User::where('role', 'moderador')
+        // Buscar moderador activo disponible (moderadores y admins, NO super_admin)
+        $newModerator = \App\Models\User::whereIn('role', ['moderador', 'admin']) // Solo moderadores y admins
             ->where('status', \App\Enums\StatusType::HABILITADO->value)
             ->where('is_active', true)
             ->where('id', '!=', $user->id) // Excluir el moderador desactivado

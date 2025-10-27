@@ -46,8 +46,8 @@ export function AppSidebar() {
         });
     }
 
-    // Moderadores ven la opción de moderación
-    if (auth.user.role === 'moderador') {
+    // Moderadores y admins ven la opción de moderación (NO super_admin)
+    if (['moderador', 'admin'].includes(auth.user.role)) {
         mainNavItems.push({
             title: 'Moderación',
             href: '/moderation',
