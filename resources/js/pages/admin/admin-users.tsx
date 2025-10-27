@@ -9,6 +9,7 @@ import AppLayout from '@/layouts/app-layout';
 import { SharedData, Paginated } from '@/types';
 import { usePage } from '@inertiajs/react';
 import { useState } from 'react';
+import GeneralModal from '@/components/ui/general-modal';
 
 interface AdminUser {
     id: number;
@@ -26,26 +27,57 @@ interface AdminUsersPageProps {
 export default function AdminUsers({ admins }: AdminUsersPageProps) {
     const { auth } = usePage<SharedData>().props;
     const [processing, setProcessing] = useState<number | null>(null);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [actionType, setActionType] = useState<'toggle' | 'delete' | null>(null);
+    const [selectedAdmin, setSelectedAdmin] = useState<AdminUser | null>(null);
 
     const breadcrumbs = [
         { title: 'Administración', href: '#' },
         { title: 'Administradores', href: '#' },
     ];
 
-    const handleToggleStatus = (adminId: number) => {
-        setProcessing(adminId);
-        router.patch(`/admin/admins/${adminId}/toggle-status`, {}, {
-            onFinish: () => setProcessing(null),
-        });
+    const handleToggleStatus = (admin: AdminUser) => {
+        setSelectedAdmin(admin);
+        setActionType('toggle');
+        setShowConfirmModal(true);
     };
 
-    const handleDelete = (adminId: number) => {
-        if (confirm('¿Estás seguro de que quieres eliminar este administrador? Esta acción no se puede deshacer.')) {
-            setProcessing(adminId);
-            router.delete(`/admin/admins/${adminId}`, {
-                onFinish: () => setProcessing(null),
+    const handleDelete = (admin: AdminUser) => {
+        setSelectedAdmin(admin);
+        setActionType('delete');
+        setShowConfirmModal(true);
+    };
+
+    const confirmAction = () => {
+        if (!selectedAdmin || !actionType) return;
+
+        setProcessing(selectedAdmin.id);
+        
+        if (actionType === 'toggle') {
+            router.patch(`/admin/admins/${selectedAdmin.id}/toggle-status`, {}, {
+                onFinish: () => {
+                    setProcessing(null);
+                    setShowConfirmModal(false);
+                    setSelectedAdmin(null);
+                    setActionType(null);
+                },
+            });
+        } else if (actionType === 'delete') {
+            router.delete(`/admin/admins/${selectedAdmin.id}`, {
+                onFinish: () => {
+                    setProcessing(null);
+                    setShowConfirmModal(false);
+                    setSelectedAdmin(null);
+                    setActionType(null);
+                },
             });
         }
+    };
+
+    const cancelAction = () => {
+        setShowConfirmModal(false);
+        setSelectedAdmin(null);
+        setActionType(null);
     };
 
     const formatDate = (dateString: string) => {
@@ -198,7 +230,7 @@ export default function AdminUsers({ admins }: AdminUsersPageProps) {
                                                         </Link>
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem
-                                                        onClick={() => handleToggleStatus(admin.id)}
+                                                        onClick={() => handleToggleStatus(admin)}
                                                         disabled={processing === admin.id}
                                                         className={admin.is_active 
                                                             ? "text-red-600 hover:text-red-700" 
@@ -218,7 +250,7 @@ export default function AdminUsers({ admins }: AdminUsersPageProps) {
                                                         )}
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem
-                                                        onClick={() => handleDelete(admin.id)}
+                                                        onClick={() => handleDelete(admin)}
                                                         disabled={processing === admin.id}
                                                         className="text-red-600 hover:text-red-700"
                                                     >
@@ -260,6 +292,63 @@ export default function AdminUsers({ admins }: AdminUsersPageProps) {
                     </div>
                 )}
             </div>
+
+            {/* Modal de Confirmación */}
+            <GeneralModal
+                isOpen={showConfirmModal}
+                onClose={cancelAction}
+                title={actionType === 'toggle' ? 'Confirmar Cambio de Estado' : 'Confirmar Eliminación'}
+            >
+                <div className="space-y-4">
+                    {actionType === 'toggle' && selectedAdmin && (
+                        <>
+                            <p className="text-gray-600">
+                                ¿Estás seguro de que quieres {selectedAdmin.is_active ? 'desactivar' : 'activar'} la cuenta de{' '}
+                                <span className="font-semibold">{selectedAdmin.name} {selectedAdmin.surname}</span>?
+                            </p>
+                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                <p className="text-sm text-yellow-800">
+                                    {selectedAdmin.is_active 
+                                        ? 'El administrador perderá acceso al sistema hasta que sea reactivado.'
+                                        : 'El administrador podrá acceder nuevamente al sistema.'
+                                    }
+                                </p>
+                            </div>
+                        </>
+                    )}
+                    
+                    {actionType === 'delete' && selectedAdmin && (
+                        <>
+                            <p className="text-gray-600">
+                                ¿Estás seguro de que quieres eliminar permanentemente la cuenta de{' '}
+                                <span className="font-semibold">{selectedAdmin.name} {selectedAdmin.surname}</span>?
+                            </p>
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                                <p className="text-sm text-red-800">
+                                    <strong>Esta acción no se puede deshacer.</strong> Se eliminará toda la información del administrador.
+                                </p>
+                            </div>
+                        </>
+                    )}
+                    
+                    <div className="flex justify-end space-x-3 pt-4">
+                        <Button
+                            variant="outline"
+                            onClick={cancelAction}
+                            disabled={processing !== null}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            variant={actionType === 'delete' ? 'destructive' : 'default'}
+                            onClick={confirmAction}
+                            disabled={processing !== null}
+                        >
+                            {processing !== null ? 'Procesando...' : 'Confirmar'}
+                        </Button>
+                    </div>
+                </div>
+            </GeneralModal>
         </AppLayout>
     );
 }

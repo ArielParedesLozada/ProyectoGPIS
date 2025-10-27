@@ -1,83 +1,62 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Plus, UserCheck, UserX, Eye, Users, Edit, Trash2 } from 'lucide-react';
+import { MoreHorizontal, ShoppingBag, UserCheck, UserX, Eye } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import { SharedData, Paginated } from '@/types';
 import { usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import GeneralModal from '@/components/ui/general-modal';
 
-interface ModeratorUser {
+interface VendorUser {
     id: number;
     name: string;
     surname: string;
     email: string;
+    phone: string;
     is_active: boolean;
     created_at: string;
 }
 
-interface ModeratorUsersPageProps {
-    moderators: Paginated<ModeratorUser>;
+interface VendorUsersPageProps {
+    vendors: Paginated<VendorUser>;
 }
 
-export default function ModeratorUsers({ moderators }: ModeratorUsersPageProps) {
+export default function VendorUsers({ vendors }: VendorUsersPageProps) {
     const { auth } = usePage<SharedData>().props;
     const [processing, setProcessing] = useState<number | null>(null);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
-    const [actionType, setActionType] = useState<'toggle' | 'delete' | null>(null);
-    const [selectedModerator, setSelectedModerator] = useState<ModeratorUser | null>(null);
+    const [selectedVendor, setSelectedVendor] = useState<VendorUser | null>(null);
 
     const breadcrumbs = [
         { title: 'Administración', href: '#' },
-        { title: 'Moderadores', href: '#' },
+        { title: 'Vendedores', href: '#' },
     ];
 
-    const handleToggleStatus = (moderator: ModeratorUser) => {
-        setSelectedModerator(moderator);
-        setActionType('toggle');
-        setShowConfirmModal(true);
-    };
-
-    const handleDelete = (moderator: ModeratorUser) => {
-        setSelectedModerator(moderator);
-        setActionType('delete');
+    const handleToggleStatus = (vendor: VendorUser) => {
+        setSelectedVendor(vendor);
         setShowConfirmModal(true);
     };
 
     const confirmAction = () => {
-        if (!selectedModerator || !actionType) return;
+        if (!selectedVendor) return;
 
-        setProcessing(selectedModerator.id);
-        
-        if (actionType === 'toggle') {
-            router.patch(`/admin/moderators/${selectedModerator.id}/toggle-status`, {}, {
-                onFinish: () => {
-                    setProcessing(null);
-                    setShowConfirmModal(false);
-                    setSelectedModerator(null);
-                    setActionType(null);
-                },
-            });
-        } else if (actionType === 'delete') {
-            router.delete(`/admin/moderators/${selectedModerator.id}`, {
-                onFinish: () => {
-                    setProcessing(null);
-                    setShowConfirmModal(false);
-                    setSelectedModerator(null);
-                    setActionType(null);
-                },
-            });
-        }
+        setProcessing(selectedVendor.id);
+        router.patch(`/admin/vendors/${selectedVendor.id}/toggle-status`, {}, {
+            onFinish: () => {
+                setProcessing(null);
+                setShowConfirmModal(false);
+                setSelectedVendor(null);
+            },
+        });
     };
 
     const cancelAction = () => {
         setShowConfirmModal(false);
-        setSelectedModerator(null);
-        setActionType(null);
+        setSelectedVendor(null);
     };
 
     const formatDate = (dateString: string) => {
@@ -90,41 +69,35 @@ export default function ModeratorUsers({ moderators }: ModeratorUsersPageProps) 
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Moderadores" />
+            <Head title="Vendedores" />
 
             <div className="space-y-8 px-6 py-6">
-                    {/* Header */}
-                    <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 text-white">
+                {/* Header */}
+                <div className="bg-gradient-to-r from-purple-600 to-purple-700 rounded-xl p-6 text-white">
                     <div className="flex justify-between items-start">
                         <div>
-                            <h1 className="text-3xl font-bold mb-2">Moderadores</h1>
-                            <p className="text-blue-100 text-lg">Gestiona los moderadores del sistema</p>
+                            <h1 className="text-3xl font-bold mb-2">Vendedores</h1>
+                            <p className="text-purple-100 text-lg">Gestiona los vendedores del sistema</p>
                         </div>
-                        <Button variant="secondary" className="bg-white/20 text-white border-white/50 hover:bg-white/30 hover:border-white/70 shadow-lg" asChild>
-                            <Link href="/admin/moderators/create">
-                                <Plus className="h-4 w-4 mr-2" />
-                                Crear Moderador
-                            </Link>
-                        </Button>
                     </div>
                 </div>
 
                 {/* Stats Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 bg-card/95 backdrop-blur-sm ">
+                    <Card className="border-l-4 border-l-purple-500 hover:shadow-lg transition-all duration-200 bg-card/95 backdrop-blur-sm">
                         <CardHeader className="pb-3">
                             <CardTitle className="text-sm font-semibold text-foreground flex items-center">
-                                <Users className="h-5 w-5 mr-2 text-blue-600" />
-                                Total Moderadores
+                                <ShoppingBag className="h-5 w-5 mr-2 text-purple-600" />
+                                Total Vendedores
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-bold text-blue-600">{moderators.total}</div>
+                            <div className="text-3xl font-bold text-purple-600">{vendors.total}</div>
                             <p className="text-sm text-muted-foreground mt-1">Registrados en el sistema</p>
                         </CardContent>
                     </Card>
                     
-                    <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-all duration-200 bg-card/95 backdrop-blur-sm ">
+                    <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-all duration-200 bg-card/95 backdrop-blur-sm">
                         <CardHeader className="pb-3">
                             <CardTitle className="text-sm font-semibold text-foreground flex items-center">
                                 <UserCheck className="h-5 w-5 mr-2 text-green-600" />
@@ -133,13 +106,13 @@ export default function ModeratorUsers({ moderators }: ModeratorUsersPageProps) 
                         </CardHeader>
                         <CardContent>
                             <div className="text-3xl font-bold text-green-600">
-                                {moderators.data.filter(moderator => moderator.is_active).length}
+                                {vendors.data.filter(vendor => vendor.is_active).length}
                             </div>
                             <p className="text-sm text-muted-foreground mt-1">Pueden acceder al sistema</p>
                         </CardContent>
                     </Card>
                     
-                    <Card className="border-l-4 border-l-red-500 hover:shadow-lg transition-all duration-200 bg-card/95 backdrop-blur-sm ">
+                    <Card className="border-l-4 border-l-red-500 hover:shadow-lg transition-all duration-200 bg-card/95 backdrop-blur-sm">
                         <CardHeader className="pb-3">
                             <CardTitle className="text-sm font-semibold text-foreground flex items-center">
                                 <UserX className="h-5 w-5 mr-2 text-red-600" />
@@ -148,22 +121,22 @@ export default function ModeratorUsers({ moderators }: ModeratorUsersPageProps) 
                         </CardHeader>
                         <CardContent>
                             <div className="text-3xl font-bold text-red-600">
-                                {moderators.data.filter(moderator => !moderator.is_active).length}
+                                {vendors.data.filter(vendor => !vendor.is_active).length}
                             </div>
-                            <p className="text-sm text-muted-foreground mt-1">Acceso suspendido</p>
+                            <p className="text-sm text-muted-foreground mt-1">Cuentas suspendidas</p>
                         </CardContent>
                     </Card>
                 </div>
 
-                {/* Moderators Table */}
-                <div className="bg-card/95 backdrop-blur-sm  rounded-lg shadow-lg">
+                {/* Vendors Table */}
+                <div className="bg-card/95 backdrop-blur-sm rounded-lg shadow-lg">
                     <div className="px-6 py-4">
                         <h2 className="text-lg font-semibold text-foreground flex items-center">
-                            <Users className="h-5 w-5 mr-2 text-blue-600" />
-                            Lista de Moderadores
+                            <ShoppingBag className="h-5 w-5 mr-2 text-purple-600" />
+                            Lista de Vendedores
                         </h2>
                         <p className="text-sm text-muted-foreground mt-1">
-                            Administra los permisos y estado de los moderadores del sistema
+                            Administra el estado de los vendedores del sistema
                         </p>
                     </div>
                     <div className="overflow-x-auto">
@@ -172,41 +145,43 @@ export default function ModeratorUsers({ moderators }: ModeratorUsersPageProps) 
                                 <TableRow className="bg-muted/50 border-b border-border/30">
                                     <TableHead className="font-semibold text-foreground border-r border-border/20 last:border-r-0">Nombre Completo</TableHead>
                                     <TableHead className="font-semibold text-foreground border-r border-border/20 last:border-r-0">Email</TableHead>
+                                    <TableHead className="font-semibold text-foreground border-r border-border/20 last:border-r-0">Teléfono</TableHead>
                                     <TableHead className="font-semibold text-foreground border-r border-border/20 last:border-r-0">Estado</TableHead>
-                                    <TableHead className="font-semibold text-foreground border-r border-border/20 last:border-r-0">Fecha de Creación</TableHead>
+                                    <TableHead className="font-semibold text-foreground border-r border-border/20 last:border-r-0">Fecha de Registro</TableHead>
                                     <TableHead className="font-semibold text-foreground w-[50px]">Acciones</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {moderators.data.map((moderator) => (
-                                    <TableRow key={moderator.id} className="hover:bg-muted/50 transition-colors border-b border-border/10">
+                                {vendors.data.map((vendor) => (
+                                    <TableRow key={vendor.id} className="hover:bg-muted/50 transition-colors border-b border-border/10">
                                         <TableCell className="font-medium border-r border-border/20 last:border-r-0">
                                             <div className="flex items-center space-x-3">
-                                                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                                    <span className="text-blue-600 font-semibold text-sm">
-                                                        {moderator.name.charAt(0)}{moderator.surname.charAt(0)}
+                                                <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                                                    <span className="text-purple-600 font-semibold text-sm">
+                                                        {vendor.name.charAt(0)}{vendor.surname.charAt(0)}
                                                     </span>
                                                 </div>
                                                 <div>
                                                     <div className="font-medium text-foreground">
-                                                        {moderator.name} {moderator.surname}
+                                                        {vendor.name} {vendor.surname}
                                                     </div>
                                                 </div>
                                             </div>
                                         </TableCell>
-                                        <TableCell className="text-muted-foreground border-r border-border/20 last:border-r-0">{moderator.email}</TableCell>
+                                        <TableCell className="text-muted-foreground border-r border-border/20 last:border-r-0">{vendor.email}</TableCell>
+                                        <TableCell className="text-muted-foreground border-r border-border/20 last:border-r-0">{vendor.phone}</TableCell>
                                         <TableCell className="border-r border-border/20 last:border-r-0">
                                             <Badge 
-                                                variant={moderator.is_active ? "default" : "secondary"}
-                                                className={moderator.is_active 
+                                                variant={vendor.is_active ? "default" : "secondary"}
+                                                className={vendor.is_active 
                                                     ? "bg-green-100 text-green-800 border-green-200" 
                                                     : "bg-red-100 text-red-800 border-red-200"
                                                 }
                                             >
-                                                {moderator.is_active ? 'Activo' : 'Inactivo'}
+                                                {vendor.is_active ? 'Activo' : 'Inactivo'}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell className="text-muted-foreground border-r border-border/20 last:border-r-0">{formatDate(moderator.created_at)}</TableCell>
+                                        <TableCell className="text-muted-foreground border-r border-border/20 last:border-r-0">{formatDate(vendor.created_at)}</TableCell>
                                         <TableCell className="border-r border-border/20 last:border-r-0">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
@@ -216,44 +191,30 @@ export default function ModeratorUsers({ moderators }: ModeratorUsersPageProps) 
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end" className="w-48">
                                                     <DropdownMenuItem asChild>
-                                                        <Link href={`/admin/moderators/${moderator.id}`} className="flex items-center">
+                                                        <Link href={`/admin/vendors/${vendor.id}`} className="flex items-center">
                                                             <Eye className="h-4 w-4 mr-2" />
                                                             Ver Detalles
                                                         </Link>
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem asChild>
-                                                        <Link href={`/admin/moderators/${moderator.id}/edit`} className="flex items-center">
-                                                            <Edit className="h-4 w-4 mr-2" />
-                                                            Editar
-                                                        </Link>
-                                                    </DropdownMenuItem>
                                                     <DropdownMenuItem
-                                                        onClick={() => handleToggleStatus(moderator)}
-                                                        disabled={processing === moderator.id}
-                                                        className={moderator.is_active 
+                                                        onClick={() => handleToggleStatus(vendor)}
+                                                        disabled={processing === vendor.id}
+                                                        className={vendor.is_active 
                                                             ? "text-red-600 hover:text-red-700" 
                                                             : "text-green-600 hover:text-green-700"
                                                         }
                                                     >
-                                                        {moderator.is_active ? (
+                                                        {vendor.is_active ? (
                                                             <>
                                                                 <UserX className="h-4 w-4 mr-2" />
-                                                                Desactivar
+                                                                Suspender Cuenta
                                                             </>
                                                         ) : (
                                                             <>
                                                                 <UserCheck className="h-4 w-4 mr-2" />
-                                                                Activar
+                                                                Reactivar Cuenta
                                                             </>
                                                         )}
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        onClick={() => handleDelete(moderator)}
-                                                        disabled={processing === moderator.id}
-                                                        className="text-red-600 hover:text-red-700"
-                                                    >
-                                                        <Trash2 className="h-4 w-4 mr-2" />
-                                                        Eliminar
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
@@ -264,18 +225,18 @@ export default function ModeratorUsers({ moderators }: ModeratorUsersPageProps) 
                         </Table>
                     </div>
 
-                    {moderators.data.length === 0 && (
+                    {vendors.data.length === 0 && (
                         <div className="text-center py-8">
-                            <p className="text-gray-500">No hay moderadores registrados</p>
+                            <p className="text-gray-500">No hay vendedores registrados</p>
                         </div>
                     )}
                 </div>
 
                 {/* Pagination */}
-                {moderators.links && moderators.links.length > 3 && (
+                {vendors.links && vendors.links.length > 3 && (
                     <div className="flex justify-center">
                         <nav className="flex space-x-2">
-                            {moderators.links.map((link, index) => (
+                            {vendors.links.map((link, index) => (
                                 <Button
                                     key={index}
                                     variant={link.active ? "default" : "outline"}
@@ -295,35 +256,21 @@ export default function ModeratorUsers({ moderators }: ModeratorUsersPageProps) 
             <GeneralModal
                 isOpen={showConfirmModal}
                 onClose={cancelAction}
-                title={actionType === 'toggle' ? 'Confirmar Cambio de Estado' : 'Confirmar Eliminación'}
+                title="Confirmar Cambio de Estado"
             >
                 <div className="space-y-4">
-                    {actionType === 'toggle' && selectedModerator && (
+                    {selectedVendor && (
                         <>
                             <p className="text-gray-600">
-                                ¿Estás seguro de que quieres {selectedModerator.is_active ? 'desactivar' : 'activar'} la cuenta de{' '}
-                                <span className="font-semibold">{selectedModerator.name} {selectedModerator.surname}</span>?
+                                ¿Estás seguro de que quieres {selectedVendor.is_active ? 'suspender' : 'reactivar'} la cuenta de{' '}
+                                <span className="font-semibold">{selectedVendor.name} {selectedVendor.surname}</span>?
                             </p>
                             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                                 <p className="text-sm text-yellow-800">
-                                    {selectedModerator.is_active 
-                                        ? 'El moderador perderá acceso al sistema hasta que sea reactivado.'
-                                        : 'El moderador podrá acceder nuevamente al sistema.'
+                                    {selectedVendor.is_active 
+                                        ? 'El vendedor perderá acceso al sistema hasta que sea reactivado.'
+                                        : 'El vendedor podrá acceder nuevamente al sistema.'
                                     }
-                                </p>
-                            </div>
-                        </>
-                    )}
-                    
-                    {actionType === 'delete' && selectedModerator && (
-                        <>
-                            <p className="text-gray-600">
-                                ¿Estás seguro de que quieres eliminar permanentemente la cuenta de{' '}
-                                <span className="font-semibold">{selectedModerator.name} {selectedModerator.surname}</span>?
-                            </p>
-                            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                                <p className="text-sm text-red-800">
-                                    <strong>Esta acción no se puede deshacer.</strong> Se eliminará toda la información del moderador.
                                 </p>
                             </div>
                         </>
@@ -338,7 +285,7 @@ export default function ModeratorUsers({ moderators }: ModeratorUsersPageProps) 
                             Cancelar
                         </Button>
                         <Button
-                            variant={actionType === 'delete' ? 'destructive' : 'default'}
+                            variant="default"
                             onClick={confirmAction}
                             disabled={processing !== null}
                         >
@@ -350,3 +297,4 @@ export default function ModeratorUsers({ moderators }: ModeratorUsersPageProps) 
         </AppLayout>
     );
 }
+

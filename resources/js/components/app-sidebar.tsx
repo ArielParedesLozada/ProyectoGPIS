@@ -13,7 +13,7 @@ import {
 import { publicationIndex, myPublications } from '@/routes/index';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { LayoutGrid, User, Shield, Users, UserPlus, Settings, Heart, AlertTriangle } from 'lucide-react';
+import { LayoutGrid, User, Shield, Users, UserPlus, Settings, Heart, AlertTriangle, ShoppingBag, ShoppingCart } from 'lucide-react';
 import MarketplaceLogo from './marketplace-logo';
 import { SharedData } from '@/types';
 
@@ -79,6 +79,16 @@ export function AppSidebar() {
                 title: 'Moderadores',
                 href: '/admin/moderators',
                 icon: Users,
+            },
+            {
+                title: 'Vendedores',
+                href: '/admin/vendors',
+                icon: ShoppingBag,
+            },
+            {
+                title: 'Compradores',
+                href: '/admin/buyers',
+                icon: ShoppingCart,
             }
         );
     } else if (auth.user.role === 'admin') {
@@ -87,6 +97,29 @@ export function AppSidebar() {
                 title: 'Moderadores',
                 href: '/admin/moderators',
                 icon: Users,
+            },
+            {
+                title: 'Vendedores',
+                href: '/admin/vendors',
+                icon: ShoppingBag,
+            },
+            {
+                title: 'Compradores',
+                href: '/admin/buyers',
+                icon: ShoppingCart,
+            }
+        );
+    } else if (auth.user.role === 'moderador') {
+        adminNavItems.push(
+            {
+                title: 'Vendedores',
+                href: '/admin/vendors',
+                icon: ShoppingBag,
+            },
+            {
+                title: 'Compradores',
+                href: '/admin/buyers',
+                icon: ShoppingCart,
             }
         );
     }
