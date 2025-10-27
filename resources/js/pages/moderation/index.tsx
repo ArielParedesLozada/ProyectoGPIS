@@ -11,7 +11,8 @@ import {
     CheckCircle,
     Clock,
     Users,
-    FileText
+    FileText,
+    X
 } from "lucide-react";
 import { useState } from "react";
 
@@ -47,8 +48,10 @@ interface ModerationIndexProps {
         total_cases: number;
         pending_cases: number;
         in_review_cases: number;
+        appealed_cases: number;
         my_cases: number;
         unassigned_cases: number;
+        pending_appeals: number;
     };
     filters: {
         status?: string;
@@ -74,27 +77,69 @@ export default function ModerationIndex({ cases, stats, filters }: ModerationInd
 
     const handleFilterChange = (key: string, value: any) => {
         const newFilters = { ...localFilters, [key]: value };
-        setLocalFilters(newFilters);
+        
+        // Validación especial para fechas
+        if (key === 'date_from' || key === 'date_to') {
+            // Si se está cambiando fecha_from y ya existe date_to, validar que sea válida
+            if (key === 'date_from' && localFilters.date_to) {
+                const dateFrom = new Date(value);
+                const dateTo = new Date(localFilters.date_to);
+                
+                if (dateFrom > dateTo) {
+                    // Limpiar date_to si la nueva fecha_from es mayor
+                    newFilters.date_to = undefined;
+                }
+            }
+            
+            // Validar fechas localmente antes de enviar
+            if (newFilters.date_from && newFilters.date_to) {
+                const dateFrom = new Date(newFilters.date_from);
+                const dateTo = new Date(newFilters.date_to);
+                
+                if (dateFrom > dateTo) {
+                    // No actualizar el estado local, mantener el anterior
+                    return;
+                }
+            }
+        }
         
         // Aplicar filtros inmediatamente
         router.get('/moderation', newFilters, {
             preserveState: true,
             replace: true,
+            onSuccess: () => {
+                // Solo actualizar el estado local si la respuesta fue exitosa
+                setLocalFilters(newFilters);
+            },
+            onError: () => {
+                // En caso de error, mantener el estado anterior
+                // No actualizar localFilters
+            }
         });
     };
 
     const clearFilters = () => {
         setLocalFilters({});
-        router.get('/moderation', {}, {
+        router.get('/moderation', { clear_filters: true }, {
             preserveState: true,
             replace: true,
+        });
+    };
+
+    // Verificar si hay filtros activos
+    const hasActiveFilters = () => {
+        return Object.keys(localFilters).some(key => {
+            const value = localFilters[key as keyof typeof localFilters];
+            return value !== undefined && value !== null && value !== '';
         });
     };
 
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'pending': return 'bg-yellow-100 text-yellow-800';
-            case 'closed': return 'bg-gray-100 text-gray-800';
+            case 'dismissed': return 'bg-red-100 text-red-800';
+            case 'appealed': return 'bg-orange-100 text-orange-800';
+            case 'closed': return 'bg-green-100 text-green-800';
             default: return 'bg-gray-100 text-gray-800';
         }
     };
@@ -102,6 +147,8 @@ export default function ModerationIndex({ cases, stats, filters }: ModerationInd
     const getStatusText = (status: string) => {
         switch (status) {
             case 'pending': return 'Pendiente';
+            case 'dismissed': return 'Descartado';
+            case 'appealed': return 'Apelado';
             case 'closed': return 'Cerrado';
             default: return status;
         }
@@ -120,7 +167,7 @@ export default function ModerationIndex({ cases, stats, filters }: ModerationInd
                     </div>
 
                     {/* Estadísticas */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                         <div className="bg-white rounded-2xl shadow-lg p-6">
                             <div className="flex items-center">
                                 <div className="p-3 bg-blue-100 rounded-full">
@@ -141,18 +188,6 @@ export default function ModerationIndex({ cases, stats, filters }: ModerationInd
                                 <div className="ml-4">
                                     <p className="text-sm font-medium text-gray-600">Pendientes</p>
                                     <p className="text-2xl font-bold text-gray-900">{stats.pending_cases}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="bg-white rounded-2xl shadow-lg p-6">
-                            <div className="flex items-center">
-                                <div className="p-3 bg-purple-100 rounded-full">
-                                    <Eye className="w-6 h-6 text-purple-600" />
-                                </div>
-                                <div className="ml-4">
-                                    <p className="text-sm font-medium text-gray-600">En Revisión</p>
-                                    <p className="text-2xl font-bold text-gray-900">{stats.in_review_cases}</p>
                                 </div>
                             </div>
                         </div>
@@ -196,7 +231,7 @@ export default function ModerationIndex({ cases, stats, filters }: ModerationInd
                         </div>
 
                         {showFilters && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">Estado</label>
                                     <select
@@ -206,20 +241,9 @@ export default function ModerationIndex({ cases, stats, filters }: ModerationInd
                                     >
                                         <option value="">Todos los estados</option>
                                         <option value="pending">Pendiente</option>
+                                        <option value="dismissed">Descartado</option>
+                                        <option value="appealed">Apelado</option>
                                         <option value="closed">Cerrado</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Fuente</label>
-                                    <select
-                                        value={localFilters.source || ''}
-                                        onChange={(e) => handleFilterChange('source', e.target.value || undefined)}
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    >
-                                        <option value="">Todas las fuentes</option>
-                                        <option value="user">Usuario</option>
-                                        <option value="system">Sistema</option>
                                     </select>
                                 </div>
 
@@ -239,7 +263,11 @@ export default function ModerationIndex({ cases, stats, filters }: ModerationInd
                                         type="date"
                                         value={localFilters.date_to || ''}
                                         onChange={(e) => handleFilterChange('date_to', e.target.value || undefined)}
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        disabled={!localFilters.date_from}
+                                        className={`w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                                            !localFilters.date_from ? 'bg-gray-100 cursor-not-allowed' : ''
+                                        }`}
+                                        title={!localFilters.date_from ? 'Primero selecciona la fecha desde' : ''}
                                     />
                                 </div>
                             </div>
@@ -267,10 +295,17 @@ export default function ModerationIndex({ cases, stats, filters }: ModerationInd
                             </label>
 
                             <button
-                                onClick={clearFilters}
-                                className="text-sm text-gray-500 hover:text-gray-700"
+                                onClick={hasActiveFilters() ? clearFilters : undefined}
+                                disabled={!hasActiveFilters()}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                                    hasActiveFilters()
+                                        ? 'bg-blue-100 hover:bg-blue-200 text-blue-700 cursor-pointer'
+                                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                }`}
+                                title={!hasActiveFilters() ? 'No hay filtros activos para limpiar' : ''}
                             >
-                                Limpiar filtros
+                                <X className="w-4 h-4" />
+                                Limpiar Filtros
                             </button>
                         </div>
                     </div>

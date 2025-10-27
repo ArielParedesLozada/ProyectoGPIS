@@ -30,6 +30,19 @@ export default function CreateModerator() {
         password_confirmation: ''
     });
 
+    const isFormValid = () => {
+        return fieldValues.cedula.trim() !== '' &&
+               fieldValues.name.trim() !== '' &&
+               fieldValues.surname.trim() !== '' &&
+               fieldValues.phone.trim() !== '' &&
+               fieldValues.address.trim() !== '' &&
+               fieldValues.gender !== '' &&
+               fieldValues.email.trim() !== '' &&
+               fieldValues.password.trim() !== '' &&
+               fieldValues.password_confirmation.trim() !== '' &&
+               fieldValues.password === fieldValues.password_confirmation;
+    };
+
     const breadcrumbs = [
         { title: 'Administración', href: '#' },
         { title: 'Moderadores', href: '/admin/moderators' },
@@ -288,7 +301,7 @@ export default function CreateModerator() {
                                         <Button type="button" variant="outline" size="lg" asChild>
                                             <Link href="/admin/moderators">Cancelar</Link>
                                         </Button>
-                                            <Button type="submit" size="lg" disabled={processing} className="bg-blue-600 hover:bg-blue-700">
+                                            <Button type="submit" size="lg" disabled={processing || !isFormValid()} className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed">
                                             {processing && <LoaderCircle className="h-4 w-4 mr-2 animate-spin" />}
                                             Crear Moderador
                                         </Button>

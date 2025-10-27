@@ -21,6 +21,8 @@ import MapPicker from "@/components/publications/MapPicker";
 import ServiceSchedule from "@/components/publications/ServiceSchedule";
 import { useToast } from "@/hooks/useToast";
 import ErrorMessage from "@/components/ui/error-message";
+import { useFieldValidation } from "@/hooks/use-field-validation";
+import CustomError from "@/components/custom-error";
 
 interface EditPublicationProps {
     publication: Publication & {
@@ -30,11 +32,11 @@ interface EditPublicationProps {
 }
 
 export default function EditPublication({ publication, categories }: EditPublicationProps) {
+    const { markFieldAsTouched, markSelectAsTouched, shouldShowError, getErrorMessage } = useFieldValidation();
     const [selectedImages, setSelectedImages] = useState<File[]>([]);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
     const [existingImages, setExistingImages] = useState(publication.images || []);
     const [hasChanges, setHasChanges] = useState(false);
-    const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { showToast } = useToast();
 
@@ -90,100 +92,26 @@ export default function EditPublication({ publication, categories }: EditPublica
         images: [] as File[]
     });
 
-    // Función para validar campos en tiempo real
-    const validateField = (field: string, value: string | number | { day: number; open: string; close: string }[]) => {
-        const newErrors = { ...validationErrors };
+    // Función para verificar si todos los campos obligatorios están completos
+    const isFormValid = () => {
+        // Verificar campos básicos
+        const basicFieldsValid = data.title.trim() !== '' && 
+                                data.description.trim() !== '' && 
+                                data.price.trim() !== '' && 
+                                data.category_id !== '' && 
+                                data.type !== null;
         
-        switch (field) {
-            case 'title':
-                if (!value || (typeof value === 'string' && value.trim().length === 0)) {
-                    newErrors.title = 'El título es requerido';
-                } else if (typeof value === 'string' && value.trim().length < 3) {
-                    newErrors.title = 'El título debe tener al menos 3 caracteres';
-                } else {
-                    delete newErrors.title;
-                }
-                break;
-                
-            case 'description':
-                if (!value || (typeof value === 'string' && value.trim().length === 0)) {
-                    newErrors.description = 'La descripción es requerida';
-                } else if (typeof value === 'string' && value.trim().length < 10) {
-                    newErrors.description = 'La descripción debe tener al menos 10 caracteres';
-                } else {
-                    delete newErrors.description;
-                }
-                break;
-                
-            case 'price':
-                if (!value || value === '') {
-                    newErrors.price = 'El precio es requerido';
-                } else if (isNaN(Number(value)) || Number(value) <= 0) {
-                    newErrors.price = 'El precio debe ser un número válido mayor a 0';
-                } else {
-                    delete newErrors.price;
-                }
-                break;
-                
-            case 'category_id':
-                if (!value || value === '') {
-                    newErrors.category_id = 'La categoría es requerida';
-                } else {
-                    delete newErrors.category_id;
-                }
-                break;
-                
-            case 'type':
-                if (!value || value === '') {
-                    newErrors.type = 'El tipo es requerido';
-                } else {
-                    delete newErrors.type;
-                }
-                break;
-                
-            case 'schedule':
-                if (data.type === 'servicio' && (!value || (Array.isArray(value) && value.length === 0))) {
-                    newErrors.schedule = 'El horario es requerido para servicios';
-                } else {
-                    delete newErrors.schedule;
-                }
-                break;
-        }
+        // Verificar ubicación
+        const locationValid = data.lat !== '' && data.lng !== '';
         
-        setValidationErrors(newErrors);
+        // Verificar imágenes (existentes o nuevas)
+        const imagesValid = existingImages.length > 0 || selectedImages.length > 0;
+        
+        // Verificar horario si es servicio
+        const scheduleValid = data.type !== 'servicio' || data.schedule.length > 0;
+        
+        return basicFieldsValid && locationValid && imagesValid && scheduleValid;
     };
-
-    // Validar ubicación
-    const validateLocation = () => {
-        const newErrors = { ...validationErrors };
-        if (!data.lat || !data.lng || data.lat === '' || data.lng === '') {
-            newErrors.location = 'Debes seleccionar una ubicación en el mapa';
-        } else {
-            delete newErrors.location;
-        }
-        setValidationErrors(newErrors);
-    };
-
-    // Validar imágenes
-    const validateImages = () => {
-        const newErrors = { ...validationErrors };
-        if (selectedImages.length === 0 && existingImages.length === 0) {
-            newErrors.images = 'Debes tener al menos una imagen';
-        } else {
-            delete newErrors.images;
-        }
-        setValidationErrors(newErrors);
-    };
-
-    // Efecto para validar ubicación cuando cambie
-    useEffect(() => {
-        validateLocation();
-    }, [data.lat, data.lng]);
-
-    // Efecto para validar imágenes cuando cambien
-    useEffect(() => {
-        validateImages();
-    }, [selectedImages, existingImages]);
 
     // Detectar cambios en el formulario
     useEffect(() => {
@@ -218,13 +146,14 @@ export default function EditPublication({ publication, categories }: EditPublica
             return;
         }
 
-        // Validar archivos vacíos (ser más permisivo con tipos)
-        const emptyFiles = files.filter(file => file.size === 0);
-        if (emptyFiles.length > 0) {
+        // Validar tipos de archivo permitidos
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        const invalidFiles = files.filter(file => !allowedTypes.includes(file.type));
+        if (invalidFiles.length > 0) {
             showToast({
                 type: 'error',
-                title: 'Archivo vacío',
-                message: 'Algunos archivos están vacíos.'
+                title: 'Tipo de archivo no permitido',
+                message: 'Solo se permiten archivos de imagen (JPG, PNG, GIF, WEBP).'
             });
             return;
         }
@@ -236,6 +165,17 @@ export default function EditPublication({ publication, categories }: EditPublica
                 type: 'error',
                 title: 'Archivo demasiado grande',
                 message: 'Las imágenes no pueden superar los 5MB cada una.'
+            });
+            return;
+        }
+
+        // Validar archivos vacíos
+        const emptyFiles = files.filter(file => file.size === 0);
+        if (emptyFiles.length > 0) {
+            showToast({
+                type: 'error',
+                title: 'Archivo vacío',
+                message: 'Algunos archivos están vacíos.'
             });
             return;
         }
@@ -280,25 +220,6 @@ export default function EditPublication({ publication, categories }: EditPublica
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        
-        // Validar todos los campos antes de enviar
-        validateField('title', data.title);
-        validateField('description', data.description);
-        validateField('price', data.price);
-        validateField('category_id', data.category_id);
-        validateField('type', data.type);
-        if (data.type === 'servicio') {
-            validateField('schedule', data.schedule);
-        }
-        validateLocation();
-        validateImages();
-        
-        // Verificar si hay errores de validación
-        const hasErrors = Object.keys(validationErrors).length > 0;
-        if (hasErrors) {
-            // No mostrar toast aquí, solo retornar para que el usuario vea los errores en los campos
-            return;
-        }
         
         // Crear FormData manualmente para asegurar que los archivos se envíen
         const formData = new FormData();
@@ -370,13 +291,14 @@ export default function EditPublication({ publication, categories }: EditPublica
                                                 type="text"
                                                 placeholder="Ej: Laptop Dell XPS 15 2024"
                                                 value={data.title}
-                                                onChange={(e) => {
-                                                    setData('title', e.target.value);
-                                                    validateField('title', e.target.value);
-                                                }}
-                                                className={errors.title || validationErrors.title ? 'border-red-500' : ''}
+                                                onChange={(e) => setData('title', e.target.value)}
+                                                onBlur={(e) => markFieldAsTouched('title', e.target.value)}
+                                                className={shouldShowError('title', errors.title, data.title) ? 'border-red-500' : ''}
                                             />
-                                            <ErrorMessage error={errors.title || validationErrors.title} />
+                                            <CustomError 
+                                                message={getErrorMessage('title', errors.title, data.title)} 
+                                                show={shouldShowError('title', errors.title, data.title)}
+                                            />
                                         </div>
 
                                         {/* Descripción */}
@@ -386,14 +308,15 @@ export default function EditPublication({ publication, categories }: EditPublica
                                                 id="description"
                                                 placeholder="Describe tu producto o servicio en detalle..."
                                                 value={data.description}
-                                                onChange={(e) => {
-                                                    setData('description', e.target.value);
-                                                    validateField('description', e.target.value);
-                                                }}
+                                                onChange={(e) => setData('description', e.target.value)}
+                                                onBlur={(e) => markFieldAsTouched('description', e.target.value)}
                                                 rows={4}
-                                                className={errors.description || validationErrors.description ? 'border-red-500' : ''}
+                                                className={shouldShowError('description', errors.description, data.description) ? 'border-red-500' : ''}
                                             />
-                                            <ErrorMessage error={errors.description || validationErrors.description} />
+                                            <CustomError 
+                                                message={getErrorMessage('description', errors.description, data.description)} 
+                                                show={shouldShowError('description', errors.description, data.description)}
+                                            />
                                         </div>
 
                                         {/* Categoría */}
@@ -401,9 +324,11 @@ export default function EditPublication({ publication, categories }: EditPublica
                                             <Label htmlFor="category_id">Categoría *</Label>
                                             <Select value={data.category_id} onValueChange={(value) => {
                                                 setData('category_id', value);
-                                                validateField('category_id', value);
                                             }}>
-                                                <SelectTrigger className={errors.category_id || validationErrors.category_id ? 'border-red-500' : ''}>
+                                                <SelectTrigger 
+                                                    className={shouldShowError('category_id', errors.category_id, data.category_id) ? 'border-red-500' : ''}
+                                                    onBlur={() => markSelectAsTouched('category_id', data.category_id)}
+                                                >
                                                     <SelectValue placeholder="Selecciona una categoría" />
                                                 </SelectTrigger>
                                                 <SelectContent>
@@ -414,7 +339,10 @@ export default function EditPublication({ publication, categories }: EditPublica
                                                     ))}
                                                 </SelectContent>
                                             </Select>
-                                            <ErrorMessage error={errors.category_id || validationErrors.category_id} />
+                                            <CustomError 
+                                                message={getErrorMessage('category_id', errors.category_id, data.category_id)} 
+                                                show={shouldShowError('category_id', errors.category_id, data.category_id)}
+                                            />
                                         </div>
 
                                         {/* Tipo */}
@@ -422,9 +350,11 @@ export default function EditPublication({ publication, categories }: EditPublica
                                             <Label htmlFor="type">Tipo *</Label>
                                             <Select value={data.type} onValueChange={(value: "servicio" | "producto") => {
                                                 setData('type', value);
-                                                validateField('type', value);
                                             }}>
-                                                <SelectTrigger className={errors.type || validationErrors.type ? 'border-red-500' : ''}>
+                                                <SelectTrigger 
+                                                    className={shouldShowError('type', errors.type, data.type) ? 'border-red-500' : ''}
+                                                    onBlur={() => markSelectAsTouched('type', data.type)}
+                                                >
                                                     <SelectValue placeholder="Selecciona el tipo" />
                                                 </SelectTrigger>
                                                 <SelectContent>
@@ -432,7 +362,10 @@ export default function EditPublication({ publication, categories }: EditPublica
                                                     <SelectItem value="servicio">Servicio</SelectItem>
                                                 </SelectContent>
                                             </Select>
-                                            <ErrorMessage error={errors.type || validationErrors.type} />
+                                            <CustomError 
+                                                message={getErrorMessage('type', errors.type, data.type)} 
+                                                show={shouldShowError('type', errors.type, data.type)}
+                                            />
                                         </div>
 
                                         {/* Horario de atención (solo para servicios) */}
@@ -442,9 +375,8 @@ export default function EditPublication({ publication, categories }: EditPublica
                                                     value={data.schedule}
                                                     onChange={(value: { day: number; open: string; close: string }[]) => {
                                                         setData('schedule', value.map(i => ({ ...i })));
-                                                        validateField('schedule', value);
                                                     }}
-                                                    error={errors.schedule || validationErrors.schedule}
+                                                    error={errors.schedule}
                                                     required={true}
                                                 />
                                             </div>
@@ -468,16 +400,17 @@ export default function EditPublication({ publication, categories }: EditPublica
                                                     type="number"
                                                     placeholder="0.00"
                                                     value={data.price}
-                                                    onChange={(e) => {
-                                                        setData('price', e.target.value);
-                                                        validateField('price', e.target.value);
-                                                    }}
-                                                    className={`pl-8 ${errors.price || validationErrors.price ? 'border-red-500' : ''}`}
+                                                    onChange={(e) => setData('price', e.target.value)}
+                                                    onBlur={(e) => markFieldAsTouched('price', e.target.value)}
+                                                    className={`pl-8 ${shouldShowError('price', errors.price, data.price) ? 'border-red-500' : ''}`}
                                                     step="0.01"
                                                     min="0"
                                                 />
                                             </div>
-                                            <ErrorMessage error={errors.price || validationErrors.price} />
+                                            <CustomError 
+                                                message={getErrorMessage('price', errors.price, data.price)} 
+                                                show={shouldShowError('price', errors.price, data.price)}
+                                            />
                                         </div>
                                     </div>
                                 </CardContent>
@@ -493,10 +426,16 @@ export default function EditPublication({ publication, categories }: EditPublica
                                     <MapPicker
                                         lat={data.lat && data.lat !== '' ? parseFloat(data.lat) : undefined}
                                         lng={data.lng && data.lng !== '' ? parseFloat(data.lng) : undefined}
-                                        onLocationChange={handleLocationChange}
+                                        onLocationChange={(lat, lng) => {
+                                            handleLocationChange(lat, lng);
+                                        }}
+                                        onBlur={() => markFieldAsTouched('location', `${data.lat},${data.lng}`)}
                                         className="h-64 w-full"
                                     />
-                                    <ErrorMessage error={validationErrors.location} />
+                                    <CustomError 
+                                        message={getErrorMessage('location', undefined, `${data.lat},${data.lng}`)} 
+                                        show={shouldShowError('location', undefined, `${data.lat},${data.lng}`)}
+                                    />
                                 </CardContent>
                             </Card>
 
@@ -505,23 +444,30 @@ export default function EditPublication({ publication, categories }: EditPublica
                                 <Card>
                                     <CardContent className="pt-6">
                                         <h3 className="text-lg font-semibold mb-4">Imágenes Actuales</h3>
-                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                             {existingImages.map((image, index) => (
-                                                <div key={image.id} className="relative">
+                                                <div key={image.id} className="relative group">
+                                                    <div className="aspect-square rounded-lg overflow-hidden border-2 border-gray-200 hover:border-blue-300 transition-colors duration-200 shadow-sm hover:shadow-md">
                                                     <img
                                                         src={`/storage/${image.image_url}`}
                                                         alt={`Imagen ${index + 1}`}
-                                                        className="w-full h-32 object-cover rounded-lg"
+                                                            className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
                                                     />
+                                                    </div>
                                                     <Button
                                                         type="button"
                                                         variant="destructive"
                                                         size="sm"
-                                                        className="absolute -top-2 -right-2 w-6 h-6 p-0 rounded-full"
+                                                        className="absolute -top-2 -right-2 w-6 h-6 p-0 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:scale-110"
                                                         onClick={() => removeExistingImage(index)}
                                                     >
-                                                        <X className="w-4 h-4" />
+                                                        <X className="w-3 h-3" />
                                                     </Button>
+                                                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                                        <p className="text-white text-xs font-medium">
+                                                            Imagen existente {index + 1}
+                                                        </p>
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
@@ -539,22 +485,58 @@ export default function EditPublication({ publication, categories }: EditPublica
 
                                     {/* Upload Area */}
                                     <div
-                                        className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                                        className={`border-2 border-dashed rounded-xl p-12 text-center transition-all duration-300 ${
                                             existingImages.length >= 5 
                                                 ? 'border-gray-200 bg-gray-50 cursor-not-allowed' 
-                                                : 'border-gray-300 hover:border-gray-400 cursor-pointer'
+                                                : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer group'
                                         }`}
                                         onClick={() => {
                                             if (existingImages.length < 5) {
                                                 fileInputRef.current?.click();
                                             }
                                         }}
+                                        onBlur={() => markFieldAsTouched('images', (existingImages.length > 0 || selectedImages.length > 0) ? 'has_images' : '')}
                                     >
-                                        <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                                        <p className="text-muted-foreground mb-2">Subir imágenes</p>
-                                        <p className="text-sm text-gray-500">
-                                            Arrastra y suelta o haz clic para seleccionar
-                                        </p>
+                                        <div className="flex flex-col items-center space-y-4">
+                                            <div className={`p-4 rounded-full transition-colors duration-300 ${
+                                                existingImages.length >= 5 
+                                                    ? 'bg-gray-100' 
+                                                    : 'bg-blue-100 group-hover:bg-blue-200'
+                                            }`}>
+                                                <Upload className={`w-8 h-8 transition-colors duration-300 ${
+                                                    existingImages.length >= 5 
+                                                        ? 'text-gray-400' 
+                                                        : 'text-blue-500 group-hover:text-blue-600'
+                                                }`} />
+                                            </div>
+                                            <div>
+                                                <p className={`text-lg font-medium transition-colors duration-300 ${
+                                                    existingImages.length >= 5 
+                                                        ? 'text-gray-400' 
+                                                        : 'text-gray-700 group-hover:text-blue-600'
+                                                }`}>
+                                                    {existingImages.length >= 5 ? 'Límite alcanzado' : 'Agregar imágenes'}
+                                                </p>
+                                                <p className={`text-sm mt-1 transition-colors duration-300 ${
+                                                    existingImages.length >= 5 
+                                                        ? 'text-gray-400' 
+                                                        : 'text-gray-500 group-hover:text-blue-500'
+                                                }`}>
+                                                    {existingImages.length >= 5 
+                                                        ? 'Ya tienes el máximo de imágenes' 
+                                                        : `Agrega hasta ${5 - existingImages.length} imágenes adicionales`
+                                                    }
+                                                </p>
+                                            </div>
+                                            {existingImages.length < 5 && (
+                                                <div className="flex items-center space-x-2 text-xs text-gray-400">
+                                                    <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                                                    <span>Máximo 5MB por imagen</span>
+                                                    <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                                                    <span>Formatos: JPG, PNG, GIF</span>
+                                                </div>
+                                            )}
+                                        </div>
                                         <input
                                             ref={fileInputRef}
                                             type="file"
@@ -567,29 +549,44 @@ export default function EditPublication({ publication, categories }: EditPublica
 
                                     {/* Image Previews */}
                                     {imagePreviews.length > 0 && (
-                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6">
+                                        <div className="mt-6">
+                                            <h4 className="text-sm font-medium text-gray-700 mb-3">
+                                                Nuevas imágenes ({imagePreviews.length})
+                                            </h4>
+                                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                             {imagePreviews.map((preview, index) => (
-                                                <div key={index} className="relative">
+                                                    <div key={index} className="relative group">
+                                                        <div className="aspect-square rounded-lg overflow-hidden border-2 border-gray-200 hover:border-blue-300 transition-colors duration-200 shadow-sm hover:shadow-md">
                                                     <img
                                                         src={preview}
                                                         alt={`Preview ${index + 1}`}
-                                                        className="w-full h-32 object-cover rounded-lg"
+                                                                className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
                                                     />
+                                                        </div>
                                                     <Button
                                                         type="button"
                                                         variant="destructive"
                                                         size="sm"
-                                                        className="absolute -top-2 -right-2 w-6 h-6 p-0 rounded-full"
+                                                            className="absolute -top-2 -right-2 w-6 h-6 p-0 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:scale-110"
                                                         onClick={() => removeImage(index)}
                                                     >
-                                                        <X className="w-4 h-4" />
+                                                            <X className="w-3 h-3" />
                                                     </Button>
+                                                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                                            <p className="text-white text-xs font-medium">
+                                                                Nueva imagen {index + 1}
+                                                            </p>
+                                                        </div>
                                                 </div>
                                             ))}
+                                            </div>
                                         </div>
                                     )}
 
-                                    <ErrorMessage error={errors.images || validationErrors.images} />
+                                    <CustomError 
+                                        message={getErrorMessage('images', errors.images, (existingImages.length > 0 || selectedImages.length > 0) ? 'has_images' : '')} 
+                                        show={shouldShowError('images', errors.images, (existingImages.length > 0 || selectedImages.length > 0) ? 'has_images' : '')}
+                                    />
                                 </CardContent>
                             </Card>
 
@@ -602,8 +599,8 @@ export default function EditPublication({ publication, categories }: EditPublica
                                 </Link>
                                 <Button
                                     type="submit"
-                                    disabled={processing || !hasChanges}
-                                    className="bg-blue-600 hover:bg-blue-700"
+                                    disabled={processing || !hasChanges || !isFormValid()}
+                                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                                 >
                                     {processing ? 'Guardando...' : 'Guardar Cambios'}
                                 </Button>

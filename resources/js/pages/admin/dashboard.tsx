@@ -13,6 +13,17 @@ interface AdminDashboardProps {
         activeAdmins: number;
         totalModerators: number;
         activeModerators: number;
+        totalPublications: number;
+        activePublications: number;
+        inactivePublications: number;
+        hiddenPublications: number;
+        lastAdminActivity: string | null;
+        lastModeratorActivity: string | null;
+        pendingModerationTasks: number;
+        totalUsers: number;
+        activeUsers: number;
+        inactiveUsers: number;
+        newUsersThisWeek: number;
         recentActivity: Array<{
             id: number;
             action: string;
@@ -40,6 +51,18 @@ export default function AdminDashboard({ stats }: AdminDashboardProps) {
         return `Hace ${Math.floor(diffInMinutes / 1440)} días`;
     };
 
+    const formatLastActivity = (timestamp: string | null) => {
+        if (!timestamp) return 'Nunca';
+        const now = new Date();
+        const time = new Date(timestamp);
+        const diffInMinutes = Math.floor((now.getTime() - time.getTime()) / (1000 * 60));
+        
+        if (diffInMinutes < 1) return 'Hace un momento';
+        if (diffInMinutes < 60) return `Hace ${diffInMinutes} min`;
+        if (diffInMinutes < 1440) return `Hace ${Math.floor(diffInMinutes / 60)}h`;
+        return `Hace ${Math.floor(diffInMinutes / 1440)}d`;
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Dashboard de Administración" />
@@ -65,7 +88,7 @@ export default function AdminDashboard({ stats }: AdminDashboardProps) {
                 {/* Stats Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {auth.user.role === 'super_admin' && (
-                        <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 bg-card/95 backdrop-blur-sm ">
+                        <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 bg-card/95 backdrop-blur-sm flex flex-col">
                             <CardHeader className="pb-3">
                                 <div className="flex items-center justify-between">
                                     <CardTitle className="text-sm font-semibold text-card-foreground flex items-center">
@@ -77,15 +100,15 @@ export default function AdminDashboard({ stats }: AdminDashboardProps) {
                                     </Badge>
                                 </div>
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="flex-1 flex flex-col">
                                 <div className="text-3xl font-bold text-blue-600 mb-2">{stats.totalAdmins}</div>
                                 <p className="text-sm text-muted-foreground mb-4">
                                     {stats.activeAdmins} activos
                                 </p>
-                                <div className="space-y-2 mb-4">
+                                <div className="space-y-2 flex-1">
                                     <div className="flex justify-between text-xs">
                                         <span className="text-muted-foreground">Último acceso</span>
-                                        <span className="font-medium text-foreground">Hoy</span>
+                                        <span className="font-medium text-foreground">{formatLastActivity(stats.lastAdminActivity)}</span>
                                     </div>
                                     <div className="flex justify-between text-xs">
                                         <span className="text-muted-foreground">Permisos</span>
@@ -96,14 +119,11 @@ export default function AdminDashboard({ stats }: AdminDashboardProps) {
                                         <span className="font-medium text-green-600">Activo</span>
                                     </div>
                                 </div>
-                                <Button size="sm" className="w-full" asChild>
-                                    <Link href="/admin/admins">Gestionar</Link>
-                                </Button>
                             </CardContent>
                         </Card>
                     )}
 
-                    <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-all duration-200 bg-card/95 backdrop-blur-sm ">
+                    <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-all duration-200 bg-card/95 backdrop-blur-sm flex flex-col">
                         <CardHeader className="pb-3">
                             <div className="flex items-center justify-between">
                                 <CardTitle className="text-sm font-semibold text-card-foreground flex items-center">
@@ -115,33 +135,30 @@ export default function AdminDashboard({ stats }: AdminDashboardProps) {
                                 </Badge>
                             </div>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="flex-1 flex flex-col">
                             <div className="text-3xl font-bold text-green-600 mb-2">{stats.totalModerators}</div>
                             <p className="text-sm text-muted-foreground mb-4">
                                 {stats.activeModerators} activos
                             </p>
-                            <div className="space-y-2 mb-4">
+                            <div className="space-y-2 flex-1">
                                 <div className="flex justify-between text-xs">
                                     <span className="text-muted-foreground">Última actividad</span>
-                                    <span className="font-medium text-foreground">Hace 2h</span>
+                                    <span className="font-medium text-foreground">{formatLastActivity(stats.lastModeratorActivity)}</span>
                                 </div>
                                 <div className="flex justify-between text-xs">
                                     <span className="text-muted-foreground">Tareas pendientes</span>
-                                    <span className="font-medium text-foreground">3</span>
+                                    <span className="font-medium text-foreground">{stats.pendingModerationTasks}</span>
                                 </div>
                                 <div className="flex justify-between text-xs">
                                     <span className="text-muted-foreground">Estado</span>
                                     <span className="font-medium text-green-600">Activo</span>
                                 </div>
                             </div>
-                            <Button size="sm" className="w-full" asChild>
-                                <Link href="/admin/moderators">Gestionar</Link>
-                            </Button>
                         </CardContent>
                     </Card>
 
                     {/* Publicaciones Overview Card */}
-                    <Card className="border-l-4 border-l-purple-500 hover:shadow-lg transition-all duration-200 bg-card/95 backdrop-blur-sm ">
+                    <Card className="border-l-4 border-l-purple-500 hover:shadow-lg transition-all duration-200 bg-card/95 backdrop-blur-sm flex flex-col">
                         <CardHeader className="pb-3">
                             <div className="flex items-center justify-between">
                                 <CardTitle className="text-sm font-semibold text-card-foreground flex items-center">
@@ -153,28 +170,29 @@ export default function AdminDashboard({ stats }: AdminDashboardProps) {
                                 </Badge>
                             </div>
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-3xl font-bold text-purple-600 mb-2">0</div>
+                        <CardContent className="flex-1 flex flex-col">
+                            <div className="text-3xl font-bold text-purple-600 mb-2">{stats.totalPublications}</div>
                             <p className="text-sm text-muted-foreground mb-4">
                                 Publicaciones en el sistema
                             </p>
-                            <div className="space-y-2 mb-4">
+                            <div className="space-y-2 flex-1">
                                 <div className="flex justify-between text-xs">
-                                    <span className="text-muted-foreground">Pendientes</span>
-                                    <span className="font-medium text-foreground">0</span>
+                                    <span className="text-muted-foreground">Activas</span>
+                                    <span className="font-medium text-foreground">{stats.activePublications}</span>
                                 </div>
                                 <div className="flex justify-between text-xs">
-                                    <span className="text-muted-foreground">Aprobadas</span>
-                                    <span className="font-medium text-foreground">0</span>
+                                    <span className="text-muted-foreground">Inactivas</span>
+                                    <span className="font-medium text-foreground">{stats.inactivePublications}</span>
                                 </div>
                                 <div className="flex justify-between text-xs">
-                                    <span className="text-muted-foreground">Rechazadas</span>
-                                    <span className="font-medium text-foreground">0</span>
+                                    <span className="text-muted-foreground">Ocultas</span>
+                                    <span className="font-medium text-foreground">{stats.hiddenPublications}</span>
+                                </div>
+                                <div className="flex justify-between text-xs">
+                                    <span className="text-muted-foreground">Total</span>
+                                    <span className="font-medium text-foreground">{stats.totalPublications}</span>
                                 </div>
                             </div>
-                            <Button size="sm" className="w-full" asChild>
-                                <Link href="/publication">Gestionar</Link>
-                            </Button>
                         </CardContent>
                     </Card>
                 </div>
@@ -221,6 +239,31 @@ export default function AdminDashboard({ stats }: AdminDashboardProps) {
                                         <div className="text-2xl font-bold text-green-600">
                                             {stats.totalModerators > 0 ? Math.round((stats.activeModerators / stats.totalModerators) * 100) : 0}%
                                         </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                                    <div>
+                                        <p className="font-medium text-foreground">Usuarios</p>
+                                        <p className="text-sm text-muted-foreground">
+                                            {stats.activeUsers} de {stats.totalUsers} activos
+                                        </p>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-2xl font-bold text-purple-600">
+                                            {stats.totalUsers > 0 ? Math.round((stats.activeUsers / stats.totalUsers) * 100) : 0}%
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3 pt-2">
+                                    <div className="text-center p-2 bg-muted/50 rounded">
+                                        <div className="text-lg font-bold text-orange-600">{stats.newUsersThisWeek}</div>
+                                        <div className="text-xs text-muted-foreground">Nuevos esta semana</div>
+                                    </div>
+                                    <div className="text-center p-2 bg-muted/50 rounded">
+                                        <div className="text-lg font-bold text-red-600">{stats.inactiveUsers}</div>
+                                        <div className="text-xs text-muted-foreground">Inactivos</div>
                                     </div>
                                 </div>
                             </div>

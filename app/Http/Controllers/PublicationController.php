@@ -30,6 +30,26 @@ class PublicationController extends Controller
 {
     public function index(Request $request)
     {
+        // Validar precios
+        if ($request->filled('min_price') && $request->filled('max_price')) {
+            $minPrice = (float) $request->min_price;
+            $maxPrice = (float) $request->max_price;
+            
+            if ($minPrice > $maxPrice) {
+                return redirect()->back()->with('error', 'El precio mínimo no puede ser mayor que el precio máximo.');
+            }
+        }
+        
+        // Mostrar mensaje informativo cuando solo se selecciona precio mínimo
+        if ($request->filled('min_price') && !$request->filled('max_price')) {
+            return redirect()->back()->with('info', 'Para filtrar por precio, selecciona también el precio máximo.');
+        }
+        
+        // Mostrar mensaje informativo cuando solo se selecciona precio máximo
+        if (!$request->filled('min_price') && $request->filled('max_price')) {
+            return redirect()->back()->with('info', 'Para filtrar por precio, selecciona también el precio mínimo.');
+        }
+        
         $query = Publication::query()->with(['category', 'images']);
         if ($request->filled('category_id')) {
             $query->where('category_id', $request->category_id);
@@ -52,7 +72,7 @@ class PublicationController extends Controller
 
             $query->whereRaw(
                 "ST_DWithin(location_point, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?)",
-                [$lng, $lat, $radiusKm * 1000] // Convertir km a metros
+                [$lng, $lat, $radiusKm * 1000] // ST_MakePoint usa (longitud, latitud) - convertir km a metros
             );
         }
 
@@ -749,9 +769,19 @@ class PublicationController extends Controller
                 $publication->location_point = null;
             }
 
+            // Verificar estado de moderación
+            $moderationCase = ModerationCase::where('publication_id', $id)->first();
+            $hasFinalDecision = false;
+            
+            if ($moderationCase && $moderationCase->status === 'closed' && $publication->is_hidden) {
+                // Si el caso está cerrado y la publicación está oculta, es una decisión final
+                $hasFinalDecision = true;
+            }
+
             // Forzar serialización correcta
             $publicationData = $publication->toArray();
             $publicationData['serviceHours'] = $publication->serviceHours->toArray();
+            $publicationData['has_final_moderation_decision'] = $hasFinalDecision;
 
             return Inertia::render('publications/my-publication-view', [
                 'publication' => $publicationData
