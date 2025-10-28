@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { router } from '@inertiajs/react';
 import { Filter, MapPin, X } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
+import NearMeFilterModal from './near-me-filter-modal';
 
 interface PublicationFiltersProps {
     categories: Array<{ id: number; name: string }>;
@@ -41,6 +42,7 @@ export default function PublicationFilters({
     const [isGettingLocation, setIsGettingLocation] = useState(false);
     const [showFilters, setShowFilters] = useState(false);
     const [myProductsFilter, setMyProductsFilter] = useState(myProducts || false);
+    const [showNearMeModal, setShowNearMeModal] = useState(false);
 
     // Sincronizar estado con props cuando cambien
     useEffect(() => {
@@ -171,14 +173,26 @@ export default function PublicationFilters({
             setNearMe(false);
             applyFilters(category, type, minPrice, maxPrice, undefined, undefined, undefined, myProductsFilter);
         } else {
-            getCurrentLocation();
+            setShowNearMeModal(true);
         }
+    };
+
+    const handleNearMeApply = (lat: number, lng: number, newRadius: number) => {
+        setNearMe(true);
+        setRadius(newRadius.toString());
+        applyFilters(category, type, minPrice, maxPrice, lat, lng, newRadius.toString(), myProductsFilter);
     };
 
     const handleRadiusChange = (newRadius: string) => {
         setRadius(newRadius);
         if (nearMe && nearLat && nearLng) {
             applyFilters(category, type, minPrice, maxPrice, nearLat, nearLng, newRadius, myProductsFilter);
+        }
+    };
+
+    const handleRadiusClick = () => {
+        if (nearMe) {
+            setShowNearMeModal(true);
         }
     };
 
@@ -355,14 +369,18 @@ export default function PublicationFilters({
                                 {nearMe && (
                                     <div>
                                         <Label className="text-sm font-medium text-gray-700 mb-2 block">Radio de búsqueda</Label>
-                                        <div className="flex items-center gap-3">
+                                        <div 
+                                            className="flex items-center gap-3 cursor-pointer p-2 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors"
+                                            onClick={handleRadiusClick}
+                                        >
                                             <input
                                                 type="range"
                                                 min="1"
                                                 max="50"
                                                 value={radius}
                                                 onChange={(e) => handleRadiusChange(e.target.value)}
-                                                className="flex-1"
+                                                className="flex-1 cursor-pointer"
+                                                onClick={(e) => e.stopPropagation()}
                                             />
                                             <span className="text-sm font-medium text-gray-700 min-w-[3rem]">
                                                 {radius} km
@@ -395,6 +413,16 @@ export default function PublicationFilters({
                     Limpiar Filtros
                 </button>
             </div>
+
+            {/* Modal de filtro "Cerca de mí" */}
+            <NearMeFilterModal
+                isOpen={showNearMeModal}
+                onClose={() => setShowNearMeModal(false)}
+                onApply={handleNearMeApply}
+                currentLat={nearLat}
+                currentLng={nearLng}
+                currentRadius={parseInt(radius)}
+            />
 
         </div>
     );
