@@ -14,10 +14,11 @@ export default function PublicationIndex() {
             href: publicationIndex().url,
         },
     ];
-    const { auth, publications, categories, selectedCategory, selectedType, selectedMinPrice, selectedMaxPrice, nearLat, nearLng, radiusKm, myProducts } = usePage<SharedData & {
+    const { auth, publications, categories, selectedCategory, selectedCategories, selectedType, selectedMinPrice, selectedMaxPrice, nearLat, nearLng, radiusKm, myProducts } = usePage<SharedData & {
         publications: Paginated<Publication>,
         categories: Category[],
         selectedCategory?: number;
+        selectedCategories?: number[];
         selectedType?: string;
         selectedMinPrice?: number;
         selectedMaxPrice?: number;
@@ -61,6 +62,7 @@ export default function PublicationIndex() {
                 publications={publications}
                 categories={categories}
                 selectedCategory={selectedCategory}
+                selectedCategories={selectedCategories}
                 selectedType={selectedType}
                 selectedMinPrice={selectedMinPrice}
                 selectedMaxPrice={selectedMaxPrice}

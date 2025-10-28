@@ -389,9 +389,6 @@ export default function PublicationFilters({
                                         <p className="text-xs text-gray-500 mt-1">
                                             Mostrando publicaciones dentro de {radius} km de tu ubicación
                                         </p>
-                                        <p className="text-xs text-blue-600 mt-1">
-                                            Haz clic para ajustar la ubicación en el mapa
-                                        </p>
                                     </div>
                                 )}
                             </div>

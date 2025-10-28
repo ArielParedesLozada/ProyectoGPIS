@@ -53,7 +53,16 @@ class PublicationController extends Controller
         
         // Mostrar todas las publicaciones (disponibles y no disponibles)
         $query = Publication::query()->with(['category', 'images']);
-        if ($request->filled('category_id')) {
+        
+        // Filtro por categorías múltiples
+        if ($request->filled('categories')) {
+            $categoryIds = explode(',', $request->categories);
+            $categoryIds = array_filter($categoryIds, 'is_numeric'); // Solo IDs numéricos
+            if (!empty($categoryIds)) {
+                $query->whereIn('category_id', $categoryIds);
+            }
+        } elseif ($request->filled('category_id')) {
+            // Mantener compatibilidad con filtro de categoría única
             $query->where('category_id', $request->category_id);
         }
         if ($request->filled('type')) {
@@ -91,7 +100,7 @@ class PublicationController extends Controller
         $query->where('status', StatusType::HABILITADO)
             ->where('is_hidden', false);
 
-        $publications = $query->paginate(6)->withQueryString();
+        $publications = $query->paginate(9)->withQueryString();
 
         // Extraer coordenadas para cada publicación
         foreach ($publications as $publication) {
@@ -113,6 +122,7 @@ class PublicationController extends Controller
             'publications' => $publications,
             'categories' => $categories,
             'selectedCategory' => $request->category_id,
+            'selectedCategories' => $request->filled('categories') ? array_map('intval', explode(',', $request->categories)) : null,
             'selectedType' => $request->type,
             'selectedMinPrice' => $request->min_price,
             'selectedMaxPrice' => $request->max_price,
@@ -807,7 +817,7 @@ class PublicationController extends Controller
             
             $favorites = $user->favorites()
                 ->with(['publication.category', 'publication.images', 'publication.serviceHours'])
-                ->paginate(12);
+                ->paginate(9);
 
             // Transformar los datos para que sean compatibles con el frontend
             $favoritesData = $favorites->through(function ($favorite) {
