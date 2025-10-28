@@ -29,7 +29,7 @@ export function AppSidebar() {
     ];
 
     // Solo usuarios no administrativos y que no sean compradores ven "Mis Publicaciones"
-    if (auth.user.role !== 'super_admin' && auth.user.role !== 'admin' && auth.user.role !== 'comprador') {
+    if (auth.user.role !== 'super_admin' && auth.user.role !== 'admin' && auth.user.role !== 'comprador' && auth.user.role !== 'moderador') {
         mainNavItems.push({
             title: 'Mis Publicaciones',
             href: myPublications(),
@@ -38,7 +38,7 @@ export function AppSidebar() {
     }
 
     // Solo usuarios no administrativos ven "Favoritos"
-    if (auth.user.role !== 'super_admin' && auth.user.role !== 'admin') {
+    if (auth.user.role !== 'super_admin' && auth.user.role !== 'admin' && auth.user.role !== 'moderador') {
         mainNavItems.push({
             title: 'Favoritos',
             href: '/favorites',
