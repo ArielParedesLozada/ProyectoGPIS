@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, MapPin, DollarSign, Tag, Package } from 'lucide-react';
+import { X, MapPin, DollarSign, Tag, Package, User, Search, SortAsc, SortDesc } from 'lucide-react';
 import { router } from '@inertiajs/react';
 
 interface FilterChipProps {
@@ -32,7 +32,11 @@ interface ActiveFiltersProps {
   nearLat?: number;
   nearLng?: number;
   radiusKm?: number;
+  myProducts?: boolean;
+  selectedSearchQuery?: string;
+  selectedSortBy?: string;
   categories: Array<{ id: number; name: string }>;
+  onClearSearch?: () => void;
 }
 
 export default function ActiveFilters({
@@ -44,7 +48,11 @@ export default function ActiveFilters({
   nearLat,
   nearLng,
   radiusKm,
-  categories
+  myProducts,
+  selectedSearchQuery,
+  selectedSortBy,
+  categories,
+  onClearSearch
 }: ActiveFiltersProps) {
   const activeFilters = [];
 
@@ -148,6 +156,75 @@ export default function ActiveFilters({
         query.delete('near_lat');
         query.delete('near_lng');
         query.delete('radius_km');
+        router.get(`/publication?${query.toString()}`, {}, {
+          preserveState: true,
+          replace: true,
+        });
+      }
+    });
+  }
+
+  // Solo mis productos
+  if (myProducts) {
+    activeFilters.push({
+      key: 'myProducts',
+      label: 'Solo mis productos',
+      icon: <User className="h-3 w-3" />,
+      onRemove: () => {
+        const query = new URLSearchParams(window.location.search);
+        query.delete('my_products');
+        router.get(`/publication?${query.toString()}`, {}, {
+          preserveState: true,
+          replace: true,
+        });
+      }
+    });
+  }
+
+  // Búsqueda
+  if (selectedSearchQuery) {
+    activeFilters.push({
+      key: 'search',
+      label: `"${selectedSearchQuery}"`,
+      icon: <Search className="h-3 w-3" />,
+      onRemove: () => {
+        const query = new URLSearchParams(window.location.search);
+        query.delete('search');
+        router.get(`/publication?${query.toString()}`, {}, {
+          preserveState: true,
+          replace: true,
+        });
+        // Limpiar también el input de búsqueda
+        if (onClearSearch) {
+          onClearSearch();
+        }
+      }
+    });
+  }
+
+  // Ordenamiento
+  if (selectedSortBy && selectedSortBy !== 'newest') {
+    const sortLabels = {
+      'oldest': 'Más antiguos',
+      'price_low': 'Precio: menor',
+      'price_high': 'Precio: mayor',
+      'newest': 'Más recientes'
+    };
+    
+    const sortIcons = {
+      'oldest': <SortAsc className="h-3 w-3" />,
+      'price_low': <SortAsc className="h-3 w-3" />,
+      'price_high': <SortDesc className="h-3 w-3" />,
+      'newest': <SortDesc className="h-3 w-3" />
+    };
+
+    activeFilters.push({
+      key: 'sort',
+      label: sortLabels[selectedSortBy as keyof typeof sortLabels] || selectedSortBy,
+      icon: sortIcons[selectedSortBy as keyof typeof sortIcons],
+      onRemove: () => {
+        const query = new URLSearchParams(window.location.search);
+        query.delete('sort_by');
         router.get(`/publication?${query.toString()}`, {}, {
           preserveState: true,
           replace: true,

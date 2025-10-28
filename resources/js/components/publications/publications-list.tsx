@@ -19,6 +19,8 @@ interface PublicationListProps {
     nearLng?: number;
     radiusKm?: number;
     myProducts?: boolean;
+    selectedSearchQuery?: string;
+    selectedSortBy?: string;
 }
 
 export default function PublicationList({ 
@@ -32,7 +34,9 @@ export default function PublicationList({
     nearLat,
     nearLng,
     radiusKm,
-    myProducts
+    myProducts,
+    selectedSearchQuery,
+    selectedSortBy
 }: PublicationListProps) {
     const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
@@ -61,6 +65,9 @@ export default function PublicationList({
                 nearLat={nearLat}
                 nearLng={nearLng}
                 radiusKm={radiusKm}
+                myProducts={myProducts}
+                selectedSearchQuery={selectedSearchQuery}
+                selectedSortBy={selectedSortBy}
                 categories={categories}
                 onOpenFilters={() => setIsFiltersOpen(true)}
                 isFiltersOpen={isFiltersOpen}
@@ -107,7 +114,7 @@ export default function PublicationList({
                     ) : (
                         // Detectar si hay filtros activos
                         (() => {
-                            const hasActiveFilters = selectedCategory || selectedType || selectedMinPrice || selectedMaxPrice || nearLat || myProducts;
+                            const hasActiveFilters = selectedCategory || selectedType || selectedMinPrice || selectedMaxPrice || nearLat || myProducts || selectedSearchQuery || (selectedSortBy && selectedSortBy !== 'newest');
                             
                             if (hasActiveFilters) {
                                 // Hay filtros aplicados

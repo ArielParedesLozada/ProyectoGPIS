@@ -127,7 +127,17 @@ export default function PublicationFilters({
         radius?: string, 
         myProducts?: boolean
     ) => {
+        // Preservar parámetros existentes de búsqueda y ordenamiento
+        const currentQuery = new URLSearchParams(window.location.search);
         const query: Record<string, string | null> = {};
+
+        // Preservar búsqueda y ordenamiento existentes
+        if (currentQuery.get('search')) {
+            query.search = currentQuery.get('search');
+        }
+        if (currentQuery.get('sort_by')) {
+            query.sort_by = currentQuery.get('sort_by');
+        }
 
         // Categorías múltiples
         if (categories.length > 0) {
@@ -386,21 +396,6 @@ export default function PublicationFilters({
                     </div>
                 )}
             </div>
-
-            {/* Botón para limpiar filtros */}
-            {hasActiveFilters() && (
-                <div className="pt-4 border-t border-gray-200">
-                    <Button
-                        onClick={clearAllFilters}
-                        variant="outline"
-                        className="w-full flex items-center gap-2 text-gray-600 hover:text-gray-800"
-                    >
-                        <X className="h-4 w-4" />
-                        Limpiar Filtros
-                    </Button>
-                </div>
-            )}
-
             {/* Modal de filtro "Cerca de mí" */}
             <NearMeFilterModal
                 isOpen={showNearMeModal}

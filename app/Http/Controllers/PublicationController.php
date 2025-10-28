@@ -54,6 +54,15 @@ class PublicationController extends Controller
         // Mostrar todas las publicaciones (disponibles y no disponibles)
         $query = Publication::query()->with(['category', 'images']);
         
+        // Filtro por búsqueda
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->whereRaw('LOWER(title) LIKE LOWER(?)', ['%' . $search . '%'])
+                  ->orWhereRaw('LOWER(description) LIKE LOWER(?)', ['%' . $search . '%']);
+            });
+        }
+        
         // Filtro por categorías múltiples
         if ($request->filled('categories')) {
             $categoryIds = explode(',', $request->categories);
@@ -100,6 +109,27 @@ class PublicationController extends Controller
         $query->where('status', StatusType::HABILITADO)
             ->where('is_hidden', false);
 
+        // Ordenamiento
+        if ($request->filled('sort_by')) {
+            switch ($request->sort_by) {
+                case 'oldest':
+                    $query->orderBy('created_at', 'asc');
+                    break;
+                case 'price_low':
+                    $query->orderBy('price', 'asc');
+                    break;
+                case 'price_high':
+                    $query->orderBy('price', 'desc');
+                    break;
+                case 'newest':
+                default:
+                    $query->orderBy('created_at', 'desc');
+                    break;
+            }
+        } else {
+            $query->orderBy('created_at', 'desc'); // Default sort
+        }
+
         $publications = $query->paginate(9)->withQueryString();
 
         // Extraer coordenadas para cada publicación
@@ -130,6 +160,8 @@ class PublicationController extends Controller
             'nearLng' => $request->near_lng,
             'radiusKm' => $request->radius_km,
             'myProducts' => $request->my_products === 'true',
+            'selectedSearchQuery' => $request->search,
+            'selectedSortBy' => $request->sort_by,
         ]);
     }
 

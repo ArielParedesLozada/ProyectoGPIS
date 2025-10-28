@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Filter, SortAsc, SortDesc, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,9 @@ interface StickyToolbarProps {
   nearLat?: number;
   nearLng?: number;
   radiusKm?: number;
+  myProducts?: boolean;
+  selectedSearchQuery?: string;
+  selectedSortBy?: string;
   categories: Array<{ id: number; name: string }>;
   onOpenFilters: () => void;
   isFiltersOpen?: boolean;
@@ -31,12 +34,28 @@ export default function StickyToolbar({
   nearLat,
   nearLng,
   radiusKm,
+  myProducts,
+  selectedSearchQuery,
+  selectedSortBy,
   categories,
   onOpenFilters,
   isFiltersOpen = false
 }: StickyToolbarProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('newest');
+  const [searchQuery, setSearchQuery] = useState(selectedSearchQuery || '');
+  const [sortBy, setSortBy] = useState(selectedSortBy || 'newest');
+
+  useEffect(() => {
+    const currentQuery = new URLSearchParams(window.location.search);
+    const hasSearchParam = currentQuery.get('search');
+    
+    if (hasSearchParam && !searchQuery.trim()) {
+      currentQuery.delete('search');
+      router.get(`/publication?${currentQuery.toString()}`, {}, {
+        preserveState: true,
+        replace: true,
+      });
+    }
+  }, [searchQuery]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,7 +72,7 @@ export default function StickyToolbar({
   const handleSortChange = (value: string) => {
     setSortBy(value);
     const query = new URLSearchParams(window.location.search);
-    query.set('sort', value);
+    query.set('sort_by', value);
     router.get(`/publication?${query.toString()}`, {}, {
       preserveState: true,
       replace: true,
@@ -65,6 +84,10 @@ export default function StickyToolbar({
       preserveState: true,
       replace: true,
     });
+  };
+
+  const clearSearch = () => {
+    setSearchQuery('');
   };
 
   return (
@@ -153,7 +176,11 @@ export default function StickyToolbar({
             nearLat={nearLat}
             nearLng={nearLng}
             radiusKm={radiusKm}
+            myProducts={myProducts}
+            selectedSearchQuery={selectedSearchQuery}
+            selectedSortBy={selectedSortBy}
             categories={categories}
+            onClearSearch={clearSearch}
           />
         </div>
       </div>
