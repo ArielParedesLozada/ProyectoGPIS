@@ -24,12 +24,14 @@ class Publication extends Model
         'status',
         'type',
         'horario',
-        'is_hidden'
+        'is_hidden',
+        'hidden_by_vendor_deactivation'
     ];
 
     protected $casts = [
         'status' => \App\Enums\StatusType::class,
         'published_at' => 'datetime',
+        'hidden_by_vendor_deactivation' => 'boolean',
     ];
 
 
