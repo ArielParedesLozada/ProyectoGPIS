@@ -8,7 +8,7 @@ import { MoreHorizontal, Plus, UserCheck, UserX, Eye, Edit, Trash2 } from 'lucid
 import AppLayout from '@/layouts/app-layout';
 import { SharedData, Paginated } from '@/types';
 import { usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import GeneralModal from '@/components/ui/general-modal';
 
 interface AdminUser {
@@ -30,6 +30,11 @@ export default function AdminUsers({ admins }: AdminUsersPageProps) {
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [actionType, setActionType] = useState<'toggle' | 'delete' | null>(null);
     const [selectedAdmin, setSelectedAdmin] = useState<AdminUser | null>(null);
+
+    // Refrescar automáticamente cuando se navega a esta página
+    useEffect(() => {
+        router.reload({ only: ['admins'] });
+    }, []);
 
     const breadcrumbs = [
         { title: 'Administración', href: '#' },

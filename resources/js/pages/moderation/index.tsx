@@ -14,7 +14,7 @@ import {
     FileText,
     X
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface ModerationCase {
     id: number;
@@ -71,6 +71,11 @@ export default function ModerationIndex({ cases, stats, filters }: ModerationInd
             href: "/moderation",
         },
     ];
+
+    // Refrescar automáticamente cuando se navega a esta página
+    useEffect(() => {
+        router.reload({ only: ['cases', 'stats'] });
+    }, []);
 
     const [showFilters, setShowFilters] = useState(false);
     const [localFilters, setLocalFilters] = useState(filters);

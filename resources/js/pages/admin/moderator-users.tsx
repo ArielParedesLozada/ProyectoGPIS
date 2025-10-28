@@ -8,7 +8,7 @@ import { MoreHorizontal, Plus, UserCheck, UserX, Eye, Users, Edit, Trash2 } from
 import AppLayout from '@/layouts/app-layout';
 import { SharedData, Paginated } from '@/types';
 import { usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import GeneralModal from '@/components/ui/general-modal';
 
 interface ModeratorUser {
@@ -30,6 +30,11 @@ export default function ModeratorUsers({ moderators }: ModeratorUsersPageProps) 
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [actionType, setActionType] = useState<'toggle' | 'delete' | null>(null);
     const [selectedModerator, setSelectedModerator] = useState<ModeratorUser | null>(null);
+
+    // Refrescar automáticamente cuando se navega a esta página
+    useEffect(() => {
+        router.reload({ only: ['moderators'] });
+    }, []);
 
     const breadcrumbs = [
         { title: 'Administración', href: '#' },

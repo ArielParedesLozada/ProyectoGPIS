@@ -1,10 +1,11 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Mail, Phone, MapPin, Calendar, IdCard, UserCheck } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import { SharedData } from '@/types';
 import { usePage } from '@inertiajs/react';
+import { useEffect } from 'react';
 
 interface AdminUser {
     id: number;
@@ -26,6 +27,11 @@ interface AdminDetailsProps {
 
 export default function AdminDetails({ admin }: AdminDetailsProps) {
     const { auth } = usePage<SharedData>().props;
+
+    // Refrescar automáticamente cuando se navega a esta página
+    useEffect(() => {
+        router.reload({ only: ['admin'] });
+    }, []);
 
     const breadcrumbs = [
         { title: 'Administración', href: '#' },

@@ -33,6 +33,11 @@ export default function EditModerator({ moderator }: EditModeratorProps) {
     const { auth } = usePage<SharedData>().props;
     const { markFieldAsTouched, markSelectAsTouched, shouldShowError, getErrorMessage } = useFieldValidation();
     
+    // Refrescar automáticamente cuando se navega a esta página
+    useEffect(() => {
+        router.reload({ only: ['moderator'] });
+    }, []);
+    
     const [fieldValues, setFieldValues] = useState({
         cedula: moderator.cedula || '',
         name: moderator.name || '',
