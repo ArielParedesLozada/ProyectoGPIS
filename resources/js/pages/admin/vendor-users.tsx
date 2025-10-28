@@ -238,19 +238,27 @@ export default function VendorUsers({ vendors }: VendorUsersPageProps) {
                 </div>
 
                 {/* Pagination */}
-                {vendors.links && vendors.links.length > 3 && (
+                {vendors.links && vendors.links.length > 0 && (
                     <div className="flex justify-center">
                         <nav className="flex space-x-2">
                             {vendors.links.map((link, index) => (
-                                <Button
-                                    key={index}
-                                    variant={link.active ? "default" : "outline"}
-                                    size="sm"
-                                    onClick={() => link.url && router.get(link.url)}
-                                    disabled={!link.url || processing !== null}
-                                >
-                                    {link.label}
-                                </Button>
+                                link.url ? (
+                                    <Button
+                                        key={index}
+                                        variant={link.active ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => link.url && router.get(link.url)}
+                                        disabled={processing !== null}
+                                        className={link.label.includes('Previous') || link.label.includes('Next') ? "border-0" : ""}
+                                        dangerouslySetInnerHTML={{ __html: link.label }}
+                                    />
+                                ) : (
+                                    <span
+                                        key={index}
+                                        className="px-3 py-2 text-muted-foreground cursor-not-allowed text-sm border-0 rounded-md"
+                                        dangerouslySetInnerHTML={{ __html: link.label }}
+                                    />
+                                )
                             ))}
                         </nav>
                     </div>
