@@ -165,9 +165,13 @@ export default function PublicationCard({ publication }: PublicationCardProps) {
                             </TooltipContent>
                         </Tooltip>
                     </div>
-                    <button className="bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-colors duration-200">
-                        Disponible
-                    </button>
+                    <span className={`px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-colors duration-200 ${
+                        publication.disponibility 
+                            ? 'bg-green-500 text-white' 
+                            : 'bg-red-500 text-white'
+                    }`}>
+                        {publication.disponibility ? 'Disponible' : 'No disponible'}
+                    </span>
                 </div>
             </div>
 

@@ -12,6 +12,7 @@ use App\Models\ModerationCase;
 use App\Models\ModerationReport;
 use App\Models\ModerationAppeal;
 use App\Models\ModerationAction;
+use App\Models\Purchase;
 use App\Models\User;
 use App\Models\PublicationServiceHour;
 use App\Services\GeocodingService;
@@ -50,6 +51,7 @@ class PublicationController extends Controller
             return redirect()->back()->with('info', 'Para filtrar por precio, selecciona también el precio mínimo.');
         }
         
+        // Mostrar todas las publicaciones (disponibles y no disponibles)
         $query = Publication::query()->with(['category', 'images']);
         if ($request->filled('category_id')) {
             $query->where('category_id', $request->category_id);
@@ -74,6 +76,16 @@ class PublicationController extends Controller
                 "ST_DWithin(location_point, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?)",
                 [$lng, $lat, $radiusKm * 1000] // ST_MakePoint usa (longitud, latitud) - convertir km a metros
             );
+        }
+
+        // Filtro por productos comprados por el usuario
+        if ($request->filled('my_products') && $request->my_products === 'true') {
+            $userId = Auth::id();
+            if ($userId) {
+                $query->whereHas('purchases', function ($q) use ($userId) {
+                    $q->where('buyer_id', $userId);
+                });
+            }
         }
 
         $query->where('status', StatusType::HABILITADO)
@@ -107,6 +119,7 @@ class PublicationController extends Controller
             'nearLat' => $request->near_lat,
             'nearLng' => $request->near_lng,
             'radiusKm' => $request->radius_km,
+            'myProducts' => $request->my_products === 'true',
         ]);
     }
 
@@ -250,11 +263,6 @@ class PublicationController extends Controller
 
     public function create()
     {
-        // Restringir creación de publicaciones para el rol comprador
-        if (Auth::user()->role === 'comprador') {
-            return redirect()->route('publication-index')->with('error', 'Los compradores no pueden crear publicaciones.');
-        }
-
         $categories = Category::select('id', 'name')->get();
 
         return Inertia::render('publications/create-publication', [
@@ -265,11 +273,6 @@ class PublicationController extends Controller
     public function store(Request $request)
     {
         try {
-            // Restringir creación de publicaciones para el rol comprador
-            if (Auth::user()->role === 'comprador') {
-                return redirect()->route('publication-index')->with('error', 'Los compradores no pueden crear publicaciones.');
-            }
-
             // Validación actualizada - lat y lng son obligatorios
             $request->validate([
                 'title' => 'required|string|max:255',
@@ -795,10 +798,15 @@ class PublicationController extends Controller
     public function favorites()
     {
         try {
-            // Obtener favoritos paginados usando la relación
-            $favorites = Favorite::where('user_id', Auth::id())
+            /** @var \App\Models\User|null $user */
+            $user = Auth::user();
+            
+            if (!$user) {
+                return redirect()->route('login');
+            }
+            
+            $favorites = $user->favorites()
                 ->with(['publication.category', 'publication.images', 'publication.serviceHours'])
-                ->orderBy('created_at', 'desc')
                 ->paginate(12);
 
             // Transformar los datos para que sean compatibles con el frontend
@@ -893,7 +901,7 @@ class PublicationController extends Controller
             $publication = Publication::findOrFail($id);
             $reporterId = Auth::id();
 
-            // Verificar que el usuario no esté reportando su propia publicación
+            // Verificar que no estés reportando tu propia publicación
             if ($publication->created_by === $reporterId) {
                 return back()->withErrors(['error' => 'No puedes reportar tu propia publicación.']);
             }
@@ -971,8 +979,8 @@ class PublicationController extends Controller
      */
     private function assignToModerator(ModerationCase $case)
     {
-        // Buscar moderadores activos disponibles (SOLO moderadores)
-        $moderator = User::where('role', 'moderador') // Solo moderadores, no admins
+        // Buscar moderadores y admins activos disponibles (NO super_admin)
+        $moderator = User::whereIn('role', ['moderador', 'admin']) // Solo moderadores y admins
             ->where('status', StatusType::HABILITADO->value) // Solo activos
             ->where('is_active', true) // Solo activos
             ->withCount(['moderationCases' => function ($query) {
@@ -1255,8 +1263,8 @@ class PublicationController extends Controller
             return;
         }
 
-        // Buscar moderadores diferentes al original (SOLO moderadores)
-        $moderator = User::where('role', 'moderador') // Solo moderadores, no admins
+        // Buscar moderadores y admins diferentes al original (NO super_admin)
+        $moderator = User::whereIn('role', ['moderador', 'admin']) // Solo moderadores y admins
             ->where('id', '!=', $originalModeratorId) // Excluir al moderador original
             ->where('status', StatusType::HABILITADO->value) // Solo activos
             ->where('is_active', true) // Solo activos
@@ -1302,5 +1310,90 @@ class PublicationController extends Controller
                 'waiting_for_moderator' => true
             ]
         ]);
+    }
+
+    /**
+     * Comprar una publicación
+     */
+    public function buy($id)
+    {
+        try {
+            Log::info('Iniciando proceso de compra', ['publication_id' => $id]);
+            
+            $user = Auth::user();
+            
+            // Validar autenticación
+            if (!$user) {
+                Log::warning('Usuario no autenticado intentando comprar', ['publication_id' => $id]);
+                return back()->withErrors(['error' => 'Debes iniciar sesión para comprar.']);
+            }
+
+            Log::info('Usuario autenticado', ['user_id' => $user->id, 'role' => $user->role]);
+
+            // Validar rol del comprador
+            if (!in_array($user->role, ['comprador', 'vendedor'])) {
+                Log::warning('Usuario con rol inválido intentando comprar', ['user_id' => $user->id, 'role' => $user->role]);
+                return back()->withErrors(['error' => 'Tu rol no te permite realizar compras.']);
+            }
+
+            $publication = Publication::findOrFail($id);
+            Log::info('Publicación encontrada', ['publication_id' => $publication->id, 'disponibility' => $publication->disponibility, 'created_by' => $publication->created_by]);
+
+            // Validar que no esté comprando su propia publicación
+            if ($publication->created_by === $user->id) {
+                return back()->withErrors(['error' => 'No puedes comprar tu propia publicación.']);
+            }
+
+            // Validar disponibilidad
+            if (!$publication->disponibility) {
+                return back()->withErrors(['error' => 'Este producto ya no está disponible.']);
+            }
+
+            // Validar estado de la cuenta del vendedor
+            $seller = User::findOrFail($publication->created_by);
+            if ($seller->status === StatusType::INHABILITADO->value || !$seller->is_active) {
+                return back()->withErrors(['error' => 'El vendedor tiene su cuenta desactivada.']);
+            }
+
+            DB::beginTransaction();
+
+            // Actualizar disponibilidad de la publicación
+            $publication->disponibility = false;
+            $publication->save();
+
+            // Crear registro de compra
+            $purchase = Purchase::create([
+                'publication_id' => $publication->id,
+                'buyer_id' => $user->id,
+                'seller_id' => $seller->id,
+                'price' => $publication->price,
+                'status' => 'completed',
+            ]);
+
+            DB::commit();
+
+            Log::info('Compra realizada exitosamente', [
+                'publication_id' => $publication->id,
+                'buyer_id' => $user->id,
+                'seller_id' => $seller->id,
+                'price' => $publication->price,
+                'disponibility_after' => $publication->disponibility,
+                'purchase_id' => $purchase->id,
+            ]);
+
+            return back()->with('success', '¡Compra realizada exitosamente! El producto ya no está disponible.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al procesar la compra', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'publication_id' => $id,
+                'user_id' => Auth::id(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            return back()->withErrors(['error' => 'Error al procesar la compra. Inténtalo nuevamente. Detalles: ' . $e->getMessage()]);
+        }
     }
 }

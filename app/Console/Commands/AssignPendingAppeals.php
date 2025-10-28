@@ -140,8 +140,8 @@ class AssignPendingAppeals extends Command
             return null;
         }
 
-        // Buscar moderadores activos (SOLO moderadores regulares)
-        return User::where('role', 'moderador')
+        // Buscar moderadores activos (moderadores y admins, NO super_admin)
+        return User::whereIn('role', ['moderador', 'admin']) // Solo moderadores y admins
             ->where('status', StatusType::HABILITADO->value)
             ->where('is_active', true)
             ->withCount(['moderationCases' => function($query) {

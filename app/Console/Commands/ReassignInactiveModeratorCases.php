@@ -187,11 +187,11 @@ class ReassignInactiveModeratorCases extends Command
     }
 
     /**
-     * Encontrar moderador activo disponible (SOLO moderadores regulares)
+     * Encontrar moderador activo disponible (moderadores y admins, NO super_admin)
      */
     private function findAvailableModerator()
     {
-        return User::where('role', 'moderador')
+        return User::whereIn('role', ['moderador', 'admin']) // Solo moderadores y admins
             ->where('status', StatusType::HABILITADO->value)
             ->where('is_active', true)
             ->withCount(['moderationCases' => function($query) {

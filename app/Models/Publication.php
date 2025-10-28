@@ -60,6 +60,11 @@ class Publication extends Model
         return $this->hasMany(PublicationServiceHour::class, 'publication_id', 'id');
     }
 
+    public function purchases(): HasMany
+    {
+        return $this->hasMany(Purchase::class);
+    }
+
     // Accessor para convertir location_point a formato JSON
     public function getLocationPointAttribute($value)
     {
