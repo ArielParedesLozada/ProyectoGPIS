@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Shield, Users, UserPlus, Settings, Activity, TrendingUp } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import { SharedData } from '@/types';
-import { usePage } from '@inertiajs/react';
+import { usePage, router } from '@inertiajs/react';
+import { useEffect } from 'react';
 
 interface AdminDashboardProps {
     stats: {
@@ -35,6 +36,11 @@ interface AdminDashboardProps {
 
 export default function AdminDashboard({ stats }: AdminDashboardProps) {
     const { auth } = usePage<SharedData>().props;
+
+    // Refrescar automáticamente cuando se navega a esta página
+    useEffect(() => {
+        router.reload({ only: ['stats'] });
+    }, []);
 
     const breadcrumbs = [
         { title: 'Administración', href: '#' },
@@ -117,6 +123,43 @@ export default function AdminDashboard({ stats }: AdminDashboardProps) {
                                     <div className="flex justify-between text-xs">
                                         <span className="text-muted-foreground">Estado</span>
                                         <span className="font-medium text-green-600">Activo</span>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {/* Usuarios del Sistema Card - Only for regular admins */}
+                    {auth.user.role !== 'super_admin' && (
+                        <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 bg-card/95 backdrop-blur-sm flex flex-col">
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="text-sm font-semibold text-card-foreground flex items-center">
+                                        <UserPlus className="h-5 w-5 mr-2 text-blue-600" />
+                                        Usuarios del Sistema
+                                    </CardTitle>
+                                    <Badge variant="outline" className="text-xs">
+                                        {stats.activeUsers}/{stats.totalUsers}
+                                    </Badge>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="flex-1 flex flex-col">
+                                <div className="text-3xl font-bold text-blue-600 mb-2">{stats.totalUsers}</div>
+                                <p className="text-sm text-muted-foreground mb-4">
+                                    {stats.activeUsers} usuarios activos
+                                </p>
+                                <div className="space-y-2 flex-1">
+                                    <div className="flex justify-between text-xs">
+                                        <span className="text-muted-foreground">Nuevos esta semana</span>
+                                        <span className="font-medium text-foreground">{stats.newUsersThisWeek}</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                        <span className="text-muted-foreground">Usuarios inactivos</span>
+                                        <span className="font-medium text-foreground">{stats.inactiveUsers}</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                        <span className="text-muted-foreground">Estado general</span>
+                                        <span className="font-medium text-green-600">Estable</span>
                                     </div>
                                 </div>
                             </CardContent>

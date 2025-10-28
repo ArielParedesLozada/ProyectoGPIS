@@ -29,7 +29,7 @@ export function AppSidebar() {
     ];
 
     // Solo usuarios no administrativos y que no sean compradores ven "Mis Publicaciones"
-    if (auth.user.role !== 'super_admin' && auth.user.role !== 'admin' && auth.user.role !== 'comprador') {
+    if (auth.user.role !== 'super_admin' && auth.user.role !== 'admin' && auth.user.role !== 'comprador' && auth.user.role !== 'moderador') {
         mainNavItems.push({
             title: 'Mis Publicaciones',
             href: myPublications(),
@@ -38,7 +38,7 @@ export function AppSidebar() {
     }
 
     // Solo usuarios no administrativos ven "Favoritos"
-    if (auth.user.role !== 'super_admin' && auth.user.role !== 'admin') {
+    if (auth.user.role !== 'super_admin' && auth.user.role !== 'admin' && auth.user.role !== 'moderador') {
         mainNavItems.push({
             title: 'Favoritos',
             href: '/favorites',
@@ -46,30 +46,16 @@ export function AppSidebar() {
         });
     }
 
-    // Moderadores y admins ven la opción de moderación (NO super_admin)
-    if (['moderador', 'admin'].includes(auth.user.role)) {
-        mainNavItems.push({
-            title: 'Moderación',
-            href: '/moderation',
-            icon: AlertTriangle,
-        });
-    }
-
     // Opciones de administración según el rol
     const adminNavItems: NavItem[] = [];
     
-    if (auth.user.role === 'super_admin' || auth.user.role === 'admin') {
+    if (auth.user.role === 'super_admin') {
         adminNavItems.push(
             {
                 title: 'Dashboard Admin',
                 href: '/admin',
                 icon: Settings,
-            }
-        );
-    }
-    
-    if (auth.user.role === 'super_admin') {
-        adminNavItems.push(
+            },
             {
                 title: 'Administradores',
                 href: '/admin/admins',
@@ -94,6 +80,16 @@ export function AppSidebar() {
     } else if (auth.user.role === 'admin') {
         adminNavItems.push(
             {
+                title: 'Dashboard Admin',
+                href: '/admin',
+                icon: Settings,
+            },
+            {
+                title: 'Moderación',
+                href: '/moderation',
+                icon: AlertTriangle,
+            },
+            {
                 title: 'Moderadores',
                 href: '/admin/moderators',
                 icon: Users,
@@ -111,6 +107,11 @@ export function AppSidebar() {
         );
     } else if (auth.user.role === 'moderador') {
         adminNavItems.push(
+            {
+                title: 'Moderación',
+                href: '/moderation',
+                icon: AlertTriangle,
+            },
             {
                 title: 'Vendedores',
                 href: '/admin/vendors',

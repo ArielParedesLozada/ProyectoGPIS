@@ -9,7 +9,7 @@ import { ArrowLeft, LoaderCircle } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import { SharedData } from '@/types';
 import { usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import CustomError from '@/components/custom-error';
 import PasswordInput from '@/components/password-input';
 import { useFieldValidation } from '@/hooks/use-field-validation';
@@ -17,6 +17,11 @@ import { useFieldValidation } from '@/hooks/use-field-validation';
 export default function CreateAdmin() {
     const { auth } = usePage<SharedData>().props;
     const { markFieldAsTouched, markSelectAsTouched, shouldShowError, getErrorMessage } = useFieldValidation();
+    
+    // Refrescar automáticamente cuando se navega a esta página
+    useEffect(() => {
+        router.reload();
+    }, []);
     
     const [fieldValues, setFieldValues] = useState({
         cedula: '',
@@ -78,8 +83,9 @@ export default function CreateAdmin() {
                             {({ processing, errors }) => (
                                 <>
                                     {errors.general && (
-                                        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                                            <p className="text-red-600 text-sm">{errors.general}</p>
+                                        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 mb-4">
+                                            <p className="text-destructive text-md">Ocurrió un error inesperado al crear el administrador</p>
+                                            <div className='text-destructive text-sm' dangerouslySetInnerHTML={{ __html: errors.general }} />
                                         </div>
                                     )}
 

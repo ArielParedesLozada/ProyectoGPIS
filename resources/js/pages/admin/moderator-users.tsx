@@ -8,7 +8,7 @@ import { MoreHorizontal, Plus, UserCheck, UserX, Eye, Users, Edit, Trash2 } from
 import AppLayout from '@/layouts/app-layout';
 import { SharedData, Paginated } from '@/types';
 import { usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import GeneralModal from '@/components/ui/general-modal';
 
 interface ModeratorUser {
@@ -30,6 +30,11 @@ export default function ModeratorUsers({ moderators }: ModeratorUsersPageProps) 
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [actionType, setActionType] = useState<'toggle' | 'delete' | null>(null);
     const [selectedModerator, setSelectedModerator] = useState<ModeratorUser | null>(null);
+
+    // Refrescar automáticamente cuando se navega a esta página
+    useEffect(() => {
+        router.reload({ only: ['moderators'] });
+    }, []);
 
     const breadcrumbs = [
         { title: 'Administración', href: '#' },
@@ -272,19 +277,27 @@ export default function ModeratorUsers({ moderators }: ModeratorUsersPageProps) 
                 </div>
 
                 {/* Pagination */}
-                {moderators.links && moderators.links.length > 3 && (
+                {moderators.links && moderators.links.length > 0 && (
                     <div className="flex justify-center">
                         <nav className="flex space-x-2">
                             {moderators.links.map((link, index) => (
-                                <Button
-                                    key={index}
-                                    variant={link.active ? "default" : "outline"}
-                                    size="sm"
-                                    onClick={() => link.url && router.get(link.url)}
-                                    disabled={!link.url || processing !== null}
-                                >
-                                    {link.label}
-                                </Button>
+                                link.url ? (
+                                    <Button
+                                        key={index}
+                                        variant={link.active ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => link.url && router.get(link.url)}
+                                        disabled={processing !== null}
+                                        className={link.label.includes('Previous') || link.label.includes('Next') ? "border-0" : ""}
+                                        dangerouslySetInnerHTML={{ __html: link.label }}
+                                    />
+                                ) : (
+                                    <span
+                                        key={index}
+                                        className="px-3 py-2 text-muted-foreground cursor-not-allowed text-sm border-0 rounded-md"
+                                        dangerouslySetInnerHTML={{ __html: link.label }}
+                                    />
+                                )
                             ))}
                         </nav>
                     </div>

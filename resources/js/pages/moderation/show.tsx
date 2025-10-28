@@ -14,7 +14,7 @@ import {
     MessageSquare,
     Shield
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import GeneralModal from "@/components/ui/general-modal";
 
 interface ModerationCase {
@@ -103,6 +103,11 @@ export default function ModerationShow({ case: caseItem, buttonStates }: Moderat
             href: `/moderation/${caseItem.id}`,
         },
     ];
+
+    // Refrescar automáticamente cuando se navega a esta página
+    useEffect(() => {
+        router.reload({ only: ['case', 'buttonStates'] });
+    }, []);
 
     const [showDismissModal, setShowDismissModal] = useState(false);
     const [showHideModal, setShowHideModal] = useState(false);

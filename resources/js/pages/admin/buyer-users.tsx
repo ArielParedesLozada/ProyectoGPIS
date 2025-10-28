@@ -8,7 +8,7 @@ import { MoreHorizontal, ShoppingCart, UserCheck, UserX, Eye } from 'lucide-reac
 import AppLayout from '@/layouts/app-layout';
 import { SharedData, Paginated } from '@/types';
 import { usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import GeneralModal from '@/components/ui/general-modal';
 
 interface BuyerUser {
@@ -30,6 +30,11 @@ export default function BuyerUsers({ buyers }: BuyerUsersPageProps) {
     const [processing, setProcessing] = useState<number | null>(null);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [selectedBuyer, setSelectedBuyer] = useState<BuyerUser | null>(null);
+
+    // Refrescar automáticamente cuando se navega a esta página
+    useEffect(() => {
+        router.reload({ only: ['buyers'] });
+    }, []);
 
     const breadcrumbs = [
         { title: 'Administración', href: '#' },
@@ -73,26 +78,26 @@ export default function BuyerUsers({ buyers }: BuyerUsersPageProps) {
 
             <div className="space-y-8 px-6 py-6">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-orange-600 to-orange-700 rounded-xl p-6 text-white">
+                <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 text-white">
                     <div className="flex justify-between items-start">
                         <div>
                             <h1 className="text-3xl font-bold mb-2">Compradores</h1>
-                            <p className="text-orange-100 text-lg">Gestiona los compradores del sistema</p>
+                            <p className="text-blue-100 text-lg">Gestiona los compradores del sistema</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Stats Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <Card className="border-l-4 border-l-orange-500 hover:shadow-lg transition-all duration-200 bg-card/95 backdrop-blur-sm">
+                    <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 bg-card/95 backdrop-blur-sm">
                         <CardHeader className="pb-3">
                             <CardTitle className="text-sm font-semibold text-foreground flex items-center">
-                                <ShoppingCart className="h-5 w-5 mr-2 text-orange-600" />
+                                <ShoppingCart className="h-5 w-5 mr-2 text-blue-600" />
                                 Total Compradores
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-bold text-orange-600">{buyers.total}</div>
+                            <div className="text-3xl font-bold text-blue-600">{buyers.total}</div>
                             <p className="text-sm text-muted-foreground mt-1">Registrados en el sistema</p>
                         </CardContent>
                     </Card>
@@ -132,7 +137,7 @@ export default function BuyerUsers({ buyers }: BuyerUsersPageProps) {
                 <div className="bg-card/95 backdrop-blur-sm rounded-lg shadow-lg">
                     <div className="px-6 py-4">
                         <h2 className="text-lg font-semibold text-foreground flex items-center">
-                            <ShoppingCart className="h-5 w-5 mr-2 text-orange-600" />
+                            <ShoppingCart className="h-5 w-5 mr-2 text-blue-600" />
                             Lista de Compradores
                         </h2>
                         <p className="text-sm text-muted-foreground mt-1">
@@ -156,8 +161,8 @@ export default function BuyerUsers({ buyers }: BuyerUsersPageProps) {
                                     <TableRow key={buyer.id} className="hover:bg-muted/50 transition-colors border-b border-border/10">
                                         <TableCell className="font-medium border-r border-border/20 last:border-r-0">
                                             <div className="flex items-center space-x-3">
-                                                <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                                                    <span className="text-orange-600 font-semibold text-sm">
+                                                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                                    <span className="text-blue-600 font-semibold text-sm">
                                                         {buyer.name.charAt(0)}{buyer.surname.charAt(0)}
                                                     </span>
                                                 </div>
@@ -233,19 +238,27 @@ export default function BuyerUsers({ buyers }: BuyerUsersPageProps) {
                 </div>
 
                 {/* Pagination */}
-                {buyers.links && buyers.links.length > 3 && (
+                {buyers.links && buyers.links.length > 0 && (
                     <div className="flex justify-center">
                         <nav className="flex space-x-2">
                             {buyers.links.map((link, index) => (
-                                <Button
-                                    key={index}
-                                    variant={link.active ? "default" : "outline"}
-                                    size="sm"
-                                    onClick={() => link.url && router.get(link.url)}
-                                    disabled={!link.url || processing !== null}
-                                >
-                                    {link.label}
-                                </Button>
+                                link.url ? (
+                                    <Button
+                                        key={index}
+                                        variant={link.active ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => link.url && router.get(link.url)}
+                                        disabled={processing !== null}
+                                        className={link.label.includes('Previous') || link.label.includes('Next') ? "border-0" : ""}
+                                        dangerouslySetInnerHTML={{ __html: link.label }}
+                                    />
+                                ) : (
+                                    <span
+                                        key={index}
+                                        className="px-3 py-2 text-muted-foreground cursor-not-allowed text-sm border-0 rounded-md"
+                                        dangerouslySetInnerHTML={{ __html: link.label }}
+                                    />
+                                )
                             ))}
                         </nav>
                     </div>

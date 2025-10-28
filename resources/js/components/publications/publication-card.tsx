@@ -12,15 +12,15 @@ interface PublicationCardProps {
 }
 
 export default function PublicationCard({ publication }: PublicationCardProps) {
-    const { url, auth } = usePage<SharedData>();
+    const { url, auth } = usePage<SharedData>().props;
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
     const [isFavorite, setIsFavorite] = useState(false);
     
     // Determinar el parámetro 'from' basado en la URL actual
     const getFromParam = () => {
-        if (url.includes('/favorites')) {
+        if (url && (url as string).includes('/favorites')) {
             return 'favorites';
-        } else if (url.includes('/my-publications')) {
+        } else if (url && (url as string).includes('/my-publications')) {
             return 'my-publications';
         }
         return null;
@@ -107,19 +107,21 @@ export default function PublicationCard({ publication }: PublicationCardProps) {
                 )}
 
                 {/* Botón de favoritos - esquina inferior izquierda */}
-                <div className="absolute bottom-3 left-3 z-20">
-                    <button
-                        onClick={handleFavoriteClick}
-                        className={`p-2.5 rounded-full transition-all duration-200 shadow-sm border backdrop-blur-sm ${
-                            isFavorite 
-                                ? 'bg-red-500 text-white border-red-500/20 hover:bg-red-600' 
-                                : 'bg-white/90 dark:bg-slate-800/90 text-slate-600 dark:text-slate-300 border-gray-200/50 dark:border-slate-600/50 hover:text-red-500 dark:hover:text-red-400'
-                        }`}
-                        title={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
-                    >
-                        <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
-                    </button>
-                </div>
+                {auth.user.role !== 'moderador' && (
+                    <div className="absolute bottom-3 left-3 z-20">
+                        <button
+                            onClick={handleFavoriteClick}
+                            className={`p-2.5 rounded-full transition-all duration-200 shadow-sm border backdrop-blur-sm ${
+                                isFavorite 
+                                    ? 'bg-red-500 text-white border-red-500/20 hover:bg-red-600' 
+                                    : 'bg-white/90 dark:bg-slate-800/90 text-slate-600 dark:text-slate-300 border-gray-200/50 dark:border-slate-600/50 hover:text-red-500 dark:hover:text-red-400'
+                            }`}
+                            title={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
+                        >
+                            <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Contenido de la card */}

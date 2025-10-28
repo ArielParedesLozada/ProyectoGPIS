@@ -33,6 +33,11 @@ export default function EditAdmin({ admin }: EditAdminProps) {
     const { auth } = usePage<SharedData>().props;
     const { markFieldAsTouched, markSelectAsTouched, shouldShowError, getErrorMessage } = useFieldValidation();
     
+    // Refrescar automáticamente cuando se navega a esta página
+    useEffect(() => {
+        router.reload({ only: ['admin'] });
+    }, []);
+    
     const [fieldValues, setFieldValues] = useState({
         cedula: admin.cedula || '',
         name: admin.name || '',

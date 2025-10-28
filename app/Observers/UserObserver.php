@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Models\User;
+use App\Models\Publication;
 use App\Enums\StatusType;
 use App\Jobs\ReassignModeratorCasesJob;
 use Illuminate\Support\Facades\Log;
@@ -22,6 +23,16 @@ class UserObserver
         // Verificar si el usuario es un moderador y si cambió su estado a activo
         if ($this->isModerator($user) && $this->wasActivated($user)) {
             $this->handleModeratorActivation($user);
+        }
+
+        // Verificar si el usuario es un vendedor y si cambió su estado a inactivo
+        if ($this->isVendor($user) && $this->wasDeactivated($user)) {
+            $this->handleVendorDeactivation($user);
+        }
+        
+        // Verificar si el usuario es un vendedor y si cambió su estado a activo
+        if ($this->isVendor($user) && $this->wasActivated($user)) {
+            $this->handleVendorActivation($user);
         }
     }
 
@@ -327,5 +338,89 @@ class UserObserver
         }
 
         Log::info("Se asignaron {$assignedCount} casos al moderador ID: {$user->id}");
+    }
+
+    /**
+     * Verificar si el usuario es un vendedor
+     */
+    private function isVendor(User $user): bool
+    {
+        return $user->role === 'vendedor';
+    }
+
+    /**
+     * Manejar la desactivación de un vendedor
+     */
+    private function handleVendorDeactivation(User $user): void
+    {
+        try {
+            Log::info("Vendedor desactivado detectado: {$user->name} {$user->surname} (ID: {$user->id})");
+
+            // Obtener todas las publicaciones disponibles del vendedor
+            $availablePublications = $user->publications()
+                ->where('status', StatusType::HABILITADO->value)
+                ->where('is_hidden', false)
+                ->where('hidden_by_vendor_deactivation', false)
+                ->get();
+
+            if ($availablePublications->isEmpty()) {
+                Log::info("Vendedor desactivado no tiene publicaciones disponibles para ocultar. ID: {$user->id}");
+                return;
+            }
+
+            Log::info("Ocultando {$availablePublications->count()} publicaciones del vendedor desactivado ID: {$user->id}");
+
+            // Ocultar las publicaciones disponibles
+            foreach ($availablePublications as $publication) {
+                $publication->update([
+                    'is_hidden' => true,
+                    'hidden_by_vendor_deactivation' => true
+                ]);
+
+                Log::info("Publicación {$publication->id} ocultada por desactivación del vendedor {$user->id}");
+            }
+
+            Log::info("Se ocultaron {$availablePublications->count()} publicaciones del vendedor ID: {$user->id}");
+
+        } catch (\Exception $e) {
+            Log::error("Error al manejar desactivación de vendedor {$user->id}: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Manejar la activación de un vendedor
+     */
+    private function handleVendorActivation(User $user): void
+    {
+        try {
+            Log::info("Vendedor activado detectado: {$user->name} {$user->surname} (ID: {$user->id})");
+
+            // Obtener todas las publicaciones que fueron ocultadas por desactivación del vendedor
+            $hiddenByDeactivationPublications = $user->publications()
+                ->where('hidden_by_vendor_deactivation', true)
+                ->get();
+
+            if ($hiddenByDeactivationPublications->isEmpty()) {
+                Log::info("Vendedor activado no tiene publicaciones ocultas por desactivación. ID: {$user->id}");
+                return;
+            }
+
+            Log::info("Restaurando {$hiddenByDeactivationPublications->count()} publicaciones del vendedor activado ID: {$user->id}");
+
+            // Restaurar las publicaciones que fueron ocultadas por desactivación
+            foreach ($hiddenByDeactivationPublications as $publication) {
+                $publication->update([
+                    'is_hidden' => false,
+                    'hidden_by_vendor_deactivation' => false
+                ]);
+
+                Log::info("Publicación {$publication->id} restaurada por activación del vendedor {$user->id}");
+            }
+
+            Log::info("Se restauraron {$hiddenByDeactivationPublications->count()} publicaciones del vendedor ID: {$user->id}");
+
+        } catch (\Exception $e) {
+            Log::error("Error al manejar activación de vendedor {$user->id}: " . $e->getMessage());
+        }
     }
 }
