@@ -74,6 +74,7 @@ class AuthenticatedSessionController extends Controller
                     'email' => $user->email,
                     'role' => $user->role,
                 ]);
+                return redirect()->route('verification.notice');
             } catch (\Exception $e) {
                 Log::error('❌ Error al enviar correo de verificación automático', [
                     'user_id' => $user->id,

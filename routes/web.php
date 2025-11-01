@@ -22,14 +22,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', function () {
         return Inertia::render('dashboard');
     })->name('dashboard');
-    
+
     Route::prefix('publication')->group(function () {
         Route::get('/', [PublicationController::class, 'index'])->name('publication-index');
         Route::get('/{id}', [PublicationController::class, 'view'])->name('publication-view');
         Route::post('/{id}/report', [PublicationController::class, 'report'])->name('publication-report');
         Route::post('/{id}/buy', [PublicationController::class, 'buy'])->name('publication-buy');
     });
-    
+
     // Rutas para Mis Publicaciones
     Route::prefix('my-publications')->group(function () {
         Route::get('/', [PublicationController::class, 'myPublications'])->name('my-publications');
@@ -55,7 +55,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/{id}/dismiss', [ModerationController::class, 'dismissCase'])->name('moderation.dismiss');
         Route::post('/{id}/review-appeal', [ModerationController::class, 'reviewAppeal'])->name('moderation.review-appeal');
     });
-    
+
     // Rutas para Favoritos
     Route::prefix('favorites')->group(function () {
         Route::get('/', [PublicationController::class, 'favorites'])->name('favorites');
@@ -68,3 +68,4 @@ Route::middleware(['auth', 'verified'])->group(function () {
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';
 require __DIR__ . '/admin.php';
+require __DIR__ . '/testing.php';
