@@ -921,16 +921,16 @@ class PublicationController extends Controller
             DB::beginTransaction();
 
             // Buscar si ya existe un caso abierto para esta publicación
-            $existingCase = ModerationCase::where('publication_id', $id)
+            $existingOpenCase = ModerationCase::where('publication_id', $id)
                 ->whereIn('status', ['pending', 'triage', 'in_review', 'appealed'])
                 ->first();
 
-            if ($existingCase) {
-                // Agregar reporte al caso existente
-                $existingCase->increment('report_count');
+            if ($existingOpenCase) {
+                // Agregar reporte al caso existente (lógica original sin cambios)
+                $existingOpenCase->increment('report_count');
 
                 ModerationReport::create([
-                    'moderation_case_id' => $existingCase->id,
+                    'moderation_case_id' => $existingOpenCase->id,
                     'reporter_id' => $reporterId,
                     'reason' => $request->reason,
                     'description' => $request->description,
@@ -940,27 +940,77 @@ class PublicationController extends Controller
                     ]
                 ]);
             } else {
-                // Crear nuevo caso de moderación
-                $moderationCase = ModerationCase::create([
-                    'publication_id' => $id,
-                    'status' => 'pending',
-                    'source' => 'user',
-                    'report_count' => 1,
-                ]);
+                // Buscar si existe un caso cerrado para esta publicación
+                $existingClosedCase = ModerationCase::where('publication_id', $id)
+                    ->whereIn('status', ['closed', 'action_taken'])
+                    ->orderBy('resolved_at', 'desc')
+                    ->first();
 
-                // Asignación automática al moderador con menor carga
-                $this->assignToModerator($moderationCase);
+                if ($existingClosedCase) {
+                    // Verificar si se puede reabrir el caso
+                    $canReopen = $this->canReopenCase($existingClosedCase, $publication);
 
-                ModerationReport::create([
-                    'moderation_case_id' => $moderationCase->id,
-                    'reporter_id' => $reporterId,
-                    'reason' => $request->reason,
-                    'description' => $request->description,
-                    'metadata' => [
-                        'ip_address' => $request->ip(),
-                        'user_agent' => $request->userAgent(),
-                    ]
-                ]);
+                    if ($canReopen) {
+                        // Guardar estado previo antes de actualizar
+                        $previousStatus = $existingClosedCase->status;
+                        $resolvedAt = $existingClosedCase->resolved_at;
+
+                        // REABRIR el caso existente
+                        $existingClosedCase->update([
+                            'status' => 'pending',
+                            'assigned_moderator_id' => null,
+                            'assigned_at' => null,
+                            'resolved_at' => null,
+                        ]);
+
+                        // Incrementar contador de reportes
+                        $existingClosedCase->increment('report_count');
+
+                        // Crear el nuevo reporte
+                        ModerationReport::create([
+                            'moderation_case_id' => $existingClosedCase->id,
+                            'reporter_id' => $reporterId,
+                            'reason' => $request->reason,
+                            'description' => $request->description,
+                            'metadata' => [
+                                'ip_address' => $request->ip(),
+                                'user_agent' => $request->userAgent(),
+                            ]
+                        ]);
+
+                        // Asignar automáticamente a un moderador disponible
+                        $this->assignToModerator($existingClosedCase);
+
+                        // Registrar acción de reapertura
+                        ModerationAction::create([
+                            'moderation_case_id' => $existingClosedCase->id,
+                            'moderator_id' => null, // Reapertura automática por sistema
+                            'action_type' => 'reopen_case',
+                            'action_description' => 'Caso reabierto automáticamente por nuevo reporte',
+                            'metadata' => [
+                                'previous_status' => $previousStatus,
+                                'reopened_at' => now()->toISOString(),
+                                'reason' => 'new_report_on_closed_case',
+                                'days_since_closed' => $resolvedAt 
+                                    ? now()->diffInDays($resolvedAt) 
+                                    : null,
+                            ]
+                        ]);
+
+                        Log::info("Caso reabierto automáticamente", [
+                            'case_id' => $existingClosedCase->id,
+                            'publication_id' => $id,
+                            'previous_status' => $previousStatus,
+                            'new_status' => 'pending',
+                        ]);
+                    } else {
+                        // No se puede reabrir, crear caso nuevo
+                        $this->createNewModerationCase($publication, $reporterId, $request);
+                    }
+                } else {
+                    // No existe ningún caso anterior, crear caso nuevo
+                    $this->createNewModerationCase($publication, $reporterId, $request);
+                }
             }
 
             DB::commit();
@@ -995,6 +1045,63 @@ class PublicationController extends Controller
                 'assigned_at' => now(),
             ]);
         }
+    }
+
+    /**
+     * Verificar si un caso cerrado puede ser reabierto
+     */
+    private function canReopenCase(ModerationCase $case, Publication $publication): bool
+    {
+        // NO reabrir si el caso fue descartado (dismissed)
+        if ($case->status === 'dismissed') {
+            return false;
+        }
+
+        // NO reabrir si el caso fue cerrado hace más de 90 días
+        if ($case->resolved_at && now()->diffInDays($case->resolved_at) > 90) {
+            return false;
+        }
+
+        // Reabrir solo si:
+        // 1. El caso está cerrado (closed o action_taken)
+        // 2. La publicación sigue oculta (is_hidden = true)
+        // 3. Han pasado menos de 90 días desde el cierre
+        if (in_array($case->status, ['closed', 'action_taken'])) {
+            return $publication->is_hidden === true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Crear un nuevo caso de moderación
+     */
+    private function createNewModerationCase(Publication $publication, int $reporterId, Request $request): ModerationCase
+    {
+        // Crear nuevo caso de moderación
+        $moderationCase = ModerationCase::create([
+            'publication_id' => $publication->id,
+            'status' => 'pending',
+            'source' => 'user',
+            'report_count' => 1,
+        ]);
+
+        // Asignación automática al moderador con menor carga
+        $this->assignToModerator($moderationCase);
+
+        // Crear el reporte
+        ModerationReport::create([
+            'moderation_case_id' => $moderationCase->id,
+            'reporter_id' => $reporterId,
+            'reason' => $request->reason,
+            'description' => $request->description,
+            'metadata' => [
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]
+        ]);
+
+        return $moderationCase;
     }
 
     /**

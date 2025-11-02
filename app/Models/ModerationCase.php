@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ModerationCase extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'publication_id',
@@ -25,6 +26,7 @@ class ModerationCase extends Model
     protected $casts = [
         'resolved_at' => 'datetime',
         'assigned_at' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
 
     public function publication(): BelongsTo
@@ -86,5 +88,15 @@ class ModerationCase extends Model
     public function scopeByDateRange($query, $startDate, $endDate)
     {
         return $query->whereBetween('created_at', [$startDate, $endDate]);
+    }
+
+    public function scopeWithTrashed($query)
+    {
+        return $query->withTrashed();
+    }
+
+    public function scopeOnlyTrashed($query)
+    {
+        return $query->onlyTrashed();
     }
 }

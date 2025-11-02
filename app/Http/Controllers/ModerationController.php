@@ -67,6 +67,14 @@ class ModerationController extends Controller
         $query = ModerationCase::with(['publication.category', 'assignedModerator', 'reports.reporter'])
             ->orderBy('created_at', 'desc');
 
+        // Por defecto excluir casos eliminados (soft deletes)
+        // Solo mostrar eliminados si se solicita explícitamente
+        if ($request->filled('include_deleted') && $request->include_deleted === 'true') {
+            $query->withTrashed();
+        } elseif ($request->filled('only_deleted') && $request->only_deleted === 'true') {
+            $query->onlyTrashed();
+        }
+
         // Filtros
         if ($request->filled('status')) {
             $query->where('status', $request->status);
@@ -697,7 +705,7 @@ class ModerationController extends Controller
             ->where('status', '!=', 'appealed') // Excluir casos de apelación
             ->whereIn('status', ['pending', 'triage', 'in_review'])
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->get(); // Excluye automáticamente casos eliminados (soft delete)
 
         return response()->json($cases);
     }
