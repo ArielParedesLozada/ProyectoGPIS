@@ -1290,23 +1290,23 @@ class PublicationController extends Controller
      */
     private function handleNoModeratorsAvailable(ModerationCase $case, $originalModeratorId)
     {
-        // Dejar el caso sin asignar - esperará hasta que se cree un nuevo moderador
+        // Dejar el caso sin asignar - se asignará automáticamente cuando haya un moderador disponible
         $case->update([
             'assigned_moderator_id' => null,
             'assigned_at' => null,
         ]);
 
-        // Registrar que está esperando moderador
+        // Registrar que está esperando asignación automática
         ModerationAction::create([
             'moderation_case_id' => $case->id,
-            'moderator_id' => $originalModeratorId,
-            'action_type' => 'close_case',
-            'action_description' => 'Apelación en espera - No hay moderadores disponibles para revisar',
+            'moderator_id' => null,
+            'action_type' => 'waiting_assignment',
+            'action_description' => 'Apelación en espera de asignación automática - No hay moderadores disponibles',
             'metadata' => [
                 'original_moderator_id' => $originalModeratorId,
                 'waiting_reason' => 'no_moderators_available',
-                'status' => 'pending_moderator_assignment',
-                'requires_manual_intervention' => true,
+                'status' => 'pending_automatic_assignment',
+                'will_be_assigned_automatically' => true,
                 'waiting_for_moderator' => true
             ]
         ]);

@@ -158,20 +158,8 @@ class ReassignInactiveModeratorCases extends Command
 
                     $reassignedCount++;
                 } else {
-                    // Si no hay moderadores disponibles, marcar para intervención manual
-                    ModerationAction::create([
-                        'moderation_case_id' => $case->id,
-                        'moderator_id' => 1, // Usar el primer admin disponible o un ID fijo
-                        'action_type' => 'close_case',
-                        'action_description' => 'Caso requiere intervención manual - No hay moderadores activos disponibles',
-                        'metadata' => [
-                            'original_moderator_id' => $inactiveModerator->id,
-                            'original_moderator_name' => $inactiveModerator->name . ' ' . $inactiveModerator->surname,
-                            'reason' => 'no_active_moderators_available',
-                            'escalated_at' => now()->toISOString(),
-                            'requires_manual_intervention' => true
-                        ]
-                    ]);
+                    // Si no hay moderadores disponibles, dejar sin asignar - se asignará automáticamente cuando haya uno disponible
+                    Log::info("Caso {$case->id} quedó sin asignar - No hay moderadores activos disponibles. Se asignará automáticamente cuando haya uno disponible.");
                 }
 
                 DB::commit();

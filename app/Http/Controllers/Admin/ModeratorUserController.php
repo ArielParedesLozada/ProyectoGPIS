@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\RoleType;
+use App\Enums\StatusType;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\HandlesMiddleware;
 use App\Http\Requests\Admin\CreateModeratorRequest;
@@ -75,7 +76,7 @@ class ModeratorUserController extends Controller
                 'address' => $request->address,
                 'gender' => $request->gender,
                 'role' => RoleType::MODERADOR->value,
-                'status' => 1, // HABILITADO
+                'status' => StatusType::HABILITADO->value,
                 'is_active' => true,
                 'email_verified_at' => null, // No verificar automáticamente para enviar correo de verificación al primer login
             ]);
@@ -369,7 +370,7 @@ class ModeratorUserController extends Controller
     {
         $inactiveModerators = User::where('role', RoleType::MODERADOR->value)
             ->where(function($query) {
-                $query->where('status', 0) // INHABILITADO
+                $query->where('status', StatusType::INHABILITADO->value)
                       ->orWhere('is_active', false);
             })
             ->whereHas('moderationCases', function($q) {
