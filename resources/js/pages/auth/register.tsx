@@ -99,7 +99,11 @@ export default function Register() {
                                     <CustomError
                                         message={getErrorMessage('cedula', errors.cedula, fieldValues.cedula)}
                                         show={shouldShowError('cedula', errors.cedula, fieldValues.cedula)}
-                                    />                                </div>
+                                    />
+                                    {errors.cedula && (
+                                        <CustomError message={errors.cedula} show={!!errors.cedula} />
+                                    )}
+                                </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                     {/* Nombre */}
                                     <div>
@@ -123,6 +127,9 @@ export default function Register() {
                                             message={getErrorMessage('name', errors.name, fieldValues.name)}
                                             show={shouldShowError('name', errors.name, fieldValues.name)}
                                         />
+                                        {errors.name && (
+                                            <CustomError message={errors.name} show={!!errors.name} />
+                                        )}
                                     </div>
 
                                     {/* Apellido */}
@@ -146,6 +153,9 @@ export default function Register() {
                                             message={getErrorMessage('surname', errors.surname, fieldValues.surname)}
                                             show={shouldShowError('surname', errors.surname, fieldValues.surname)}
                                         />
+                                        {errors.surname && (
+                                            <CustomError message={errors.surname} show={!!errors.surname} />
+                                        )}
                                     </div>
                                 </div>
 
@@ -176,7 +186,11 @@ export default function Register() {
                                     <CustomError
                                         message={getErrorMessage('phone', errors.phone, fieldValues.phone)}
                                         show={shouldShowError('phone', errors.phone, fieldValues.phone)}
-                                    />                                </div>
+                                    />
+                                    {errors.phone && (
+                                        <CustomError message={errors.phone} show={!!errors.phone} />
+                                    )}
+                                </div>
 
                                 {/* Dirección */}
                                 <div>
@@ -199,6 +213,9 @@ export default function Register() {
                                         message={getErrorMessage('address', errors.address, fieldValues.address)}
                                         show={shouldShowError('address', errors.address, fieldValues.address)}
                                     />
+                                    {errors.address && (
+                                        <CustomError message={errors.address} show={!!errors.address} />
+                                    )}
                                 </div>
 
                                 {/* Grid para selectores en pantallas grandes */}
@@ -232,6 +249,9 @@ export default function Register() {
                                             message={getErrorMessage('gender', errors.gender, fieldValues.gender)}
                                             show={shouldShowError('gender', errors.gender, fieldValues.gender)}
                                         />
+                                        {errors.gender && (
+                                            <CustomError message={errors.gender} show={!!errors.gender} />
+                                        )}
                                     </div>
 
                                     {/* Rol */}
@@ -263,6 +283,9 @@ export default function Register() {
                                             message={getErrorMessage('role', errors.role, fieldValues.role)}
                                             show={shouldShowError('role', errors.role, fieldValues.role)}
                                         />
+                                        {errors.role && (
+                                            <CustomError message={errors.role} show={!!errors.role} />
+                                        )}
                                     </div>
                                 </div>
 
@@ -287,7 +310,11 @@ export default function Register() {
                                         message={getErrorMessage('email', errors.email, fieldValues.email)}
                                         show={shouldShowError('email', errors.email, fieldValues.email)}
                                     />
+                                    {errors.email && (
+                                        <CustomError message={errors.email} show={!!errors.email} />
+                                    )}
                                 </div>
+
 
                                 {/* Grid para contraseñas en pantallas grandes */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -311,6 +338,10 @@ export default function Register() {
                                             message={getErrorMessage('password', errors.password, fieldValues.password)}
                                             show={shouldShowError('password', errors.password, fieldValues.password)}
                                         />
+                                        {errors.password && (
+                                            <CustomError message={errors.password} show={!!errors.password} />
+                                        )}
+
                                     </div>
 
                                     {/* Confirmar Contraseña */}
@@ -333,6 +364,9 @@ export default function Register() {
                                             message={getErrorMessage('password_confirmation', errors.password_confirmation, fieldValues.password_confirmation, fieldValues)}
                                             show={shouldShowError('password_confirmation', errors.password_confirmation, fieldValues.password_confirmation)}
                                         />
+                                        {errors.password && (
+                                            <CustomError message={errors.password} show={!!errors.password} />
+                                        )}
                                     </div>
                                 </div>
 
