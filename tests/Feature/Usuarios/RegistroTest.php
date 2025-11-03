@@ -6,7 +6,7 @@ use App\Models\User;
 
 uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
 
-test('INT-006', function () {
+test('INT-006: Registro correcto', function () {
     $this->get(route('login'));
     $userData = [
         'cedula' => '1890773041', // Diferente al del seeder para evitar unique
@@ -30,7 +30,7 @@ test('INT-006', function () {
     $response->assertRedirect(route('verification.notice', absolute: false));
 });
 
-test('INT-007', function () {
+test('INT-007 : Registro incorrecto', function () {
     $this->get(route('login'));
     $user = User::factory()->create([
         'email' => 'johanatreidesi66@gmail.com',
