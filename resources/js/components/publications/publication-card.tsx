@@ -96,7 +96,7 @@ export default function PublicationCard({ publication }: PublicationCardProps) {
                 <div className="absolute top-3 right-3 z-20">
                     <button
                         onClick={handleReportClick}
-                        className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm text-slate-600 dark:text-slate-300 p-2 rounded-full hover:bg-white dark:hover:bg-slate-800 hover:text-red-500 dark:hover:text-red-400 transition-all duration-200 opacity-0 group-hover:opacity-100 shadow-sm border border-gray-200/50 dark:border-slate-600/50"
+                        className="bg-black dark:bg-black text-white p-2 rounded-full hover:bg-gray-900 dark:hover:bg-gray-900 transition-all duration-200 opacity-100 md:opacity-0 md:group-hover:opacity-100 shadow-sm"
                         title="Reportar publicación"
                     >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

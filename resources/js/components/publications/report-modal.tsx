@@ -86,7 +86,7 @@ export default function ReportModal({ isOpen, onClose, publicationId, publicatio
                         <div className="flex items-start gap-2">
                             <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
                             <p className="text-sm text-amber-800">
-                                We will remove content if it goes against our <span className="font-medium text-amber-900">Políticas de comercio</span> or <span className="font-medium text-amber-900">Normas comunitarias</span>.
+                                Eliminaremos el contenido si va en contra de nuestras <span className="font-medium text-amber-900">Políticas de comercio</span> o <span className="font-medium text-amber-900">Normas comunitarias</span>.
                             </p>
                         </div>
                     </div>
