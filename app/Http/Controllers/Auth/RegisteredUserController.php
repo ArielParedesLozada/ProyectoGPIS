@@ -34,7 +34,7 @@ class RegisteredUserController extends Controller
     {
         try {
             $request->validate([
-                'cedula' => 'required|string|max:10|unique:'.User::class,
+                'cedula' => 'required|string|max:10|min:10|unique:' . User::class,
                 'name' => 'required|string|max:255',
                 'surname' => 'required|string|max:255',
                 'email' => 'required|string|lowercase|email|max:255|unique:' . User::class,
@@ -42,7 +42,7 @@ class RegisteredUserController extends Controller
                 'phone' => 'required|string|max:20|unique:' . User::class,
                 'address' => 'required|string|max:500',
                 'gender' => 'required|in:' . implode(',', array_column(GenderType::cases(), 'value'),),
-                'role'=> 'required|in:comprador,vendedor',
+                'role' => 'required|in:comprador,vendedor',
             ]);
 
             $user = User::create([
@@ -60,14 +60,18 @@ class RegisteredUserController extends Controller
 
             event(new Registered($user));
             Auth::login($user);
-            return redirect()->intended(route('publication-index', absolute: false));
+            return redirect()->intended(route('verification.notice', absolute: false));
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return back()
+                ->withErrors($e->errors())
+                ->withInput();
         } catch (\Throwable $th) {
             return back()
                 ->withErrors([
                     'general' => $th->getMessage(),
-                    'precise' => $th->getTraceAsString() 
-                    ])
-                ->withInput(); // mantiene los valores del formulario
+                    'precise' => $th->getTraceAsString()
+                ])
+                ->withInput();
         }
     }
 }

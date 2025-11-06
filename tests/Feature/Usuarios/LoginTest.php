@@ -7,12 +7,12 @@ use Laravel\Fortify\Features;
 
 uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
 
-test('INT-001', function () {
+test('INT-001: Visualiza pagina', function () {
     $response = $this->get(route('login'));
     $response->assertStatus(200);
 });
 
-test('INT-002', function () {
+test('INT-002: Login correcto', function () {
     $user = User::factory()->create();
     $this->get(route('login'));
     $response = $this->post(route('login.login'), [
@@ -24,7 +24,7 @@ test('INT-002', function () {
     $response->assertRedirect(route('publication-index', absolute: false));
 });
 
-test('INT-003', function () {
+test('INT-003: Login incorrecto', function () {
     $user = User::factory()->create();
     $this->get(route('login'));
     $response = $this->post(route('login.login'), [
@@ -36,7 +36,7 @@ test('INT-003', function () {
     $response->assertRedirect(route('login', absolute: false));
 });
 
-test('INT-004', function () {
+test('INT-004: Login no verificado', function () {
     $user = User::factory()->create();
     $user->email_verified_at = null;
     Log::info('Info del usuario', [
@@ -54,7 +54,7 @@ test('INT-004', function () {
     $response->assertRedirect(route('verification.notice', absolute: false));
 });
 
-test('INT-005', function () {
+test('INT-005: Logout', function () {
     $user = User::factory()->create();
     $this->get(route('login'));
     $response = $this
