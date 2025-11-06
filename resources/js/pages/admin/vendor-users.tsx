@@ -144,7 +144,90 @@ export default function VendorUsers({ vendors }: VendorUsersPageProps) {
                             Administra el estado de los vendedores del sistema
                         </p>
                     </div>
-                    <div className="overflow-x-auto">
+                    {/* Vista móvil - Cards */}
+                    <div className="block md:hidden px-4 pb-4 space-y-4">
+                        {vendors.data.map((vendor) => (
+                            <Card key={vendor.id} className="border border-border/20">
+                                <CardContent className="p-4">
+                                    <div className="flex items-start justify-between mb-3">
+                                        <div className="flex items-center space-x-3">
+                                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                                <span className="text-blue-600 font-semibold text-sm">
+                                                    {vendor.name.charAt(0)}{vendor.surname.charAt(0)}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <div className="font-medium text-foreground">
+                                                    {vendor.name} {vendor.surname}
+                                                </div>
+                                                <Badge 
+                                                    variant={vendor.is_active ? "default" : "secondary"}
+                                                    className={`mt-1 ${vendor.is_active 
+                                                        ? "bg-green-100 text-green-800 border-green-200" 
+                                                        : "bg-red-100 text-red-800 border-red-200"
+                                                    }`}
+                                                >
+                                                    {vendor.is_active ? 'Activo' : 'Inactivo'}
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end" className="w-48">
+                                                <DropdownMenuItem asChild>
+                                                    <Link href={`/admin/vendors/${vendor.id}`} className="flex items-center">
+                                                        <Eye className="h-4 w-4 mr-2" />
+                                                        Ver Detalles
+                                                    </Link>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    onClick={() => handleToggleStatus(vendor)}
+                                                    disabled={processing === vendor.id}
+                                                    className={vendor.is_active 
+                                                        ? "text-red-600 hover:text-red-700" 
+                                                        : "text-green-600 hover:text-green-700"
+                                                    }
+                                                >
+                                                    {vendor.is_active ? (
+                                                        <>
+                                                            <UserX className="h-4 w-4 mr-2" />
+                                                            Suspender Cuenta
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <UserCheck className="h-4 w-4 mr-2" />
+                                                            Reactivar Cuenta
+                                                        </>
+                                                    )}
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
+                                    <div className="space-y-2 text-sm">
+                                        <div>
+                                            <span className="font-medium text-muted-foreground">Email: </span>
+                                            <span className="text-foreground">{vendor.email}</span>
+                                        </div>
+                                        <div>
+                                            <span className="font-medium text-muted-foreground">Teléfono: </span>
+                                            <span className="text-foreground">{vendor.phone}</span>
+                                        </div>
+                                        <div>
+                                            <span className="font-medium text-muted-foreground">Fecha de Registro: </span>
+                                            <span className="text-foreground">{formatDate(vendor.created_at)}</span>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+
+                    {/* Vista desktop - Tabla */}
+                    <div className="hidden md:block overflow-x-auto">
                         <Table className="border border-border/20">
                             <TableHeader>
                                 <TableRow className="bg-muted/50 border-b border-border/30">
