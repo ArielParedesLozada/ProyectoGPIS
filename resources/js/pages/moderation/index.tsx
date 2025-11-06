@@ -236,7 +236,7 @@ export default function ModerationIndex({ cases, stats, filters }: ModerationInd
                         </div>
 
                         {showFilters && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">Estado</label>
                                     <select
@@ -278,7 +278,7 @@ export default function ModerationIndex({ cases, stats, filters }: ModerationInd
                             </div>
                         )}
 
-                        <div className="flex gap-4 mt-4">
+                        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-4">
                             <label className="flex items-center">
                                 <input
                                     type="checkbox"
@@ -317,59 +317,59 @@ export default function ModerationIndex({ cases, stats, filters }: ModerationInd
 
                     {/* Lista de casos */}
                     <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-                        <div className="px-6 py-4 border-b border-gray-200">
-                            <h2 className="text-lg font-semibold text-gray-900">Casos de Moderación</h2>
+                        <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
+                            <h2 className="text-base sm:text-lg font-semibold text-gray-900">Casos de Moderación</h2>
                         </div>
 
                         <div className="divide-y divide-gray-200">
                             {cases.data.map((caseItem) => (
-                                <div key={caseItem.id} className="p-6 hover:bg-gray-50 transition-colors">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-3 mb-2">
+                                <div key={caseItem.id} className="p-4 sm:p-6 hover:bg-gray-50 transition-colors">
+                                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3">
                                                 <Link
                                                     href={`/moderation/${caseItem.id}`}
-                                                    className="text-lg font-semibold text-gray-900 hover:text-blue-600"
+                                                    className="text-base sm:text-lg font-semibold text-gray-900 hover:text-blue-600 truncate"
                                                 >
                                                     {caseItem.publication.title}
                                                 </Link>
-                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(caseItem.status)}`}>
+                                                <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusColor(caseItem.status)}`}>
                                                     {getStatusText(caseItem.status)}
                                                 </span>
                                             </div>
 
-                                            <div className="flex items-center gap-4 text-sm text-gray-600">
+                                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600">
                                                 <span className="flex items-center gap-1">
-                                                    <FileText className="w-4 h-4" />
-                                                    {caseItem.publication.category.name}
+                                                    <FileText className="w-4 h-4 flex-shrink-0" />
+                                                    <span className="truncate">{caseItem.publication.category.name}</span>
                                                 </span>
                                                 <span className="flex items-center gap-1">
-                                                    <AlertTriangle className="w-4 h-4" />
+                                                    <AlertTriangle className="w-4 h-4 flex-shrink-0" />
                                                     {caseItem.report_count} reporte{caseItem.report_count !== 1 ? 's' : ''}
                                                 </span>
                                                 <span className="flex items-center gap-1">
-                                                    <Calendar className="w-4 h-4" />
+                                                    <Calendar className="w-4 h-4 flex-shrink-0" />
                                                     {new Date(caseItem.created_at).toLocaleDateString()}
                                                 </span>
                                                 {caseItem.assigned_moderator && (
                                                     <span className="flex items-center gap-1">
-                                                        <User className="w-4 h-4" />
-                                                        {caseItem.assigned_moderator.name}
+                                                        <User className="w-4 h-4 flex-shrink-0" />
+                                                        <span className="truncate">{caseItem.assigned_moderator.name}</span>
                                                     </span>
                                                 )}
                                             </div>
 
                                             <div className="mt-2">
-                                                <p className="text-sm text-gray-600">
+                                                <p className="text-sm text-gray-600 break-words">
                                                     Último reporte: {caseItem.reports[0]?.reason}
                                                 </p>
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2 flex-shrink-0">
                                             <Link
                                                 href={`/moderation/${caseItem.id}`}
-                                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap w-full sm:w-auto text-center"
                                             >
                                                 Ver Detalles
                                             </Link>

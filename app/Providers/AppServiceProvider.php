@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Models\Publication;
 use App\Observers\UserObserver;
+use App\Observers\PublicationObserver;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -23,5 +25,6 @@ class AppServiceProvider extends ServiceProvider
     {
         // Registrar observers
         User::observe(UserObserver::class);
+        Publication::observe(PublicationObserver::class);
     }
 }
