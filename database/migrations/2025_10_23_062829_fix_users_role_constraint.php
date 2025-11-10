@@ -12,6 +12,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (!$this->isPostgresConnection()) {
+            return;
+        }
+
         // Eliminar el constraint existente si existe
         DB::statement('ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;');
         
@@ -32,6 +36,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (!$this->isPostgresConnection()) {
+            return;
+        }
+
         // Eliminar el constraint
         DB::statement('ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;');
         
@@ -44,5 +52,12 @@ return new class extends Migration
                   ->default('comprador')
                   ->after('gender');
         });
+    }
+
+    private function isPostgresConnection(): bool
+    {
+        $connection = $this->connection ?? config('database.default');
+
+        return DB::connection($connection)->getDriverName() === 'pgsql';
     }
 };

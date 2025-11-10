@@ -180,6 +180,8 @@ class ModerationController extends Controller
         // Lógica estricta: Solo permitir acciones si está asignado a mí Y no está completado
         $canPerformActions = $isAssignedToMe && !$isCompleted;
 
+        $canReviewAppeal = $canPerformActions && $isAppealed && !$isOriginalModerator;
+
         return [
             // Solo permitir ocultar si no hay apelación pendiente y no está oculta
             'canHidePublication' => $canPerformActions && !$isAppealed && !$hasAppeal && !$publicationIsHidden && !$isActionTaken,
@@ -198,6 +200,7 @@ class ModerationController extends Controller
             'isAppealed' => $isAppealed,
             'isActionTaken' => $isActionTaken,
             'isOriginalModerator' => $isOriginalModerator,
+            'canReviewAppeal' => $canReviewAppeal,
         ];
     }
 
@@ -215,6 +218,19 @@ class ModerationController extends Controller
                 'success' => false,
                 'message' => 'Este caso ya está asignado a otro moderador'
             ], 400);
+        }
+
+        if ($case->status === 'appealed') {
+            $originalModeratorId = $case->actions()
+                ->whereIn('action_type', ['hide_publication', 'dismiss_case'])
+                ->first()?->moderator_id;
+
+            if ($originalModeratorId && $originalModeratorId === Auth::id()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No puedes asignarte una apelación de tu propia decisión'
+                ], 403);
+            }
         }
 
         $case->update([
@@ -520,16 +536,6 @@ class ModerationController extends Controller
             $case = ModerationCase::findOrFail($id);
             $appeal = ModerationAppeal::findOrFail($request->appeal_id);
 
-            // Validaciones de estado del caso
-            $buttonStates = $this->getButtonStates($case);
-            
-            if (!$buttonStates['canReviewAppeal']) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No puedes revisar esta apelación'
-                ], 403);
-            }
-
             // Verificar que la apelación pertenezca al caso
             if ($appeal->moderation_case_id !== $case->id) {
                 return response()->json([
@@ -544,6 +550,16 @@ class ModerationController extends Controller
                     'success' => false,
                     'message' => 'Esta apelación ya ha sido revisada'
                 ], 400);
+            }
+
+            // Validaciones de estado del caso
+            $buttonStates = $this->getButtonStates($case);
+            
+            if (!$buttonStates['canReviewAppeal']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No puedes revisar esta apelación'
+                ], 403);
             }
 
             DB::beginTransaction();

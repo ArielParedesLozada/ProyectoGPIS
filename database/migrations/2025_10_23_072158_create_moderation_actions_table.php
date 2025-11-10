@@ -14,8 +14,8 @@ return new class extends Migration
         Schema::create('moderation_actions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('moderation_case_id')->constrained()->onDelete('cascade');
-            $table->foreignId('moderator_id')->constrained('users')->onDelete('cascade');
-            $table->enum('action_type', ['hide_publication', 'restore_publication', 'dismiss_case', 'reassign_case', 'close_case']);
+            $table->foreignId('moderator_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->string('action_type');
             $table->text('action_description');
             $table->json('metadata')->nullable(); // Para detalles específicos de la acción
             $table->timestamps();

@@ -31,6 +31,7 @@ class Publication extends Model
     protected $casts = [
         'status' => \App\Enums\StatusType::class,
         'published_at' => 'datetime',
+        'is_hidden' => 'boolean',
         'hidden_by_vendor_deactivation' => 'boolean',
     ];
 
