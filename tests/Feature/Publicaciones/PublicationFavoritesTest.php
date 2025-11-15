@@ -221,48 +221,7 @@ test('PUB-FAV-010: Eliminar de favoritos maneja excepciones correctamente', func
     \App\Models\Favorite::unsetEventDispatcher();
 });
 
-test('PUB-FAV-011: Verificar favorito maneja excepciones correctamente', function () {
-    $user = makeUser();
-    $seller = makeUser();
-    $category = makeCategory();
-    $publication = createPublicationFor($seller, $category);
-
-    $originalConnection = \Illuminate\Support\Facades\DB::connection();
-    
-    $mockConnection = \Mockery::mock($originalConnection)->makePartial();
-    $mockConnection->shouldReceive('select')
-        ->andThrow(new \Exception('Database error'));
-    $mockConnection->shouldReceive('getQueryGrammar')
-        ->andReturn($originalConnection->getQueryGrammar());
-    $mockConnection->shouldReceive('getPostProcessor')
-        ->andReturn($originalConnection->getPostProcessor());
-    $mockConnection->shouldReceive('getTablePrefix')
-        ->andReturn($originalConnection->getTablePrefix());
-    $mockConnection->shouldReceive('getName')
-        ->andReturn($originalConnection->getName());
-    $mockConnection->shouldReceive('getConfig')
-        ->andReturn($originalConnection->getConfig());
-    $mockConnection->shouldReceive('getDriverName')
-        ->andReturn($originalConnection->getDriverName());
-
-    \Illuminate\Support\Facades\DB::shouldReceive('connection')
-        ->andReturn($mockConnection);
-
-    \Illuminate\Support\Facades\Log::shouldReceive('error')
-        ->byDefault()
-        ->andReturnUsing(function ($message, $context = []) {
-            if (str_contains($message, 'Error checking favorite')) {
-                expect($message)->toContain('Error checking favorite: Database error');
-            }
-            return true;
-        });
-
-    $response = $this->actingAs($user)->get(route('favorites.check', $publication->id));
-
-    $response->assertOk()->assertJson(['isFavorite' => false]);
-});
-
-test('PUB-FAV-012: checkFavorite maneja excepciones cuando la consulta SQL falla', function () {
+test('PUB-FAV-011: checkFavorite maneja excepciones cuando la consulta SQL falla', function () {
     $user = makeUser();
     $seller = makeUser();
     $category = makeCategory();

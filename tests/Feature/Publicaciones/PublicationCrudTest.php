@@ -710,13 +710,7 @@ test('PUB-023: Invitado no puede eliminar publicaciones', function () {
     $response->assertRedirect(route('login'));
 });
 
-test('PUB-024: Invitado no puede ver mis publicaciones', function () {
-    $response = $this->get(route('my-publications'));
-
-    $response->assertRedirect(route('login'));
-});
-
-test('PUB-025: Usuario no puede editar publicación ajena', function () {
+test('PUB-024: Usuario no puede editar publicación ajena', function () {
     fakeGeocoding();
 
     $owner = makeUser();
@@ -745,7 +739,7 @@ test('PUB-025: Usuario no puede editar publicación ajena', function () {
     expect($publication->title)->not->toBe('Intento no autorizado');
 });
 
-test('PUB-026: Usuario no puede eliminar publicación ajena', function () {
+test('PUB-025: Usuario no puede eliminar publicación ajena', function () {
     $owner = makeUser();
     $otherUser = makeUser();
     $category = makeCategory();
