@@ -19,9 +19,9 @@ function fakePng(string $name = 'image.png', int $sizeInKilobytes = 10): Uploade
     return new UploadedFile($path, $name, 'image/png', null, true);
 }
 
-function makeUser(): User
+function makeUser(array $attributes = []): User
 {
-    return User::factory()->create();
+    return User::factory()->create($attributes);
 }
 
 function makeCategory(): Category
@@ -70,14 +70,27 @@ function ensureViteEntries(array $components): void
 {
     File::ensureDirectoryExists(public_path('build'));
 
-    $manifest = [
-        'resources/js/app.tsx' => [
+    // Leer manifest existente si existe, sino crear uno nuevo
+    $manifestPath = public_path('build/manifest.json');
+    $manifest = [];
+    
+    if (File::exists($manifestPath)) {
+        $existing = json_decode(File::get($manifestPath), true);
+        if (is_array($existing)) {
+            $manifest = $existing;
+        }
+    }
+
+    // Asegurar que app.tsx siempre esté presente
+    if (!isset($manifest['resources/js/app.tsx'])) {
+        $manifest['resources/js/app.tsx'] = [
             'file' => 'app.js',
             'src' => 'resources/js/app.tsx',
             'isEntry' => true,
-        ],
-    ];
+        ];
+    }
 
+    // Agregar los nuevos componentes sin sobrescribir los existentes
     foreach ($components as $component) {
         $entry = "resources/js/pages/{$component}.tsx";
         $manifest[$entry] = [
@@ -87,5 +100,5 @@ function ensureViteEntries(array $components): void
         ];
     }
 
-    File::put(public_path('build/manifest.json'), json_encode($manifest));
+    File::put($manifestPath, json_encode($manifest, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
 }

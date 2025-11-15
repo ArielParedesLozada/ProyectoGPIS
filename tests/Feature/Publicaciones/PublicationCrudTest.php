@@ -15,7 +15,7 @@ require_once __DIR__.'/publication-test-helpers.php';
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    ensureViteEntries(['publications/publication-index']);
+    ensureViteEntries(['publications/publication-index', 'publications/create-publication', 'publications/edit-publication']);
 });
 
 test('PUB-001: Visualiza listado de publicaciones', function () {
@@ -764,3 +764,431 @@ test('PUB-026: Usuario no puede eliminar publicación ajena', function () {
     ]);
 });
 
+test('PUB-032: Visualiza formulario de creación', function () {
+    ensureViteEntries(['publications/create-publication']);
+    
+    $user = makeUser();
+    $category = makeCategory();
+
+    $response = $this->actingAs($user)->get(route('publications.create'));
+
+    $response->assertStatus(200);
+    $response->assertInertia(fn ($page) => $page
+        ->component('publications/create-publication')
+        ->has('categories', 1)
+        ->where('categories.0.id', $category->id)
+    );
+});
+
+test('PUB-033: Visualiza formulario de edición', function () {
+    ensureViteEntries(['publications/edit-publication']);
+    
+    $user = makeUser();
+    $category = makeCategory();
+
+    $publication = createPublicationFor($user, $category, [
+        'title' => 'Publicación a editar',
+        'type' => 'producto',
+    ]);
+
+    $response = $this->actingAs($user)->get(route('publications.edit', $publication->id));
+
+    $response->assertStatus(200);
+    $response->assertInertia(fn ($page) => $page
+        ->component('publications/edit-publication')
+        ->has('publication')
+        ->where('publication.id', $publication->id)
+        ->where('publication.title', 'Publicación a editar')
+        ->has('categories', 1)
+    );
+});
+
+test('PUB-048: Formulario de edición maneja publicación sin coordenadas', function () {
+    ensureViteEntries(['publications/edit-publication']);
+    
+    $user = makeUser();
+    $category = makeCategory();
+
+    $publication = createPublicationFor($user, $category, [
+        'title' => 'Publicación sin coordenadas',
+        'type' => 'producto',
+    ]);
+
+    \Illuminate\Support\Facades\DB::statement('UPDATE publications SET location_point = NULL WHERE id = ?', [$publication->id]);
+
+    \Illuminate\Support\Facades\DB::shouldReceive('selectOne')
+        ->once()
+        ->andReturn(null);
+
+    $response = $this->actingAs($user)->get(route('publications.edit', $publication->id));
+
+    $response->assertStatus(200);
+    $response->assertInertia(fn ($page) => $page
+        ->component('publications/edit-publication')
+        ->where('publication.id', $publication->id)
+        ->where('publication.title', 'Publicación sin coordenadas')
+        ->has('publication.location_point')
+    );
+
+    $locationPoint = $response->getOriginalContent()->getData()['page']['props']['publication']['location_point'];
+    expect($locationPoint)->toBeNull();
+});
+
+test('PUB-034: Usuario no puede editar publicación ajena desde formulario', function () {
+    $owner = makeUser();
+    $otherUser = makeUser();
+    $category = makeCategory();
+
+    $publication = createPublicationFor($owner, $category);
+
+    $response = $this->actingAs($otherUser)->get(route('publications.edit', $publication->id));
+
+    $response->assertNotFound();
+});
+
+test('PUB-041: Creación maneja error al crear Point y continúa sin location_point', function () {
+    fakeGeocoding([
+        'city' => 'Quito',
+        'country' => 'Ecuador',
+    ]);
+
+    $user = makeUser();
+    $category = makeCategory();
+
+    $payload = basePublicationPayload($category, [
+        'title' => 'Publicación con error en Point',
+        'description' => 'El Point falla pero la publicación se crea',
+        'price' => 50.0,
+        'lat' => -0.18,
+        'lng' => -78.47,
+    ]);
+
+    \Illuminate\Support\Facades\Log::shouldReceive('info')
+        ->byDefault()
+        ->andReturnUsing(function ($message, $context = []) {
+            if (str_contains($message, 'Creating Point')) {
+                throw new \Exception('Error creating Point');
+            }
+        });
+
+    \Illuminate\Support\Facades\Log::shouldReceive('error')
+        ->byDefault()
+        ->andReturn(true);
+
+    $response = $this->actingAs($user)->post(route('publications.store'), $payload);
+
+    $response->assertRedirect(route('my-publications'));
+    $response->assertSessionHas('success');
+
+    $publication = Publication::where('title', 'Publicación con error en Point')->firstOrFail();
+    expect($publication->location_point)->toBeNull();
+});
+
+test('PUB-042: Creación lanza InvalidArgumentException cuando coordenadas pasan validación pero fallan validación interna', function () {
+    fakeGeocoding([
+        'city' => 'Guayaquil',
+        'country' => 'Ecuador',
+    ]);
+
+    $user = makeUser();
+    $category = makeCategory();
+
+    $basePayload = basePublicationPayload($category, [
+        'title' => 'Publicación con coordenadas inválidas internamente',
+        'description' => 'Coordenadas que pasan validación Laravel pero fallan internamente',
+        'price' => 75.0,
+        'lat' => 90.0,
+        'lng' => -79.88,
+    ]);
+
+    $logErrorCalled = false;
+    $logErrorMessage = '';
+
+    \Illuminate\Support\Facades\Log::shouldReceive('info')
+        ->byDefault()
+        ->andReturn(true);
+
+    \Illuminate\Support\Facades\Log::shouldReceive('error')
+        ->byDefault()
+        ->andReturnUsing(function ($message, $context = []) use (&$logErrorCalled, &$logErrorMessage) {
+            if (str_contains($message, 'Error creating Point')) {
+                $logErrorCalled = true;
+                $logErrorMessage = $message;
+            }
+            return true;
+        });
+
+    \Illuminate\Support\Facades\Auth::shouldReceive('id')
+        ->andReturn($user->id);
+
+    $request = \Illuminate\Http\Request::create(route('publications.store'), 'POST', array_merge($basePayload, ['lat' => 91.0]));
+    $request->setUserResolver(function () use ($user) {
+        return $user;
+    });
+    
+    $mockRequest = \Mockery::mock($request)->makePartial();
+    $mockRequest->shouldReceive('validate')->andReturn($basePayload);
+    $mockRequest->shouldReceive('filled')->andReturn(false);
+    $mockRequest->shouldReceive('hasFile')->andReturn(false);
+    $mockRequest->shouldReceive('has')->andReturn(false);
+    $mockRequest->shouldReceive('ip')->andReturn('127.0.0.1');
+    $mockRequest->shouldReceive('userAgent')->andReturn('Test');
+    $mockRequest->shouldReceive('input')->andReturnUsing(function ($key, $default = null) use ($basePayload) {
+        if ($key === 'lat') {
+            return 91.0;
+        }
+        return $basePayload[$key] ?? $default;
+    });
+    $mockRequest->shouldReceive('get')->andReturnUsing(function ($key, $default = null) use ($basePayload) {
+        if ($key === 'lat') {
+            return 91.0;
+        }
+        return $basePayload[$key] ?? $default;
+    });
+    $mockRequest->shouldReceive('__get')->andReturnUsing(function ($key) use ($basePayload) {
+        if ($key === 'lat') {
+            return 91.0;
+        }
+        return $basePayload[$key] ?? null;
+    });
+
+    $controller = app(\App\Http\Controllers\PublicationController::class);
+    
+    $response = $controller->store($mockRequest);
+
+    expect($logErrorCalled)->toBeTrue();
+    expect($logErrorMessage)->toContain('Error creating Point for publication');
+
+    $publication = \App\Models\Publication::where('title', 'Publicación con coordenadas inválidas internamente')->first();
+    expect($publication)->not->toBeNull();
+    expect($publication->location_point)->toBeNull();
+});
+
+test('PUB-043: Actualización redirige a login cuando Auth::id() devuelve null', function () {
+    $user = makeUser();
+    $category = makeCategory();
+    $publication = createPublicationFor($user, $category);
+
+    \Illuminate\Support\Facades\Auth::shouldReceive('id')
+        ->once()
+        ->andReturn(null);
+
+    $payload = basePublicationPayload($category, [
+        'title' => 'Título actualizado',
+        'description' => 'Descripción actualizada',
+        'price' => 100,
+        'lat' => -0.18,
+        'lng' => -78.47,
+    ]);
+
+    $response = $this->withoutMiddleware()->put(route('publications.update', $publication->id), $payload);
+
+    $response->assertRedirect(route('login'));
+});
+
+test('PUB-044: Actualización rechaza servicio sin horario', function () {
+    fakeGeocoding([
+        'city' => 'Quito',
+        'country' => 'Ecuador',
+    ]);
+
+    $user = makeUser();
+    $category = makeCategory();
+    $publication = createPublicationFor($user, $category, [
+        'type' => 'servicio',
+    ]);
+
+    $payload = basePublicationPayload($category, [
+        'title' => 'Servicio sin horario',
+        'description' => 'Este servicio no tiene horario',
+        'price' => 150,
+        'type' => 'servicio',
+        'lat' => -0.19,
+        'lng' => -78.49,
+        'schedule' => '',
+    ]);
+
+    $response = $this->actingAs($user)->put(route('publications.update', $publication->id), $payload);
+
+    $response->assertRedirect();
+    $response->assertSessionHasErrors(['schedule']);
+    expect($response->getSession()->get('errors')->first('schedule'))
+        ->toContain('El horario es obligatorio para servicios');
+});
+
+test('PUB-045: Actualización rechaza coordenadas fuera de rango en validación interna', function () {
+    fakeGeocoding([
+        'city' => 'Guayaquil',
+        'country' => 'Ecuador',
+    ]);
+
+    $user = makeUser();
+    $category = makeCategory();
+    $publication = createPublicationFor($user, $category, [
+        'type' => 'producto',
+    ]);
+
+    $basePayload = basePublicationPayload($category, [
+        'title' => 'Publicación actualizada con coordenadas inválidas',
+        'description' => 'Coordenadas que pasan validación Laravel pero fallan internamente',
+        'price' => 75.0,
+        'lat' => 90.0,
+        'lng' => -79.88,
+    ]);
+
+    \Illuminate\Support\Facades\Log::shouldReceive('info')
+        ->byDefault()
+        ->andReturn(true);
+
+    \Illuminate\Support\Facades\Log::shouldReceive('error')
+        ->byDefault()
+        ->andReturnUsing(function ($message, $context = []) {
+            if (str_contains($message, 'Error creating Point for publication update')) {
+                expect($message)->toContain('Error creating Point for publication update');
+            }
+            return true;
+        });
+
+    \Illuminate\Support\Facades\Auth::shouldReceive('id')
+        ->andReturn($user->id);
+
+    $request = \Illuminate\Http\Request::create(route('publications.update', $publication->id), 'PUT', array_merge($basePayload, ['lat' => 91.0]));
+    $request->setUserResolver(function () use ($user) {
+        return $user;
+    });
+    
+    $mockRequest = \Mockery::mock($request)->makePartial();
+    $mockRequest->shouldReceive('validate')->andReturn($basePayload);
+    $mockRequest->shouldReceive('filled')->andReturnUsing(function ($key) use ($basePayload) {
+        return isset($basePayload[$key]) && $basePayload[$key] !== '';
+    });
+    $mockRequest->shouldReceive('hasFile')->andReturn(false);
+    $mockRequest->shouldReceive('has')->andReturn(false);
+    $mockRequest->shouldReceive('ip')->andReturn('127.0.0.1');
+    $mockRequest->shouldReceive('userAgent')->andReturn('Test');
+    $mockRequest->shouldReceive('input')->andReturnUsing(function ($key, $default = null) use ($basePayload) {
+        if ($key === 'lat') {
+            return 91.0;
+        }
+        return $basePayload[$key] ?? $default;
+    });
+    $mockRequest->shouldReceive('get')->andReturnUsing(function ($key, $default = null) use ($basePayload) {
+        if ($key === 'lat') {
+            return 91.0;
+        }
+        return $basePayload[$key] ?? $default;
+    });
+    $mockRequest->shouldReceive('__get')->andReturnUsing(function ($key) use ($basePayload) {
+        if ($key === 'lat') {
+            return 91.0;
+        }
+        return $basePayload[$key] ?? null;
+    });
+
+    $controller = app(\App\Http\Controllers\PublicationController::class);
+    
+    $response = $controller->update($mockRequest, $publication->id);
+
+    $publication->refresh();
+    expect($publication->location_point)->toBeNull();
+});
+
+test('PUB-046: Actualización maneja error al crear Point y continúa sin location_point', function () {
+    fakeGeocoding([
+        'city' => 'Quito',
+        'country' => 'Ecuador',
+    ]);
+
+    $user = makeUser();
+    $category = makeCategory();
+    $publication = createPublicationFor($user, $category, [
+        'title' => 'Publicación a actualizar',
+        'type' => 'producto',
+    ]);
+
+    $payload = basePublicationPayload($category, [
+        'title' => 'Publicación actualizada con error en Point',
+        'description' => 'El Point falla pero la publicación se actualiza',
+        'price' => 50.0,
+        'lat' => -0.18,
+        'lng' => -78.47,
+    ]);
+
+    \Illuminate\Support\Facades\Log::shouldReceive('info')
+        ->byDefault()
+        ->andReturnUsing(function ($message, $context = []) {
+            if (str_contains($message, 'Updating Point')) {
+                throw new \Exception('Error creating Point');
+            }
+            return true;
+        });
+
+    \Illuminate\Support\Facades\Log::shouldReceive('error')
+        ->byDefault()
+        ->andReturnUsing(function ($message, $context = []) {
+            if (str_contains($message, 'Error creating Point for publication update')) {
+                expect($message)->toContain('Error creating Point for publication update');
+            }
+            return true;
+        });
+
+    $response = $this->actingAs($user)->put(route('publications.update', $publication->id), $payload);
+
+    $response->assertRedirect(route('my-publication-view', $publication->id));
+    $response->assertSessionHas('success');
+
+    $publication->refresh();
+    expect($publication->title)->toBe('Publicación actualizada con error en Point');
+    expect($publication->location_point)->toBeNull();
+});
+
+test('PUB-047: Actualización elimina todas las imágenes cuando no se envía existing_images', function () {
+    fakeGeocoding([
+        'city' => 'Cuenca',
+        'country' => 'Ecuador',
+    ]);
+    Storage::fake('public');
+
+    $user = makeUser();
+    $category = makeCategory();
+    $publication = createPublicationFor($user, $category, [
+        'type' => 'producto',
+    ]);
+
+    $existingFiles = collect([
+        fakePng('imagen1.png'),
+        fakePng('imagen2.png'),
+        fakePng('imagen3.png'),
+    ])->map(function ($file) use ($publication) {
+        $path = $file->store('publications', 'public');
+        return PublicationImage::create([
+            'publication_id' => $publication->id,
+            'image_url' => $path,
+        ]);
+    });
+
+    expect($publication->images()->count())->toBe(3);
+
+    foreach ($existingFiles as $image) {
+        Storage::disk('public')->assertExists($image->image_url);
+    }
+
+    $payload = basePublicationPayload($category, [
+        'title' => 'Título actualizado',
+        'description' => 'Descripción actualizada',
+        'price' => 150,
+        'lat' => -2.15,
+        'lng' => -79.88,
+    ]);
+
+    $response = $this->actingAs($user)->put(route('publications.update', $publication->id), $payload);
+    $response->assertRedirect(route('my-publication-view', $publication->id));
+
+    $publication->refresh();
+    expect($publication->images()->count())->toBe(0);
+
+    foreach ($existingFiles as $image) {
+        Storage::disk('public')->assertMissing($image->image_url);
+        $this->assertDatabaseMissing('publication_images', ['id' => $image->id]);
+    }
+});

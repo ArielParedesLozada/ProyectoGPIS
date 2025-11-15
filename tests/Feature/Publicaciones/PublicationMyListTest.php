@@ -12,7 +12,15 @@ require_once __DIR__.'/publication-test-helpers.php';
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    ensureViteEntries(['publications/my-publications']);
+    ensureViteEntries([
+        'publications/my-publications',
+        'publications/publication-index',
+        'publications/favorites',
+        'publications/publication-view',
+        'publications/my-publication-view',
+        'publications/create-publication',
+        'publications/edit-publication',
+    ]);
 });
 
 test('PUB-ML-001: Lista solo publicaciones del usuario', function () {
@@ -70,5 +78,65 @@ test('PUB-ML-002: Filtra mis publicaciones por estado', function () {
         })
         ->etc()
     );
+});
+
+test('PUB-ML-003: Redirige a login cuando no hay usuario autenticado', function () {
+    $response = $this->get(route('my-publications'));
+
+    $response->assertRedirect(route('login'));
+});
+
+test('PUB-ML-003b: Redirige a login cuando Auth::id() devuelve null', function () {
+    \Illuminate\Support\Facades\Auth::shouldReceive('id')
+        ->once()
+        ->andReturn(null);
+
+    $response = $this->withoutMiddleware()->get(route('my-publications'));
+
+    $response->assertRedirect(route('login'));
+});
+
+test('PUB-ML-004: Maneja publicaciones sin coordenadas', function () {
+    $owner = makeUser();
+    $category = makeCategory();
+
+    $publication = createPublicationFor($owner, $category, [
+        'title' => 'Publicación sin coordenadas',
+    ]);
+
+    \Illuminate\Support\Facades\DB::statement('UPDATE publications SET location_point = NULL WHERE id = ?', [$publication->id]);
+
+    \Illuminate\Support\Facades\DB::shouldReceive('selectOne')
+        ->once()
+        ->andReturn(null);
+
+    $response = $this->actingAs($owner)->get(route('my-publications'));
+
+    $response->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->where('publications.data', function ($data) use ($publication) {
+            return count($data) === 1 && $data[0]['title'] === $publication->title;
+        })
+        ->etc()
+    );
+
+    $publicationsData = $response->getOriginalContent()->getData()['page']['props']['publications']['data'];
+    expect($publicationsData[0]['location_point'])->toBeNull();
+});
+
+test('PUB-ML-005: Maneja excepciones correctamente', function () {
+    $owner = makeUser();
+    $category = makeCategory();
+
+    createPublicationFor($owner, $category);
+
+    \Illuminate\Support\Facades\DB::shouldReceive('selectOne')
+        ->andThrow(new \Exception('Database error'));
+
+    $response = $this->actingAs($owner)->get(route('my-publications'));
+
+    $response->assertRedirect();
+    $response->assertSessionHasErrors(['error']);
+    expect($response->getSession()->get('errors')->first('error'))
+        ->toContain('Error al cargar las publicaciones');
 });
 
