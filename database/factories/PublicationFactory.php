@@ -42,7 +42,6 @@ class PublicationFactory extends Factory
             'published_at' => fake()->dateTimeBetween('-30 days', 'now'),
             'status' => StatusType::HABILITADO->value,
             'type' => $type,
-            'horario' => $type === PublicationType::SERVICE ? fake()->randomElement(['Lunes a Viernes 8:00-17:00', '24/7', 'Sábados y Domingos 9:00-18:00']) : null,
         ];
     }
 }
