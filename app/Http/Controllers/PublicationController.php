@@ -12,6 +12,7 @@ use App\Models\ModerationCase;
 use App\Models\ModerationReport;
 use App\Models\ModerationAppeal;
 use App\Models\ModerationAction;
+use App\Models\Purchase;
 use App\Models\User;
 use App\Models\PublicationServiceHour;
 use App\Services\GeocodingService;
@@ -30,8 +31,47 @@ class PublicationController extends Controller
 {
     public function index(Request $request)
     {
+        // Validar precios
+        if ($request->filled('min_price') && $request->filled('max_price')) {
+            $minPrice = (float) $request->min_price;
+            $maxPrice = (float) $request->max_price;
+            
+            if ($minPrice > $maxPrice) {
+                return redirect()->back()->with('error', 'El precio mínimo no puede ser mayor que el precio máximo.');
+            }
+        }
+        
+        // Mostrar mensaje informativo cuando solo se selecciona precio mínimo
+        if ($request->filled('min_price') && !$request->filled('max_price')) {
+            return redirect()->back()->with('info', 'Para filtrar por precio, selecciona también el precio máximo.');
+        }
+        
+        // Mostrar mensaje informativo cuando solo se selecciona precio máximo
+        if (!$request->filled('min_price') && $request->filled('max_price')) {
+            return redirect()->back()->with('info', 'Para filtrar por precio, selecciona también el precio mínimo.');
+        }
+        
+        // Mostrar todas las publicaciones (disponibles y no disponibles)
         $query = Publication::query()->with(['category', 'images']);
-        if ($request->filled('category_id')) {
+        
+        // Filtro por búsqueda
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->whereRaw('LOWER(title) LIKE LOWER(?)', ['%' . $search . '%'])
+                  ->orWhereRaw('LOWER(description) LIKE LOWER(?)', ['%' . $search . '%']);
+            });
+        }
+        
+        // Filtro por categorías múltiples
+        if ($request->filled('categories')) {
+            $categoryIds = explode(',', $request->categories);
+            $categoryIds = array_filter($categoryIds, 'is_numeric'); // Solo IDs numéricos
+            if (!empty($categoryIds)) {
+                $query->whereIn('category_id', $categoryIds);
+            }
+        } elseif ($request->filled('category_id')) {
+            // Mantener compatibilidad con filtro de categoría única
             $query->where('category_id', $request->category_id);
         }
         if ($request->filled('type')) {
@@ -52,14 +92,45 @@ class PublicationController extends Controller
 
             $query->whereRaw(
                 "ST_DWithin(location_point, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?)",
-                [$lng, $lat, $radiusKm * 1000] // Convertir km a metros
+                [$lng, $lat, $radiusKm * 1000] // ST_MakePoint usa (longitud, latitud) - convertir km a metros
             );
+        }
+
+        // Filtro por productos comprados por el usuario
+        if ($request->filled('my_products') && $request->my_products === 'true') {
+            $userId = Auth::id();
+            if ($userId) {
+                $query->whereHas('purchases', function ($q) use ($userId) {
+                    $q->where('buyer_id', $userId);
+                });
+            }
         }
 
         $query->where('status', StatusType::HABILITADO)
             ->where('is_hidden', false);
 
-        $publications = $query->paginate(6)->withQueryString();
+        // Ordenamiento
+        if ($request->filled('sort_by')) {
+            switch ($request->sort_by) {
+                case 'oldest':
+                    $query->orderBy('created_at', 'asc');
+                    break;
+                case 'price_low':
+                    $query->orderBy('price', 'asc');
+                    break;
+                case 'price_high':
+                    $query->orderBy('price', 'desc');
+                    break;
+                case 'newest':
+                default:
+                    $query->orderBy('created_at', 'desc');
+                    break;
+            }
+        } else {
+            $query->orderBy('created_at', 'desc'); // Default sort
+        }
+
+        $publications = $query->paginate(9)->withQueryString();
 
         // Extraer coordenadas para cada publicación
         foreach ($publications as $publication) {
@@ -81,12 +152,16 @@ class PublicationController extends Controller
             'publications' => $publications,
             'categories' => $categories,
             'selectedCategory' => $request->category_id,
+            'selectedCategories' => $request->filled('categories') ? array_map('intval', explode(',', $request->categories)) : null,
             'selectedType' => $request->type,
             'selectedMinPrice' => $request->min_price,
             'selectedMaxPrice' => $request->max_price,
             'nearLat' => $request->near_lat,
             'nearLng' => $request->near_lng,
             'radiusKm' => $request->radius_km,
+            'myProducts' => $request->my_products === 'true',
+            'selectedSearchQuery' => $request->search,
+            'selectedSortBy' => $request->sort_by,
         ]);
     }
 
@@ -739,9 +814,19 @@ class PublicationController extends Controller
                 $publication->location_point = null;
             }
 
+            // Verificar estado de moderación
+            $moderationCase = ModerationCase::where('publication_id', $id)->first();
+            $hasFinalDecision = false;
+            
+            if ($moderationCase && $moderationCase->status === 'closed' && $publication->is_hidden) {
+                // Si el caso está cerrado y la publicación está oculta, es una decisión final
+                $hasFinalDecision = true;
+            }
+
             // Forzar serialización correcta
             $publicationData = $publication->toArray();
             $publicationData['serviceHours'] = $publication->serviceHours->toArray();
+            $publicationData['has_final_moderation_decision'] = $hasFinalDecision;
 
             return Inertia::render('publications/my-publication-view', [
                 'publication' => $publicationData
@@ -755,9 +840,16 @@ class PublicationController extends Controller
     public function favorites()
     {
         try {
-            $favorites = Auth::user()->favorites()
+            /** @var \App\Models\User|null $user */
+            $user = Auth::user();
+            
+            if (!$user) {
+                return redirect()->route('login');
+            }
+            
+            $favorites = $user->favorites()
                 ->with(['publication.category', 'publication.images', 'publication.serviceHours'])
-                ->paginate(12);
+                ->paginate(9);
 
             // Transformar los datos para que sean compatibles con el frontend
             $favoritesData = $favorites->through(function ($favorite) {
@@ -851,6 +943,11 @@ class PublicationController extends Controller
             $publication = Publication::findOrFail($id);
             $reporterId = Auth::id();
 
+            // Verificar que no estés reportando tu propia publicación
+            if ($publication->created_by === $reporterId) {
+                return back()->withErrors(['error' => 'No puedes reportar tu propia publicación.']);
+            }
+
             // Rate limiting: verificar si el usuario ya reportó esta publicación en los últimos 60 minutos
             $recentReport = ModerationReport::where('reporter_id', $reporterId)
                 ->whereHas('moderationCase', function ($query) use ($id) {
@@ -866,16 +963,16 @@ class PublicationController extends Controller
             DB::beginTransaction();
 
             // Buscar si ya existe un caso abierto para esta publicación
-            $existingCase = ModerationCase::where('publication_id', $id)
+            $existingOpenCase = ModerationCase::where('publication_id', $id)
                 ->whereIn('status', ['pending', 'triage', 'in_review', 'appealed'])
                 ->first();
 
-            if ($existingCase) {
-                // Agregar reporte al caso existente
-                $existingCase->increment('report_count');
+            if ($existingOpenCase) {
+                // Agregar reporte al caso existente (lógica original sin cambios)
+                $existingOpenCase->increment('report_count');
 
                 ModerationReport::create([
-                    'moderation_case_id' => $existingCase->id,
+                    'moderation_case_id' => $existingOpenCase->id,
                     'reporter_id' => $reporterId,
                     'reason' => $request->reason,
                     'description' => $request->description,
@@ -885,27 +982,77 @@ class PublicationController extends Controller
                     ]
                 ]);
             } else {
-                // Crear nuevo caso de moderación
-                $moderationCase = ModerationCase::create([
-                    'publication_id' => $id,
-                    'status' => 'pending',
-                    'source' => 'user',
-                    'report_count' => 1,
-                ]);
+                // Buscar si existe un caso cerrado para esta publicación
+                $existingClosedCase = ModerationCase::where('publication_id', $id)
+                    ->whereIn('status', ['closed', 'action_taken'])
+                    ->orderBy('resolved_at', 'desc')
+                    ->first();
 
-                // Asignación automática al moderador con menor carga
-                $this->assignToModerator($moderationCase);
+                if ($existingClosedCase) {
+                    // Verificar si se puede reabrir el caso
+                    $canReopen = $this->canReopenCase($existingClosedCase, $publication);
 
-                ModerationReport::create([
-                    'moderation_case_id' => $moderationCase->id,
-                    'reporter_id' => $reporterId,
-                    'reason' => $request->reason,
-                    'description' => $request->description,
-                    'metadata' => [
-                        'ip_address' => $request->ip(),
-                        'user_agent' => $request->userAgent(),
-                    ]
-                ]);
+                    if ($canReopen) {
+                        // Guardar estado previo antes de actualizar
+                        $previousStatus = $existingClosedCase->status;
+                        $resolvedAt = $existingClosedCase->resolved_at;
+
+                        // REABRIR el caso existente
+                        $existingClosedCase->update([
+                            'status' => 'pending',
+                            'assigned_moderator_id' => null,
+                            'assigned_at' => null,
+                            'resolved_at' => null,
+                        ]);
+
+                        // Incrementar contador de reportes
+                        $existingClosedCase->increment('report_count');
+
+                        // Crear el nuevo reporte
+                        ModerationReport::create([
+                            'moderation_case_id' => $existingClosedCase->id,
+                            'reporter_id' => $reporterId,
+                            'reason' => $request->reason,
+                            'description' => $request->description,
+                            'metadata' => [
+                                'ip_address' => $request->ip(),
+                                'user_agent' => $request->userAgent(),
+                            ]
+                        ]);
+
+                        // Asignar automáticamente a un moderador disponible
+                        $this->assignToModerator($existingClosedCase);
+
+                        // Registrar acción de reapertura
+                        ModerationAction::create([
+                            'moderation_case_id' => $existingClosedCase->id,
+                            'moderator_id' => null, // Reapertura automática por sistema
+                            'action_type' => 'reopen_case',
+                            'action_description' => 'Caso reabierto automáticamente por nuevo reporte',
+                            'metadata' => [
+                                'previous_status' => $previousStatus,
+                                'reopened_at' => now()->toISOString(),
+                                'reason' => 'new_report_on_closed_case',
+                                'days_since_closed' => $resolvedAt 
+                                    ? now()->diffInDays($resolvedAt) 
+                                    : null,
+                            ]
+                        ]);
+
+                        Log::info("Caso reabierto automáticamente", [
+                            'case_id' => $existingClosedCase->id,
+                            'publication_id' => $id,
+                            'previous_status' => $previousStatus,
+                            'new_status' => 'pending',
+                        ]);
+                    } else {
+                        // No se puede reabrir, crear caso nuevo
+                        $this->createNewModerationCase($publication, $reporterId, $request);
+                    }
+                } else {
+                    // No existe ningún caso anterior, crear caso nuevo
+                    $this->createNewModerationCase($publication, $reporterId, $request);
+                }
             }
 
             DB::commit();
@@ -924,8 +1071,8 @@ class PublicationController extends Controller
      */
     private function assignToModerator(ModerationCase $case)
     {
-        // Buscar moderadores activos disponibles (SOLO moderadores)
-        $moderator = User::where('role', 'moderador') // Solo moderadores, no admins
+        // Buscar moderadores y admins activos disponibles (NO super_admin)
+        $moderator = User::whereIn('role', ['moderador', 'admin']) // Solo moderadores y admins
             ->where('status', StatusType::HABILITADO->value) // Solo activos
             ->where('is_active', true) // Solo activos
             ->withCount(['moderationCases' => function ($query) {
@@ -940,6 +1087,63 @@ class PublicationController extends Controller
                 'assigned_at' => now(),
             ]);
         }
+    }
+
+    /**
+     * Verificar si un caso cerrado puede ser reabierto
+     */
+    private function canReopenCase(ModerationCase $case, Publication $publication): bool
+    {
+        // NO reabrir si el caso fue descartado (dismissed)
+        if ($case->status === 'dismissed') {
+            return false;
+        }
+
+        // NO reabrir si el caso fue cerrado hace más de 90 días
+        if ($case->resolved_at && now()->diffInDays($case->resolved_at) > 90) {
+            return false;
+        }
+
+        // Reabrir solo si:
+        // 1. El caso está cerrado (closed o action_taken)
+        // 2. La publicación sigue oculta (is_hidden = true)
+        // 3. Han pasado menos de 90 días desde el cierre
+        if (in_array($case->status, ['closed', 'action_taken'])) {
+            return $publication->is_hidden === true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Crear un nuevo caso de moderación
+     */
+    private function createNewModerationCase(Publication $publication, int $reporterId, Request $request): ModerationCase
+    {
+        // Crear nuevo caso de moderación
+        $moderationCase = ModerationCase::create([
+            'publication_id' => $publication->id,
+            'status' => 'pending',
+            'source' => 'user',
+            'report_count' => 1,
+        ]);
+
+        // Asignación automática al moderador con menor carga
+        $this->assignToModerator($moderationCase);
+
+        // Crear el reporte
+        ModerationReport::create([
+            'moderation_case_id' => $moderationCase->id,
+            'reporter_id' => $reporterId,
+            'reason' => $request->reason,
+            'description' => $request->description,
+            'metadata' => [
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]
+        ]);
+
+        return $moderationCase;
     }
 
     /**
@@ -1051,22 +1255,46 @@ class PublicationController extends Controller
                     'assigned_moderator_id' => null,
                     'assigned_at' => null,
                 ]);
+                
+                // Asignar a un moderador diferente para revisar la apelación
+                Log::info('Asignando apelación a moderador diferente');
+                $this->assignAppealToDifferentModerator($moderationCase, $originalModeratorId);
+                
+                DB::commit();
+                Log::info('Apelación procesada exitosamente');
+                
+                return redirect()->back()->with('success', 'Apelación enviada correctamente. Un moderador diferente revisará tu caso.');
             } else {
-                // Si ya está en "appealed", solo desasignar al moderador actual
-                $moderationCase->update([
-                    'assigned_moderator_id' => null,
-                    'assigned_at' => null,
-                ]);
+                // Si ya está en "appealed", verificar si ya tiene un moderador asignado
+                if ($moderationCase->assigned_moderator_id) {
+                    // Ya hay un moderador asignado para revisar apelaciones
+                    // Las apelaciones adicionales siguen siendo del mismo moderador
+                    Log::info('Caso ya tiene moderador asignado para apelaciones', [
+                        'assigned_moderator_id' => $moderationCase->assigned_moderator_id,
+                        'case_id' => $moderationCase->id
+                    ]);
+                    
+                    DB::commit();
+                    Log::info('Apelación adicional procesada - manteniendo moderador actual');
+                    
+                    return redirect()->back()->with('success', 'Apelación enviada correctamente. El moderador asignado revisará tu caso.');
+                } else {
+                    // No hay moderador asignado, desasignar y buscar uno nuevo
+                    $moderationCase->update([
+                        'assigned_moderator_id' => null,
+                        'assigned_at' => null,
+                    ]);
+                    
+                    // Asignar a un moderador diferente
+                    Log::info('Asignando apelación a moderador diferente');
+                    $this->assignAppealToDifferentModerator($moderationCase, $originalModeratorId);
+                    
+                    DB::commit();
+                    Log::info('Apelación procesada exitosamente');
+                    
+                    return redirect()->back()->with('success', 'Apelación enviada correctamente. Un moderador diferente revisará tu caso.');
+                }
             }
-
-            // Asignar a un moderador diferente
-            Log::info('Asignando apelación a moderador diferente');
-            $this->assignAppealToDifferentModerator($moderationCase, $originalModeratorId);
-
-            DB::commit();
-            Log::info('Apelación procesada exitosamente');
-
-            return redirect()->back()->with('success', 'Apelación enviada correctamente. Un moderador diferente revisará tu caso.');
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al enviar apelación: ' . $e->getMessage(), [
@@ -1184,8 +1412,8 @@ class PublicationController extends Controller
             return;
         }
 
-        // Buscar moderadores diferentes al original (SOLO moderadores)
-        $moderator = User::where('role', 'moderador') // Solo moderadores, no admins
+        // Buscar moderadores y admins diferentes al original (NO super_admin)
+        $moderator = User::whereIn('role', ['moderador', 'admin']) // Solo moderadores y admins
             ->where('id', '!=', $originalModeratorId) // Excluir al moderador original
             ->where('status', StatusType::HABILITADO->value) // Solo activos
             ->where('is_active', true) // Solo activos
@@ -1211,25 +1439,110 @@ class PublicationController extends Controller
      */
     private function handleNoModeratorsAvailable(ModerationCase $case, $originalModeratorId)
     {
-        // Dejar el caso sin asignar - esperará hasta que se cree un nuevo moderador
+        // Dejar el caso sin asignar - se asignará automáticamente cuando haya un moderador disponible
         $case->update([
             'assigned_moderator_id' => null,
             'assigned_at' => null,
         ]);
 
-        // Registrar que está esperando moderador
+        // Registrar que está esperando asignación automática
         ModerationAction::create([
             'moderation_case_id' => $case->id,
-            'moderator_id' => $originalModeratorId,
-            'action_type' => 'close_case',
-            'action_description' => 'Apelación en espera - No hay moderadores disponibles para revisar',
+            'moderator_id' => null,
+            'action_type' => 'waiting_assignment',
+            'action_description' => 'Apelación en espera de asignación automática - No hay moderadores disponibles',
             'metadata' => [
                 'original_moderator_id' => $originalModeratorId,
                 'waiting_reason' => 'no_moderators_available',
-                'status' => 'pending_moderator_assignment',
-                'requires_manual_intervention' => true,
+                'status' => 'pending_automatic_assignment',
+                'will_be_assigned_automatically' => true,
                 'waiting_for_moderator' => true
             ]
         ]);
+    }
+
+    /**
+     * Comprar una publicación
+     */
+    public function buy($id)
+    {
+        try {
+            Log::info('Iniciando proceso de compra', ['publication_id' => $id]);
+            
+            $user = Auth::user();
+            
+            // Validar autenticación
+            if (!$user) {
+                Log::warning('Usuario no autenticado intentando comprar', ['publication_id' => $id]);
+                return back()->withErrors(['error' => 'Debes iniciar sesión para comprar.']);
+            }
+
+            Log::info('Usuario autenticado', ['user_id' => $user->id, 'role' => $user->role]);
+
+            // Validar rol del comprador
+            if (!in_array($user->role, ['comprador', 'vendedor'])) {
+                Log::warning('Usuario con rol inválido intentando comprar', ['user_id' => $user->id, 'role' => $user->role]);
+                return back()->withErrors(['error' => 'Tu rol no te permite realizar compras.']);
+            }
+
+            $publication = Publication::findOrFail($id);
+            Log::info('Publicación encontrada', ['publication_id' => $publication->id, 'disponibility' => $publication->disponibility, 'created_by' => $publication->created_by]);
+
+            // Validar que no esté comprando su propia publicación
+            if ($publication->created_by === $user->id) {
+                return back()->withErrors(['error' => 'No puedes comprar tu propia publicación.']);
+            }
+
+            // Validar disponibilidad
+            if (!$publication->disponibility) {
+                return back()->withErrors(['error' => 'Este producto ya no está disponible.']);
+            }
+
+            // Validar estado de la cuenta del vendedor
+            $seller = User::findOrFail($publication->created_by);
+            if ($seller->status === StatusType::INHABILITADO->value || !$seller->is_active) {
+                return back()->withErrors(['error' => 'El vendedor tiene su cuenta desactivada.']);
+            }
+
+            DB::beginTransaction();
+
+            // Actualizar disponibilidad de la publicación
+            $publication->disponibility = false;
+            $publication->save();
+
+            // Crear registro de compra
+            $purchase = Purchase::create([
+                'publication_id' => $publication->id,
+                'buyer_id' => $user->id,
+                'seller_id' => $seller->id,
+                'price' => $publication->price,
+                'status' => 'completed',
+            ]);
+
+            DB::commit();
+
+            Log::info('Compra realizada exitosamente', [
+                'publication_id' => $publication->id,
+                'buyer_id' => $user->id,
+                'seller_id' => $seller->id,
+                'price' => $publication->price,
+                'disponibility_after' => $publication->disponibility,
+                'purchase_id' => $purchase->id,
+            ]);
+
+            return back()->with('success', '¡Compra realizada exitosamente! El producto ya no está disponible.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al procesar la compra', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'publication_id' => $id,
+                'user_id' => Auth::id(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            return back()->withErrors(['error' => 'Error al procesar la compra. Inténtalo nuevamente. Detalles: ' . $e->getMessage()]);
+        }
     }
 }

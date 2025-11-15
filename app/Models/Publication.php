@@ -24,12 +24,14 @@ class Publication extends Model
         'status',
         'type',
         'horario',
-        'is_hidden'
+        'is_hidden',
+        'hidden_by_vendor_deactivation'
     ];
 
     protected $casts = [
         'status' => \App\Enums\StatusType::class,
         'published_at' => 'datetime',
+        'hidden_by_vendor_deactivation' => 'boolean',
     ];
 
 
@@ -58,6 +60,11 @@ class Publication extends Model
     public function serviceHours(): HasMany
     {
         return $this->hasMany(PublicationServiceHour::class, 'publication_id', 'id');
+    }
+
+    public function purchases(): HasMany
+    {
+        return $this->hasMany(Purchase::class);
     }
 
     // Accessor para convertir location_point a formato JSON

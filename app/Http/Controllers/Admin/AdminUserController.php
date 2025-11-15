@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\RoleType;
+use App\Enums\StatusType;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\HandlesMiddleware;
 use App\Http\Requests\Admin\CreateAdminRequest;
@@ -69,7 +70,7 @@ class AdminUserController extends Controller
                 'address' => $request->address,
                 'gender' => $request->gender,
                 'role' => RoleType::ADMIN->value,
-                'status' => 1, // HABILITADO
+                'status' => StatusType::HABILITADO->value,
                 'is_active' => true,
                 'email_verified_at' => null, // No verificar automáticamente para enviar correo de verificación al primer login
             ]);
@@ -100,7 +101,9 @@ class AdminUserController extends Controller
                 'email' => $admin->email,
                 'created_by' => Auth::id(),
             ]);
-            event(new Registered($admin));
+            
+            // No disparar evento Registered para evitar envío inmediato de correo de verificación
+            // El correo de verificación se enviará cuando el usuario inicie sesión por primera vez
 
             return redirect()->route('admin.admins.index')
                 ->with('success', 'Administrador creado exitosamente.');

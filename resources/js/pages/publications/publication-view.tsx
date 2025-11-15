@@ -8,6 +8,7 @@ import MiniMap from "@/components/publications/MiniMap";
 import ReportModal from "@/components/publications/report-modal";
 import ImageGallery from "@/components/publications/ImageGallery";
 import HeightSync from "@/components/layout/HeightSync";
+import PurchaseConfirmationModal from "@/components/publications/purchase-confirmation-modal";
 
 interface PublicationViewProps {
     publication: Publication
@@ -23,9 +24,11 @@ export default function PublicationView({ publication }: PublicationViewProps) {
         },
     ];
 
-    // Estado para el modal de reporte
+    // Estado para los modales
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+    const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
     const [isFavorite, setIsFavorite] = useState(false);
+    const [isPurchasing, setIsPurchasing] = useState(false);
     
     // Determinar la URL de regreso basada en el referrer o parámetros
     const getBackUrl = () => {
@@ -119,6 +122,20 @@ export default function PublicationView({ publication }: PublicationViewProps) {
             });
         }
     };
+
+    const handlePurchaseConfirm = () => {
+        setIsPurchasing(true);
+        router.post(`/publication/${publication.id}/buy`, {}, {
+            onSuccess: () => {
+                // Recargar la página para mostrar el estado actualizado
+                window.location.reload();
+            },
+            onError: (errors) => {
+                setIsPurchasing(false);
+                console.error('Error en compra:', errors);
+            }
+        });
+    };
     
     // Array de imágenes reales de la base de datos
     const images = publication.images && publication.images.length > 0 
@@ -161,12 +178,13 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                                     </div>
                                     <div className="absolute top-4 right-4 z-10 flex gap-2">
                                         <span className={`px-3 py-1 rounded-full text-sm font-medium shadow-lg ${
-                                            publication.status === 1 
+                                            publication.disponibility 
                                                 ? 'bg-green-500 text-white' 
                                                 : 'bg-red-500 text-white'
                                         }`}>
-                                            {publication.status === 1 ? "Disponible" : "No disponible"}
+                                            {publication.disponibility ? "Disponible" : "No disponible"}
                                         </span>
+                                        {publication.created_by !== auth.user?.id && (
                                         <button
                                             onClick={() => setIsReportModalOpen(true)}
                                             className="bg-gray-800 bg-opacity-80 text-white p-2 rounded-full hover:bg-opacity-100 transition-all duration-200"
@@ -176,6 +194,7 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
                                             </svg>
                                         </button>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -193,9 +212,36 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                                     <div className="text-sm text-gray-500">Precio final</div>
                                 </div>
                                 <div className="space-y-3">
-                                    <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition">
-                                        Contactar Vendedor
-                                    </button>
+                                    {publication.created_by !== auth.user?.id ? (
+                                        // No es mi publicación
+                                        publication.disponibility ? (
+                                            // Producto disponible - Mostrar botón de comprar
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    setIsPurchaseModalOpen(true);
+                                                }}
+                                                disabled={isPurchasing}
+                                                className={`w-full font-semibold py-3 px-6 rounded-xl transition ${
+                                                    isPurchasing 
+                                                        ? 'bg-gray-400 text-white cursor-not-allowed' 
+                                                        : 'bg-green-600 hover:bg-green-700 text-white'
+                                                }`}
+                                            >
+                                                {isPurchasing ? 'Procesando...' : 'Comprar'}
+                                            </button>
+                                        ) : (
+                                            // Producto vendido
+                                            <button disabled className="w-full bg-gray-400 text-white font-semibold py-3 px-6 rounded-xl cursor-not-allowed">
+                                                Vendido
+                                            </button>
+                                        )
+                                    ) : (
+                                        // Es mi publicación
+                                        <button disabled className="w-full bg-gray-300 text-gray-600 font-semibold py-3 px-6 rounded-xl cursor-not-allowed">
+                                            Mi Publicación
+                                        </button>
+                                    )}
                                     <button 
                                         onClick={handleFavoriteClick}
                                         className={`w-full font-semibold py-3 px-6 rounded-xl transition ${
@@ -371,6 +417,16 @@ export default function PublicationView({ publication }: PublicationViewProps) {
                 onClose={() => setIsReportModalOpen(false)}
                 publicationId={publication.id}
                 publicationTitle={publication.title}
+            />
+
+            {/* Modal de confirmación de compra */}
+            <PurchaseConfirmationModal
+                isOpen={isPurchaseModalOpen}
+                onClose={() => setIsPurchaseModalOpen(false)}
+                onConfirm={handlePurchaseConfirm}
+                isPurchasing={isPurchasing}
+                publicationTitle={publication.title}
+                price={publication.price}
             />
         </AppLayout>
     )

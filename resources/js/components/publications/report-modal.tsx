@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import GeneralModal from "@/components/ui/general-modal";
 import { router } from "@inertiajs/react";
+import { useToast } from "@/hooks/useToast";
 
 interface ReportModalProps {
     isOpen: boolean;
@@ -25,6 +26,7 @@ const reportReasons = [
 export default function ReportModal({ isOpen, onClose, publicationId, publicationTitle }: ReportModalProps) {
     const [selectedReason, setSelectedReason] = useState<string>("");
     const [showConfirmation, setShowConfirmation] = useState(false);
+    const { showToast } = useToast();
 
     const handleReasonClick = (reason: string) => {
         setSelectedReason(reason);
@@ -42,21 +44,28 @@ export default function ReportModal({ isOpen, onClose, publicationId, publicatio
             description: null,
         }, {
             onSuccess: (page) => {
-                // Mostrar mensaje de éxito si existe
-                if ((page.props as any).flash?.success) {
-                    alert((page.props as any).flash.success);
-                } else {
-                    alert('Reporte enviado correctamente. Nuestro equipo de moderación revisará el contenido.');
-                }
+                // Mostrar mensaje de éxito con toast
+                const message = (page.props as any).flash?.success || 'Reporte enviado correctamente. Nuestro equipo de moderación revisará el contenido.';
+                showToast({
+                    type: 'success',
+                    title: 'Reporte enviado',
+                    message: message,
+                    duration: 5000
+                });
                 onClose();
                 setShowConfirmation(false);
                 setSelectedReason("");
             },
             onError: (errors) => {
                 console.error('Error al enviar reporte:', errors);
-                // Mostrar el primer error disponible
+                // Mostrar el primer error disponible con toast
                 const errorMessage = errors.error || Object.values(errors)[0] || 'Error al enviar el reporte. Inténtalo nuevamente.';
-                alert(errorMessage);
+                showToast({
+                    type: 'error',
+                    title: 'Error al enviar reporte',
+                    message: errorMessage,
+                    duration: 5000
+                });
             }
         });
     };
@@ -77,7 +86,7 @@ export default function ReportModal({ isOpen, onClose, publicationId, publicatio
                         <div className="flex items-start gap-2">
                             <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
                             <p className="text-sm text-amber-800">
-                                We will remove content if it goes against our <span className="font-medium text-amber-900">Políticas de comercio</span> or <span className="font-medium text-amber-900">Normas comunitarias</span>.
+                                Eliminaremos el contenido si va en contra de nuestras <span className="font-medium text-amber-900">Políticas de comercio</span> o <span className="font-medium text-amber-900">Normas comunitarias</span>.
                             </p>
                         </div>
                     </div>

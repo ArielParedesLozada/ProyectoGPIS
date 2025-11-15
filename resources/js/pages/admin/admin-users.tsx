@@ -8,7 +8,8 @@ import { MoreHorizontal, Plus, UserCheck, UserX, Eye, Edit, Trash2 } from 'lucid
 import AppLayout from '@/layouts/app-layout';
 import { SharedData, Paginated } from '@/types';
 import { usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import GeneralModal from '@/components/ui/general-modal';
 
 interface AdminUser {
     id: number;
@@ -26,26 +27,62 @@ interface AdminUsersPageProps {
 export default function AdminUsers({ admins }: AdminUsersPageProps) {
     const { auth } = usePage<SharedData>().props;
     const [processing, setProcessing] = useState<number | null>(null);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [actionType, setActionType] = useState<'toggle' | 'delete' | null>(null);
+    const [selectedAdmin, setSelectedAdmin] = useState<AdminUser | null>(null);
+
+    // Refrescar automáticamente cuando se navega a esta página
+    useEffect(() => {
+        router.reload({ only: ['admins'] });
+    }, []);
 
     const breadcrumbs = [
         { title: 'Administración', href: '#' },
         { title: 'Administradores', href: '#' },
     ];
 
-    const handleToggleStatus = (adminId: number) => {
-        setProcessing(adminId);
-        router.patch(`/admin/admins/${adminId}/toggle-status`, {}, {
-            onFinish: () => setProcessing(null),
-        });
+    const handleToggleStatus = (admin: AdminUser) => {
+        setSelectedAdmin(admin);
+        setActionType('toggle');
+        setShowConfirmModal(true);
     };
 
-    const handleDelete = (adminId: number) => {
-        if (confirm('¿Estás seguro de que quieres eliminar este administrador? Esta acción no se puede deshacer.')) {
-            setProcessing(adminId);
-            router.delete(`/admin/admins/${adminId}`, {
-                onFinish: () => setProcessing(null),
+    const handleDelete = (admin: AdminUser) => {
+        setSelectedAdmin(admin);
+        setActionType('delete');
+        setShowConfirmModal(true);
+    };
+
+    const confirmAction = () => {
+        if (!selectedAdmin || !actionType) return;
+
+        setProcessing(selectedAdmin.id);
+        
+        if (actionType === 'toggle') {
+            router.patch(`/admin/admins/${selectedAdmin.id}/toggle-status`, {}, {
+                onFinish: () => {
+                    setProcessing(null);
+                    setShowConfirmModal(false);
+                    setSelectedAdmin(null);
+                    setActionType(null);
+                },
+            });
+        } else if (actionType === 'delete') {
+            router.delete(`/admin/admins/${selectedAdmin.id}`, {
+                onFinish: () => {
+                    setProcessing(null);
+                    setShowConfirmModal(false);
+                    setSelectedAdmin(null);
+                    setActionType(null);
+                },
             });
         }
+    };
+
+    const cancelAction = () => {
+        setShowConfirmModal(false);
+        setSelectedAdmin(null);
+        setActionType(null);
     };
 
     const formatDate = (dateString: string) => {
@@ -63,16 +100,17 @@ export default function AdminUsers({ admins }: AdminUsersPageProps) {
             <div className="space-y-8 px-6 py-6">
                 {/* Header */}
                 <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 text-white">
-                    <div className="flex justify-between items-start">
+                    <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
                         <div>
-                            <h1 className="text-3xl font-bold mb-2">Administradores</h1>
-                            <p className="text-blue-100 text-lg">Gestiona los administradores del sistema</p>
+                            <h1 className="text-2xl md:text-3xl font-bold mb-2">Administradores</h1>
+                            <p className="text-blue-100 text-sm md:text-lg">Gestiona los administradores del sistema</p>
                         </div>
                         {auth.user.role === 'super_admin' && (
-                            <Button variant="secondary" className="bg-white/20 text-white border-white/50 hover:bg-white/30 hover:border-white/70 shadow-lg" asChild>
+                            <Button variant="secondary" className="bg-white/20 text-white border-white/50 hover:bg-white/30 hover:border-white/70 shadow-lg w-full md:w-auto" asChild>
                                 <Link href="/admin/admins/create">
                                     <Plus className="h-4 w-4 mr-2" />
-                                    Crear Administrador
+                                    <span className="hidden sm:inline">Crear Administrador</span>
+                                    <span className="sm:hidden">Crear</span>
                                 </Link>
                             </Button>
                         )}
@@ -136,7 +174,100 @@ export default function AdminUsers({ admins }: AdminUsersPageProps) {
                             Administra los permisos y estado de los administradores del sistema
                         </p>
                     </div>
-                    <div className="overflow-x-auto">
+                    {/* Vista móvil - Cards */}
+                    <div className="block md:hidden px-4 pb-4 space-y-4">
+                        {admins.data.map((admin) => (
+                            <Card key={admin.id} className="border border-border/20">
+                                <CardContent className="p-4">
+                                    <div className="flex items-start justify-between mb-3">
+                                        <div className="flex items-center space-x-3">
+                                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                                <span className="text-blue-600 font-semibold text-sm">
+                                                    {admin.name.charAt(0)}{admin.surname.charAt(0)}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <div className="font-medium text-foreground">
+                                                    {admin.name} {admin.surname}
+                                                </div>
+                                                <Badge 
+                                                    variant={admin.is_active ? "default" : "secondary"}
+                                                    className={`mt-1 ${admin.is_active 
+                                                        ? "bg-green-100 text-green-800 border-green-200" 
+                                                        : "bg-red-100 text-red-800 border-red-200"
+                                                    }`}
+                                                >
+                                                    {admin.is_active ? 'Activo' : 'Inactivo'}
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end" className="w-48">
+                                                <DropdownMenuItem asChild>
+                                                    <Link href={`/admin/admins/${admin.id}`} className="flex items-center">
+                                                        <Eye className="h-4 w-4 mr-2" />
+                                                        Ver Detalles
+                                                    </Link>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem asChild>
+                                                    <Link href={`/admin/admins/${admin.id}/edit`} className="flex items-center">
+                                                        <Edit className="h-4 w-4 mr-2" />
+                                                        Editar
+                                                    </Link>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    onClick={() => handleToggleStatus(admin)}
+                                                    disabled={processing === admin.id}
+                                                    className={admin.is_active 
+                                                        ? "text-red-600 hover:text-red-700" 
+                                                        : "text-green-600 hover:text-green-700"
+                                                    }
+                                                >
+                                                    {admin.is_active ? (
+                                                        <>
+                                                            <UserX className="h-4 w-4 mr-2" />
+                                                            Desactivar
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <UserCheck className="h-4 w-4 mr-2" />
+                                                            Activar
+                                                        </>
+                                                    )}
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    onClick={() => handleDelete(admin)}
+                                                    disabled={processing === admin.id}
+                                                    className="text-red-600 hover:text-red-700"
+                                                >
+                                                    <Trash2 className="h-4 w-4 mr-2" />
+                                                    Eliminar
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
+                                    <div className="space-y-2 text-sm">
+                                        <div>
+                                            <span className="font-medium text-muted-foreground">Email: </span>
+                                            <span className="text-foreground">{admin.email}</span>
+                                        </div>
+                                        <div>
+                                            <span className="font-medium text-muted-foreground">Fecha de Creación: </span>
+                                            <span className="text-foreground">{formatDate(admin.created_at)}</span>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+
+                    {/* Vista desktop - Tabla */}
+                    <div className="hidden md:block overflow-x-auto">
                         <Table className="border border-border/20">
                             <TableHeader>
                                 <TableRow className="bg-muted/50 border-b border-border/30">
@@ -198,7 +329,7 @@ export default function AdminUsers({ admins }: AdminUsersPageProps) {
                                                         </Link>
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem
-                                                        onClick={() => handleToggleStatus(admin.id)}
+                                                        onClick={() => handleToggleStatus(admin)}
                                                         disabled={processing === admin.id}
                                                         className={admin.is_active 
                                                             ? "text-red-600 hover:text-red-700" 
@@ -218,7 +349,7 @@ export default function AdminUsers({ admins }: AdminUsersPageProps) {
                                                         )}
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem
-                                                        onClick={() => handleDelete(admin.id)}
+                                                        onClick={() => handleDelete(admin)}
                                                         disabled={processing === admin.id}
                                                         className="text-red-600 hover:text-red-700"
                                                     >
@@ -242,24 +373,89 @@ export default function AdminUsers({ admins }: AdminUsersPageProps) {
                 </div>
 
                 {/* Pagination */}
-                {admins.links && admins.links.length > 3 && (
+                {admins.links && admins.links.length > 0 && (
                     <div className="flex justify-center">
                         <nav className="flex space-x-2">
                             {admins.links.map((link, index) => (
-                                <Button
-                                    key={index}
-                                    variant={link.active ? "default" : "outline"}
-                                    size="sm"
-                                    onClick={() => link.url && router.get(link.url)}
-                                    disabled={!link.url || processing !== null}
-                                >
-                                    {link.label}
-                                </Button>
+                                link.url ? (
+                                    <Button
+                                        key={index}
+                                        variant={link.active ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => link.url && router.get(link.url)}
+                                        disabled={processing !== null}
+                                        className={link.label.includes('Previous') || link.label.includes('Next') ? "border-0" : ""}
+                                        dangerouslySetInnerHTML={{ __html: link.label }}
+                                    />
+                                ) : (
+                                    <span
+                                        key={index}
+                                        className="px-3 py-2 text-muted-foreground cursor-not-allowed text-sm border-0 rounded-md"
+                                        dangerouslySetInnerHTML={{ __html: link.label }}
+                                    />
+                                )
                             ))}
                         </nav>
                     </div>
                 )}
             </div>
+
+            {/* Modal de Confirmación */}
+            <GeneralModal
+                isOpen={showConfirmModal}
+                onClose={cancelAction}
+                title={actionType === 'toggle' ? 'Confirmar Cambio de Estado' : 'Confirmar Eliminación'}
+            >
+                <div className="space-y-4">
+                    {actionType === 'toggle' && selectedAdmin && (
+                        <>
+                            <p className="text-gray-600">
+                                ¿Estás seguro de que quieres {selectedAdmin.is_active ? 'desactivar' : 'activar'} la cuenta de{' '}
+                                <span className="font-semibold">{selectedAdmin.name} {selectedAdmin.surname}</span>?
+                            </p>
+                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                <p className="text-sm text-yellow-800">
+                                    {selectedAdmin.is_active 
+                                        ? 'El administrador perderá acceso al sistema hasta que sea reactivado.'
+                                        : 'El administrador podrá acceder nuevamente al sistema.'
+                                    }
+                                </p>
+                            </div>
+                        </>
+                    )}
+                    
+                    {actionType === 'delete' && selectedAdmin && (
+                        <>
+                            <p className="text-gray-600">
+                                ¿Estás seguro de que quieres eliminar permanentemente la cuenta de{' '}
+                                <span className="font-semibold">{selectedAdmin.name} {selectedAdmin.surname}</span>?
+                            </p>
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                                <p className="text-sm text-red-800">
+                                    <strong>Esta acción no se puede deshacer.</strong> Se eliminará toda la información del administrador.
+                                </p>
+                            </div>
+                        </>
+                    )}
+                    
+                    <div className="flex justify-end space-x-3 pt-4">
+                        <Button
+                            variant="outline"
+                            onClick={cancelAction}
+                            disabled={processing !== null}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            variant={actionType === 'delete' ? 'destructive' : 'default'}
+                            onClick={confirmAction}
+                            disabled={processing !== null}
+                        >
+                            {processing !== null ? 'Procesando...' : 'Confirmar'}
+                        </Button>
+                    </div>
+                </div>
+            </GeneralModal>
         </AppLayout>
     );
 }

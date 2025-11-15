@@ -8,7 +8,8 @@ import { MoreHorizontal, Plus, UserCheck, UserX, Eye, Users, Edit, Trash2 } from
 import AppLayout from '@/layouts/app-layout';
 import { SharedData, Paginated } from '@/types';
 import { usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import GeneralModal from '@/components/ui/general-modal';
 
 interface ModeratorUser {
     id: number;
@@ -26,26 +27,62 @@ interface ModeratorUsersPageProps {
 export default function ModeratorUsers({ moderators }: ModeratorUsersPageProps) {
     const { auth } = usePage<SharedData>().props;
     const [processing, setProcessing] = useState<number | null>(null);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [actionType, setActionType] = useState<'toggle' | 'delete' | null>(null);
+    const [selectedModerator, setSelectedModerator] = useState<ModeratorUser | null>(null);
+
+    // Refrescar automáticamente cuando se navega a esta página
+    useEffect(() => {
+        router.reload({ only: ['moderators'] });
+    }, []);
 
     const breadcrumbs = [
         { title: 'Administración', href: '#' },
         { title: 'Moderadores', href: '#' },
     ];
 
-    const handleToggleStatus = (moderatorId: number) => {
-        setProcessing(moderatorId);
-        router.patch(`/admin/moderators/${moderatorId}/toggle-status`, {}, {
-            onFinish: () => setProcessing(null),
-        });
+    const handleToggleStatus = (moderator: ModeratorUser) => {
+        setSelectedModerator(moderator);
+        setActionType('toggle');
+        setShowConfirmModal(true);
     };
 
-    const handleDelete = (moderatorId: number) => {
-        if (confirm('¿Estás seguro de que quieres eliminar este moderador? Esta acción no se puede deshacer.')) {
-            setProcessing(moderatorId);
-            router.delete(`/admin/moderators/${moderatorId}`, {
-                onFinish: () => setProcessing(null),
+    const handleDelete = (moderator: ModeratorUser) => {
+        setSelectedModerator(moderator);
+        setActionType('delete');
+        setShowConfirmModal(true);
+    };
+
+    const confirmAction = () => {
+        if (!selectedModerator || !actionType) return;
+
+        setProcessing(selectedModerator.id);
+        
+        if (actionType === 'toggle') {
+            router.patch(`/admin/moderators/${selectedModerator.id}/toggle-status`, {}, {
+                onFinish: () => {
+                    setProcessing(null);
+                    setShowConfirmModal(false);
+                    setSelectedModerator(null);
+                    setActionType(null);
+                },
+            });
+        } else if (actionType === 'delete') {
+            router.delete(`/admin/moderators/${selectedModerator.id}`, {
+                onFinish: () => {
+                    setProcessing(null);
+                    setShowConfirmModal(false);
+                    setSelectedModerator(null);
+                    setActionType(null);
+                },
             });
         }
+    };
+
+    const cancelAction = () => {
+        setShowConfirmModal(false);
+        setSelectedModerator(null);
+        setActionType(null);
     };
 
     const formatDate = (dateString: string) => {
@@ -63,15 +100,16 @@ export default function ModeratorUsers({ moderators }: ModeratorUsersPageProps) 
             <div className="space-y-8 px-6 py-6">
                     {/* Header */}
                     <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 text-white">
-                    <div className="flex justify-between items-start">
+                    <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
                         <div>
-                            <h1 className="text-3xl font-bold mb-2">Moderadores</h1>
-                            <p className="text-blue-100 text-lg">Gestiona los moderadores del sistema</p>
+                            <h1 className="text-2xl md:text-3xl font-bold mb-2">Moderadores</h1>
+                            <p className="text-blue-100 text-sm md:text-lg">Gestiona los moderadores del sistema</p>
                         </div>
-                        <Button variant="secondary" className="bg-white/20 text-white border-white/50 hover:bg-white/30 hover:border-white/70 shadow-lg" asChild>
+                        <Button variant="secondary" className="bg-white/20 text-white border-white/50 hover:bg-white/30 hover:border-white/70 shadow-lg w-full md:w-auto" asChild>
                             <Link href="/admin/moderators/create">
                                 <Plus className="h-4 w-4 mr-2" />
-                                Crear Moderador
+                                <span className="hidden sm:inline">Crear Moderador</span>
+                                <span className="sm:hidden">Crear</span>
                             </Link>
                         </Button>
                     </div>
@@ -134,7 +172,100 @@ export default function ModeratorUsers({ moderators }: ModeratorUsersPageProps) 
                             Administra los permisos y estado de los moderadores del sistema
                         </p>
                     </div>
-                    <div className="overflow-x-auto">
+                    {/* Vista móvil - Cards */}
+                    <div className="block md:hidden px-4 pb-4 space-y-4">
+                        {moderators.data.map((moderator) => (
+                            <Card key={moderator.id} className="border border-border/20">
+                                <CardContent className="p-4">
+                                    <div className="flex items-start justify-between mb-3">
+                                        <div className="flex items-center space-x-3">
+                                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                                <span className="text-blue-600 font-semibold text-sm">
+                                                    {moderator.name.charAt(0)}{moderator.surname.charAt(0)}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <div className="font-medium text-foreground">
+                                                    {moderator.name} {moderator.surname}
+                                                </div>
+                                                <Badge 
+                                                    variant={moderator.is_active ? "default" : "secondary"}
+                                                    className={`mt-1 ${moderator.is_active 
+                                                        ? "bg-green-100 text-green-800 border-green-200" 
+                                                        : "bg-red-100 text-red-800 border-red-200"
+                                                    }`}
+                                                >
+                                                    {moderator.is_active ? 'Activo' : 'Inactivo'}
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end" className="w-48">
+                                                <DropdownMenuItem asChild>
+                                                    <Link href={`/admin/moderators/${moderator.id}`} className="flex items-center">
+                                                        <Eye className="h-4 w-4 mr-2" />
+                                                        Ver Detalles
+                                                    </Link>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem asChild>
+                                                    <Link href={`/admin/moderators/${moderator.id}/edit`} className="flex items-center">
+                                                        <Edit className="h-4 w-4 mr-2" />
+                                                        Editar
+                                                    </Link>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    onClick={() => handleToggleStatus(moderator)}
+                                                    disabled={processing === moderator.id}
+                                                    className={moderator.is_active 
+                                                        ? "text-red-600 hover:text-red-700" 
+                                                        : "text-green-600 hover:text-green-700"
+                                                    }
+                                                >
+                                                    {moderator.is_active ? (
+                                                        <>
+                                                            <UserX className="h-4 w-4 mr-2" />
+                                                            Desactivar
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <UserCheck className="h-4 w-4 mr-2" />
+                                                            Activar
+                                                        </>
+                                                    )}
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    onClick={() => handleDelete(moderator)}
+                                                    disabled={processing === moderator.id}
+                                                    className="text-red-600 hover:text-red-700"
+                                                >
+                                                    <Trash2 className="h-4 w-4 mr-2" />
+                                                    Eliminar
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
+                                    <div className="space-y-2 text-sm">
+                                        <div>
+                                            <span className="font-medium text-muted-foreground">Email: </span>
+                                            <span className="text-foreground">{moderator.email}</span>
+                                        </div>
+                                        <div>
+                                            <span className="font-medium text-muted-foreground">Fecha de Creación: </span>
+                                            <span className="text-foreground">{formatDate(moderator.created_at)}</span>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+
+                    {/* Vista desktop - Tabla */}
+                    <div className="hidden md:block overflow-x-auto">
                         <Table className="border border-border/20">
                             <TableHeader>
                                 <TableRow className="bg-muted/50 border-b border-border/30">
@@ -196,7 +327,7 @@ export default function ModeratorUsers({ moderators }: ModeratorUsersPageProps) 
                                                         </Link>
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem
-                                                        onClick={() => handleToggleStatus(moderator.id)}
+                                                        onClick={() => handleToggleStatus(moderator)}
                                                         disabled={processing === moderator.id}
                                                         className={moderator.is_active 
                                                             ? "text-red-600 hover:text-red-700" 
@@ -216,7 +347,7 @@ export default function ModeratorUsers({ moderators }: ModeratorUsersPageProps) 
                                                         )}
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem
-                                                        onClick={() => handleDelete(moderator.id)}
+                                                        onClick={() => handleDelete(moderator)}
                                                         disabled={processing === moderator.id}
                                                         className="text-red-600 hover:text-red-700"
                                                     >
@@ -240,24 +371,89 @@ export default function ModeratorUsers({ moderators }: ModeratorUsersPageProps) 
                 </div>
 
                 {/* Pagination */}
-                {moderators.links && moderators.links.length > 3 && (
+                {moderators.links && moderators.links.length > 0 && (
                     <div className="flex justify-center">
                         <nav className="flex space-x-2">
                             {moderators.links.map((link, index) => (
-                                <Button
-                                    key={index}
-                                    variant={link.active ? "default" : "outline"}
-                                    size="sm"
-                                    onClick={() => link.url && router.get(link.url)}
-                                    disabled={!link.url || processing !== null}
-                                >
-                                    {link.label}
-                                </Button>
+                                link.url ? (
+                                    <Button
+                                        key={index}
+                                        variant={link.active ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => link.url && router.get(link.url)}
+                                        disabled={processing !== null}
+                                        className={link.label.includes('Previous') || link.label.includes('Next') ? "border-0" : ""}
+                                        dangerouslySetInnerHTML={{ __html: link.label }}
+                                    />
+                                ) : (
+                                    <span
+                                        key={index}
+                                        className="px-3 py-2 text-muted-foreground cursor-not-allowed text-sm border-0 rounded-md"
+                                        dangerouslySetInnerHTML={{ __html: link.label }}
+                                    />
+                                )
                             ))}
                         </nav>
                     </div>
                 )}
             </div>
+
+            {/* Modal de Confirmación */}
+            <GeneralModal
+                isOpen={showConfirmModal}
+                onClose={cancelAction}
+                title={actionType === 'toggle' ? 'Confirmar Cambio de Estado' : 'Confirmar Eliminación'}
+            >
+                <div className="space-y-4">
+                    {actionType === 'toggle' && selectedModerator && (
+                        <>
+                            <p className="text-gray-600">
+                                ¿Estás seguro de que quieres {selectedModerator.is_active ? 'desactivar' : 'activar'} la cuenta de{' '}
+                                <span className="font-semibold">{selectedModerator.name} {selectedModerator.surname}</span>?
+                            </p>
+                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                <p className="text-sm text-yellow-800">
+                                    {selectedModerator.is_active 
+                                        ? 'El moderador perderá acceso al sistema hasta que sea reactivado.'
+                                        : 'El moderador podrá acceder nuevamente al sistema.'
+                                    }
+                                </p>
+                            </div>
+                        </>
+                    )}
+                    
+                    {actionType === 'delete' && selectedModerator && (
+                        <>
+                            <p className="text-gray-600">
+                                ¿Estás seguro de que quieres eliminar permanentemente la cuenta de{' '}
+                                <span className="font-semibold">{selectedModerator.name} {selectedModerator.surname}</span>?
+                            </p>
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                                <p className="text-sm text-red-800">
+                                    <strong>Esta acción no se puede deshacer.</strong> Se eliminará toda la información del moderador.
+                                </p>
+                            </div>
+                        </>
+                    )}
+                    
+                    <div className="flex justify-end space-x-3 pt-4">
+                        <Button
+                            variant="outline"
+                            onClick={cancelAction}
+                            disabled={processing !== null}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            variant={actionType === 'delete' ? 'destructive' : 'default'}
+                            onClick={confirmAction}
+                            disabled={processing !== null}
+                        >
+                            {processing !== null ? 'Procesando...' : 'Confirmar'}
+                        </Button>
+                    </div>
+                </div>
+            </GeneralModal>
         </AppLayout>
     );
 }

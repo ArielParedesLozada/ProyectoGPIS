@@ -26,7 +26,8 @@ class ModerationController extends Controller
      */
     private function checkModeratorPermissions()
     {
-        if (!in_array(Auth::user()->role, ['moderador', 'admin', 'super_admin'])) {
+        // Solo moderadores y admins pueden acceder (NO super_admin)
+        if (!in_array(Auth::user()->role, ['moderador', 'admin'])) {
             abort(403, 'No tienes permisos para acceder a esta sección');
         }
     }
@@ -38,8 +39,41 @@ class ModerationController extends Controller
     {
         $this->checkModeratorPermissions();
         
+        // Mostrar mensaje de éxito cuando se limpian los filtros
+        if ($request->has('clear_filters')) {
+            return redirect()->route('moderation.index')->with('success', 'Se han eliminado todos los filtros aplicados.');
+        }
+        
+        // Validar fechas
+        if ($request->filled('date_from') && $request->filled('date_to')) {
+            $dateFrom = \Carbon\Carbon::parse($request->date_from);
+            $dateTo = \Carbon\Carbon::parse($request->date_to);
+            
+            if ($dateFrom->gt($dateTo)) {
+                return redirect()->back()->with('error', 'La fecha de inicio no puede ser mayor que la fecha final.');
+            }
+        }
+        
+        // Mostrar mensaje informativo cuando solo se selecciona fecha desde
+        if ($request->filled('date_from') && !$request->filled('date_to')) {
+            return redirect()->back()->with('info', 'Para filtrar por fechas, selecciona también la fecha final.');
+        }
+        
+        // Mostrar mensaje informativo cuando solo se selecciona fecha hasta
+        if (!$request->filled('date_from') && $request->filled('date_to')) {
+            return redirect()->back()->with('info', 'Para filtrar por fechas, selecciona también la fecha inicial.');
+        }
+        
         $query = ModerationCase::with(['publication.category', 'assignedModerator', 'reports.reporter'])
             ->orderBy('created_at', 'desc');
+
+        // Por defecto excluir casos eliminados (soft deletes)
+        // Solo mostrar eliminados si se solicita explícitamente
+        if ($request->filled('include_deleted') && $request->include_deleted === 'true') {
+            $query->withTrashed();
+        } elseif ($request->filled('only_deleted') && $request->only_deleted === 'true') {
+            $query->onlyTrashed();
+        }
 
         // Filtros
         if ($request->filled('status')) {
@@ -80,9 +114,7 @@ class ModerationController extends Controller
             'pending_cases' => ModerationCase::where('status', 'pending')->count(),
             'in_review_cases' => ModerationCase::where('status', 'in_review')->count(),
             'appealed_cases' => ModerationCase::where('status', 'appealed')->count(),
-            'my_cases' => ModerationCase::where('assigned_moderator_id', Auth::id())
-                ->whereIn('status', ['pending', 'triage', 'in_review', 'appealed'])
-                ->count(),
+            'my_cases' => ModerationCase::where('assigned_moderator_id', Auth::id())->count(),
             'unassigned_cases' => ModerationCase::whereNull('assigned_moderator_id')
                 ->whereIn('status', ['pending', 'triage', 'in_review', 'appealed'])
                 ->count(),
@@ -673,7 +705,7 @@ class ModerationController extends Controller
             ->where('status', '!=', 'appealed') // Excluir casos de apelación
             ->whereIn('status', ['pending', 'triage', 'in_review'])
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->get(); // Excluye automáticamente casos eliminados (soft delete)
 
         return response()->json($cases);
     }
@@ -776,8 +808,8 @@ class ModerationController extends Controller
      */
     private function reassignCaseToAvailableModerator(ModerationCase $case)
     {
-        // Buscar moderadores activos disponibles
-        $moderator = User::whereIn('role', ['moderador', 'admin', 'super_admin'])
+        // Buscar moderadores activos disponibles (NO super_admin)
+        $moderator = User::whereIn('role', ['moderador', 'admin']) // Solo moderadores y admins
             ->where('status', StatusType::HABILITADO->value) // Solo activos
             ->where('is_active', true) // Solo activos
             ->withCount(['moderationCases' => function($query) {
@@ -805,18 +837,18 @@ class ModerationController extends Controller
         $this->checkModeratorPermissions();
 
         $stats = [
-            'total_moderators' => User::whereIn('role', ['moderador', 'admin', 'super_admin'])->count(),
-            'active_moderators' => User::whereIn('role', ['moderador', 'admin', 'super_admin'])
+            'total_moderators' => User::whereIn('role', ['moderador', 'admin'])->count(),
+            'active_moderators' => User::whereIn('role', ['moderador', 'admin'])
                 ->where('status', StatusType::HABILITADO->value)
                 ->where('is_active', true)
                 ->count(),
-            'inactive_moderators' => User::whereIn('role', ['moderador', 'admin', 'super_admin'])
+            'inactive_moderators' => User::whereIn('role', ['moderador', 'admin'])
                 ->where(function($query) {
                     $query->where('status', StatusType::INHABILITADO->value)
                           ->orWhere('is_active', false);
                 })
                 ->count(),
-            'moderators_with_cases' => User::whereIn('role', ['moderador', 'admin', 'super_admin'])
+            'moderators_with_cases' => User::whereIn('role', ['moderador', 'admin'])
                 ->where('status', StatusType::HABILITADO->value)
                 ->where('is_active', true)
                 ->whereHas('moderationCases', function($query) {
@@ -864,7 +896,7 @@ class ModerationController extends Controller
         // Obtener estadísticas antes de la reactivación
         $stats = [
             'moderator_name' => $moderator->name . ' ' . $moderator->surname,
-            'total_active_moderators' => User::whereIn('role', ['moderador', 'admin', 'super_admin'])
+            'total_active_moderators' => User::whereIn('role', ['moderador', 'admin'])
                 ->where('status', StatusType::HABILITADO->value)
                 ->where('is_active', true)
                 ->count(),
@@ -1124,7 +1156,7 @@ class ModerationController extends Controller
                       ->where('metadata->escalation_reason', 'single_moderator_scenario');
             })->count(),
             
-            'active_moderators_count' => User::whereIn('role', ['moderador', 'admin', 'super_admin'])
+            'active_moderators_count' => User::whereIn('role', ['moderador', 'admin'])
                 ->where('status', StatusType::HABILITADO->value)
                 ->where('is_active', true)
                 ->count(),

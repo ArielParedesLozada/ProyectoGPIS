@@ -13,7 +13,7 @@ import {
 import { publicationIndex, myPublications } from '@/routes/index';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { LayoutGrid, User, Shield, Users, UserPlus, Settings, Heart, AlertTriangle } from 'lucide-react';
+import { LayoutGrid, User, Shield, Users, UserPlus, Settings, Heart, AlertTriangle, ShoppingBag, ShoppingCart } from 'lucide-react';
 import MarketplaceLogo from './marketplace-logo';
 import { SharedData } from '@/types';
 
@@ -28,14 +28,17 @@ export function AppSidebar() {
         },
     ];
 
-    // Solo usuarios no administrativos ven "Mis Publicaciones" y "Favoritos"
-    if (auth.user.role !== 'super_admin' && auth.user.role !== 'admin') {
+    // Solo usuarios no administrativos y que no sean compradores ven "Mis Publicaciones"
+    if (auth.user.role !== 'super_admin' && auth.user.role !== 'admin' && auth.user.role !== 'comprador' && auth.user.role !== 'moderador') {
         mainNavItems.push({
             title: 'Mis Publicaciones',
             href: myPublications(),
             icon: User,
         });
-        
+    }
+
+    // Solo usuarios no administrativos ven "Favoritos"
+    if (auth.user.role !== 'super_admin' && auth.user.role !== 'admin' && auth.user.role !== 'moderador') {
         mainNavItems.push({
             title: 'Favoritos',
             href: '/favorites',
@@ -43,30 +46,16 @@ export function AppSidebar() {
         });
     }
 
-    // Moderadores ven la opción de moderación
-    if (auth.user.role === 'moderador') {
-        mainNavItems.push({
-            title: 'Moderación',
-            href: '/moderation',
-            icon: AlertTriangle,
-        });
-    }
-
     // Opciones de administración según el rol
     const adminNavItems: NavItem[] = [];
     
-    if (auth.user.role === 'super_admin' || auth.user.role === 'admin') {
+    if (auth.user.role === 'super_admin') {
         adminNavItems.push(
             {
                 title: 'Dashboard Admin',
                 href: '/admin',
                 icon: Settings,
-            }
-        );
-    }
-    
-    if (auth.user.role === 'super_admin') {
-        adminNavItems.push(
+            },
             {
                 title: 'Administradores',
                 href: '/admin/admins',
@@ -76,14 +65,62 @@ export function AppSidebar() {
                 title: 'Moderadores',
                 href: '/admin/moderators',
                 icon: Users,
+            },
+            {
+                title: 'Vendedores',
+                href: '/admin/vendors',
+                icon: ShoppingBag,
+            },
+            {
+                title: 'Compradores',
+                href: '/admin/buyers',
+                icon: ShoppingCart,
             }
         );
     } else if (auth.user.role === 'admin') {
         adminNavItems.push(
             {
+                title: 'Dashboard Admin',
+                href: '/admin',
+                icon: Settings,
+            },
+            {
+                title: 'Moderación',
+                href: '/moderation',
+                icon: AlertTriangle,
+            },
+            {
                 title: 'Moderadores',
                 href: '/admin/moderators',
                 icon: Users,
+            },
+            {
+                title: 'Vendedores',
+                href: '/admin/vendors',
+                icon: ShoppingBag,
+            },
+            {
+                title: 'Compradores',
+                href: '/admin/buyers',
+                icon: ShoppingCart,
+            }
+        );
+    } else if (auth.user.role === 'moderador') {
+        adminNavItems.push(
+            {
+                title: 'Moderación',
+                href: '/moderation',
+                icon: AlertTriangle,
+            },
+            {
+                title: 'Vendedores',
+                href: '/admin/vendors',
+                icon: ShoppingBag,
+            },
+            {
+                title: 'Compradores',
+                href: '/admin/buyers',
+                icon: ShoppingCart,
             }
         );
     }

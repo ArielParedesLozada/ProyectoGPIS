@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\ModeratorUserController;
+use App\Http\Controllers\Admin\VendedorCompradorUserController;
 use Illuminate\Support\Facades\Route;
 
 // Rutas del módulo de administración
@@ -40,4 +41,14 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     // Rutas para reasignación de casos de moderadores inactivos
     Route::post('/moderators/{moderator}/reassign-cases', [ModeratorUserController::class, 'reassignCases'])->name('moderators.reassign-cases');
     Route::get('/moderators/inactive-with-cases', [ModeratorUserController::class, 'getInactiveModeratorsWithCases'])->name('moderators.inactive-with-cases');
+    
+    // Rutas para gestión de vendedores
+    Route::get('/vendors', [VendedorCompradorUserController::class, 'indexVendors'])->name('vendors.index');
+    Route::get('/vendors/{vendor}', [VendedorCompradorUserController::class, 'showVendor'])->name('vendors.show');
+    Route::patch('/vendors/{vendor}/toggle-status', [VendedorCompradorUserController::class, 'toggleVendorStatus'])->name('vendors.toggle-status');
+    
+    // Rutas para gestión de compradores
+    Route::get('/buyers', [VendedorCompradorUserController::class, 'indexBuyers'])->name('buyers.index');
+    Route::get('/buyers/{buyer}', [VendedorCompradorUserController::class, 'showBuyer'])->name('buyers.show');
+    Route::patch('/buyers/{buyer}/toggle-status', [VendedorCompradorUserController::class, 'toggleBuyerStatus'])->name('buyers.toggle-status');
 });

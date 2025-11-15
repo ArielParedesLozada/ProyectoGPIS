@@ -11,9 +11,10 @@ import {
     CheckCircle,
     Clock,
     Users,
-    FileText
+    FileText,
+    X
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface ModerationCase {
     id: number;
@@ -47,8 +48,10 @@ interface ModerationIndexProps {
         total_cases: number;
         pending_cases: number;
         in_review_cases: number;
+        appealed_cases: number;
         my_cases: number;
         unassigned_cases: number;
+        pending_appeals: number;
     };
     filters: {
         status?: string;
@@ -69,32 +72,79 @@ export default function ModerationIndex({ cases, stats, filters }: ModerationInd
         },
     ];
 
+    // Refrescar automáticamente cuando se navega a esta página
+    useEffect(() => {
+        router.reload({ only: ['cases', 'stats'] });
+    }, []);
+
     const [showFilters, setShowFilters] = useState(false);
     const [localFilters, setLocalFilters] = useState(filters);
 
     const handleFilterChange = (key: string, value: any) => {
         const newFilters = { ...localFilters, [key]: value };
-        setLocalFilters(newFilters);
+        
+        // Validación especial para fechas
+        if (key === 'date_from' || key === 'date_to') {
+            // Si se está cambiando fecha_from y ya existe date_to, validar que sea válida
+            if (key === 'date_from' && localFilters.date_to) {
+                const dateFrom = new Date(value);
+                const dateTo = new Date(localFilters.date_to);
+                
+                if (dateFrom > dateTo) {
+                    // Limpiar date_to si la nueva fecha_from es mayor
+                    newFilters.date_to = undefined;
+                }
+            }
+            
+            // Validar fechas localmente antes de enviar
+            if (newFilters.date_from && newFilters.date_to) {
+                const dateFrom = new Date(newFilters.date_from);
+                const dateTo = new Date(newFilters.date_to);
+                
+                if (dateFrom > dateTo) {
+                    // No actualizar el estado local, mantener el anterior
+                    return;
+                }
+            }
+        }
         
         // Aplicar filtros inmediatamente
         router.get('/moderation', newFilters, {
             preserveState: true,
             replace: true,
+            onSuccess: () => {
+                // Solo actualizar el estado local si la respuesta fue exitosa
+                setLocalFilters(newFilters);
+            },
+            onError: () => {
+                // En caso de error, mantener el estado anterior
+                // No actualizar localFilters
+            }
         });
     };
 
     const clearFilters = () => {
         setLocalFilters({});
-        router.get('/moderation', {}, {
+        router.get('/moderation', { clear_filters: true }, {
             preserveState: true,
             replace: true,
+        });
+    };
+
+    // Verificar si hay filtros activos
+    const hasActiveFilters = () => {
+        return Object.keys(localFilters).some(key => {
+            const value = localFilters[key as keyof typeof localFilters];
+            return value !== undefined && value !== null && value !== '';
         });
     };
 
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'pending': return 'bg-yellow-100 text-yellow-800';
-            case 'closed': return 'bg-gray-100 text-gray-800';
+            case 'dismissed': return 'bg-red-100 text-red-800';
+            case 'appealed': return 'bg-orange-100 text-orange-800';
+            case 'closed': return 'bg-green-100 text-green-800';
             default: return 'bg-gray-100 text-gray-800';
         }
     };
@@ -102,6 +152,8 @@ export default function ModerationIndex({ cases, stats, filters }: ModerationInd
     const getStatusText = (status: string) => {
         switch (status) {
             case 'pending': return 'Pendiente';
+            case 'dismissed': return 'Descartado';
+            case 'appealed': return 'Apelado';
             case 'closed': return 'Cerrado';
             default: return status;
         }
@@ -120,7 +172,7 @@ export default function ModerationIndex({ cases, stats, filters }: ModerationInd
                     </div>
 
                     {/* Estadísticas */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                         <div className="bg-white rounded-2xl shadow-lg p-6">
                             <div className="flex items-center">
                                 <div className="p-3 bg-blue-100 rounded-full">
@@ -141,18 +193,6 @@ export default function ModerationIndex({ cases, stats, filters }: ModerationInd
                                 <div className="ml-4">
                                     <p className="text-sm font-medium text-gray-600">Pendientes</p>
                                     <p className="text-2xl font-bold text-gray-900">{stats.pending_cases}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="bg-white rounded-2xl shadow-lg p-6">
-                            <div className="flex items-center">
-                                <div className="p-3 bg-purple-100 rounded-full">
-                                    <Eye className="w-6 h-6 text-purple-600" />
-                                </div>
-                                <div className="ml-4">
-                                    <p className="text-sm font-medium text-gray-600">En Revisión</p>
-                                    <p className="text-2xl font-bold text-gray-900">{stats.in_review_cases}</p>
                                 </div>
                             </div>
                         </div>
@@ -196,7 +236,7 @@ export default function ModerationIndex({ cases, stats, filters }: ModerationInd
                         </div>
 
                         {showFilters && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">Estado</label>
                                     <select
@@ -206,20 +246,9 @@ export default function ModerationIndex({ cases, stats, filters }: ModerationInd
                                     >
                                         <option value="">Todos los estados</option>
                                         <option value="pending">Pendiente</option>
+                                        <option value="dismissed">Descartado</option>
+                                        <option value="appealed">Apelado</option>
                                         <option value="closed">Cerrado</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Fuente</label>
-                                    <select
-                                        value={localFilters.source || ''}
-                                        onChange={(e) => handleFilterChange('source', e.target.value || undefined)}
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    >
-                                        <option value="">Todas las fuentes</option>
-                                        <option value="user">Usuario</option>
-                                        <option value="system">Sistema</option>
                                     </select>
                                 </div>
 
@@ -239,13 +268,17 @@ export default function ModerationIndex({ cases, stats, filters }: ModerationInd
                                         type="date"
                                         value={localFilters.date_to || ''}
                                         onChange={(e) => handleFilterChange('date_to', e.target.value || undefined)}
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        disabled={!localFilters.date_from}
+                                        className={`w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                                            !localFilters.date_from ? 'bg-gray-100 cursor-not-allowed' : ''
+                                        }`}
+                                        title={!localFilters.date_from ? 'Primero selecciona la fecha desde' : ''}
                                     />
                                 </div>
                             </div>
                         )}
 
-                        <div className="flex gap-4 mt-4">
+                        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-4">
                             <label className="flex items-center">
                                 <input
                                     type="checkbox"
@@ -267,69 +300,76 @@ export default function ModerationIndex({ cases, stats, filters }: ModerationInd
                             </label>
 
                             <button
-                                onClick={clearFilters}
-                                className="text-sm text-gray-500 hover:text-gray-700"
+                                onClick={hasActiveFilters() ? clearFilters : undefined}
+                                disabled={!hasActiveFilters()}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                                    hasActiveFilters()
+                                        ? 'bg-blue-100 hover:bg-blue-200 text-blue-700 cursor-pointer'
+                                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                }`}
+                                title={!hasActiveFilters() ? 'No hay filtros activos para limpiar' : ''}
                             >
-                                Limpiar filtros
+                                <X className="w-4 h-4" />
+                                Limpiar Filtros
                             </button>
                         </div>
                     </div>
 
                     {/* Lista de casos */}
                     <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-                        <div className="px-6 py-4 border-b border-gray-200">
-                            <h2 className="text-lg font-semibold text-gray-900">Casos de Moderación</h2>
+                        <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
+                            <h2 className="text-base sm:text-lg font-semibold text-gray-900">Casos de Moderación</h2>
                         </div>
 
                         <div className="divide-y divide-gray-200">
                             {cases.data.map((caseItem) => (
-                                <div key={caseItem.id} className="p-6 hover:bg-gray-50 transition-colors">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-3 mb-2">
+                                <div key={caseItem.id} className="p-4 sm:p-6 hover:bg-gray-50 transition-colors">
+                                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3">
                                                 <Link
                                                     href={`/moderation/${caseItem.id}`}
-                                                    className="text-lg font-semibold text-gray-900 hover:text-blue-600"
+                                                    className="text-base sm:text-lg font-semibold text-gray-900 hover:text-blue-600 truncate"
                                                 >
                                                     {caseItem.publication.title}
                                                 </Link>
-                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(caseItem.status)}`}>
+                                                <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusColor(caseItem.status)}`}>
                                                     {getStatusText(caseItem.status)}
                                                 </span>
                                             </div>
 
-                                            <div className="flex items-center gap-4 text-sm text-gray-600">
+                                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600">
                                                 <span className="flex items-center gap-1">
-                                                    <FileText className="w-4 h-4" />
-                                                    {caseItem.publication.category.name}
+                                                    <FileText className="w-4 h-4 flex-shrink-0" />
+                                                    <span className="truncate">{caseItem.publication.category.name}</span>
                                                 </span>
                                                 <span className="flex items-center gap-1">
-                                                    <AlertTriangle className="w-4 h-4" />
+                                                    <AlertTriangle className="w-4 h-4 flex-shrink-0" />
                                                     {caseItem.report_count} reporte{caseItem.report_count !== 1 ? 's' : ''}
                                                 </span>
                                                 <span className="flex items-center gap-1">
-                                                    <Calendar className="w-4 h-4" />
+                                                    <Calendar className="w-4 h-4 flex-shrink-0" />
                                                     {new Date(caseItem.created_at).toLocaleDateString()}
                                                 </span>
                                                 {caseItem.assigned_moderator && (
                                                     <span className="flex items-center gap-1">
-                                                        <User className="w-4 h-4" />
-                                                        {caseItem.assigned_moderator.name}
+                                                        <User className="w-4 h-4 flex-shrink-0" />
+                                                        <span className="truncate">{caseItem.assigned_moderator.name}</span>
                                                     </span>
                                                 )}
                                             </div>
 
                                             <div className="mt-2">
-                                                <p className="text-sm text-gray-600">
+                                                <p className="text-sm text-gray-600 break-words">
                                                     Último reporte: {caseItem.reports[0]?.reason}
                                                 </p>
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2 flex-shrink-0">
                                             <Link
                                                 href={`/moderation/${caseItem.id}`}
-                                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap w-full sm:w-auto text-center"
                                             >
                                                 Ver Detalles
                                             </Link>

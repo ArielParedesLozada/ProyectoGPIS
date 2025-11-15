@@ -15,6 +15,7 @@ interface MapPickerProps {
   lat?: number;
   lng?: number;
   onLocationChange: (lat: number, lng: number) => void;
+  onBlur?: () => void;
   className?: string;
 }
 
@@ -33,6 +34,7 @@ const MapPicker: React.FC<MapPickerProps> = ({
   lat = -0.2299, 
   lng = -78.5249, 
   onLocationChange, 
+  onBlur,
   className = "h-64 w-full" 
 }) => {
   const [position, setPosition] = useState<[number, number]>([lat, lng]);
@@ -142,6 +144,7 @@ const MapPicker: React.FC<MapPickerProps> = ({
           zoom={13}
           className="h-full w-full"
           ref={mapRef}
+          onBlur={onBlur}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

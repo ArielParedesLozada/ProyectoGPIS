@@ -1,0 +1,32 @@
+services:
+  postgis:
+    container_name: pgis_testing
+    image: postgis/postgis:17-master
+    restart: unless-stopped
+    shm_size: 128mb
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_DB: proyecto_gpis
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: clave_piola
+    volumes:
+      - /home/usuario/.docker/postgis-testing:/var/lib/postgresql
+    networks:
+      - pgis_network
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pg_testing
+    restart: unless-stopped
+    ports:
+      - "8434:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: aa@aa.com
+      PGADMIN_DEFAULT_PASSWORD: aa@aa.com
+    depends_on:
+      - postgis
+    networks:
+      - pgis_network
+
+networks:
+  pgis_network:

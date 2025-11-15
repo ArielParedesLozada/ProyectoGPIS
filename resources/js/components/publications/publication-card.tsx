@@ -1,5 +1,5 @@
 import { publicationView } from "@/routes";
-import { Publication } from "@/types";
+import { Publication, SharedData } from "@/types";
 import { Link, router, usePage } from "@inertiajs/react";
 import { useState, useEffect } from "react";
 import ReportModal from "./report-modal";
@@ -12,15 +12,15 @@ interface PublicationCardProps {
 }
 
 export default function PublicationCard({ publication }: PublicationCardProps) {
-    const { url } = usePage();
+    const { url, auth } = usePage<SharedData>().props;
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
     const [isFavorite, setIsFavorite] = useState(false);
     
     // Determinar el parámetro 'from' basado en la URL actual
     const getFromParam = () => {
-        if (url.includes('/favorites')) {
+        if (url && (url as string).includes('/favorites')) {
             return 'favorites';
-        } else if (url.includes('/my-publications')) {
+        } else if (url && (url as string).includes('/my-publications')) {
             return 'my-publications';
         }
         return null;
@@ -92,10 +92,11 @@ export default function PublicationCard({ publication }: PublicationCardProps) {
                 </div>
 
                 {/* Botón de reportar - esquina superior derecha */}
+                {publication.created_by !== auth?.user?.id && (
                 <div className="absolute top-3 right-3 z-20">
                     <button
                         onClick={handleReportClick}
-                        className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm text-slate-600 dark:text-slate-300 p-2 rounded-full hover:bg-white dark:hover:bg-slate-800 hover:text-red-500 dark:hover:text-red-400 transition-all duration-200 opacity-0 group-hover:opacity-100 shadow-sm border border-gray-200/50 dark:border-slate-600/50"
+                        className="bg-black dark:bg-black text-white p-2 rounded-full hover:bg-gray-900 dark:hover:bg-gray-900 transition-all duration-200 opacity-100 md:opacity-0 md:group-hover:opacity-100 shadow-sm"
                         title="Reportar publicación"
                     >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -103,21 +104,24 @@ export default function PublicationCard({ publication }: PublicationCardProps) {
                         </svg>
                     </button>
                 </div>
+                )}
 
                 {/* Botón de favoritos - esquina inferior izquierda */}
-                <div className="absolute bottom-3 left-3 z-20">
-                    <button
-                        onClick={handleFavoriteClick}
-                        className={`p-2.5 rounded-full transition-all duration-200 shadow-sm border backdrop-blur-sm ${
-                            isFavorite 
-                                ? 'bg-red-500 text-white border-red-500/20 hover:bg-red-600' 
-                                : 'bg-white/90 dark:bg-slate-800/90 text-slate-600 dark:text-slate-300 border-gray-200/50 dark:border-slate-600/50 hover:text-red-500 dark:hover:text-red-400'
-                        }`}
-                        title={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
-                    >
-                        <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
-                    </button>
-                </div>
+                {auth.user.role !== 'moderador' && (
+                    <div className="absolute bottom-3 left-3 z-20">
+                        <button
+                            onClick={handleFavoriteClick}
+                            className={`p-2.5 rounded-full transition-all duration-200 shadow-sm border backdrop-blur-sm ${
+                                isFavorite 
+                                    ? 'bg-red-500 text-white border-red-500/20 hover:bg-red-600' 
+                                    : 'bg-white/90 dark:bg-slate-800/90 text-slate-600 dark:text-slate-300 border-gray-200/50 dark:border-slate-600/50 hover:text-red-500 dark:hover:text-red-400'
+                            }`}
+                            title={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
+                        >
+                            <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Contenido de la card */}
@@ -163,9 +167,13 @@ export default function PublicationCard({ publication }: PublicationCardProps) {
                             </TooltipContent>
                         </Tooltip>
                     </div>
-                    <button className="bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-colors duration-200">
-                        Disponible
-                    </button>
+                    <span className={`px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-colors duration-200 ${
+                        publication.disponibility 
+                            ? 'bg-green-500 text-white' 
+                            : 'bg-red-500 text-white'
+                    }`}>
+                        {publication.disponibility ? 'Disponible' : 'No disponible'}
+                    </span>
                 </div>
             </div>
 

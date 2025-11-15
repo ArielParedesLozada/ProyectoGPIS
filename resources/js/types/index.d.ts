@@ -27,6 +27,12 @@ export interface SharedData {
     quote: { message: string; author: string };
     auth: Auth;
     sidebarOpen: boolean;
+    flash?: {
+        success?: string;
+        error?: string;
+        warning?: string;
+        info?: string;
+    };
     [key: string]: unknown;
 }
 
@@ -68,6 +74,7 @@ export interface Publication {
     category_id: number;
     user: User,
     category: Category;
+    created_by?: number;
     images?: Array<{
         id: number;
         image_url: string;
@@ -83,6 +90,7 @@ export interface Publication {
     moderation_reason?: string;
     moderation_date?: Date;
     is_final_decision?: boolean;
+    has_final_moderation_decision?: boolean;
 }
 
 export interface Paginated<T> {

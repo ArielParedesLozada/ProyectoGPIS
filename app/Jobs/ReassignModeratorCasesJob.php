@@ -108,23 +108,10 @@ class ReassignModeratorCasesJob implements ShouldQueue
                         Log::info("Caso {$case->id} reasignado de moderador {$this->moderatorId} a {$newModerator->id}");
 
                     } else {
-                        // Si no hay moderadores disponibles, marcar para intervención manual
-                        ModerationAction::create([
-                            'moderation_case_id' => $case->id,
-                            'moderator_id' => 1, // Usar el primer admin disponible
-                            'action_type' => 'close_case',
-                            'action_description' => 'Caso requiere intervención manual - No hay moderadores activos disponibles',
-                            'metadata' => [
-                                'original_moderator_id' => $this->moderatorId,
-                                'original_moderator_name' => $moderator->name . ' ' . $moderator->surname,
-                                'reason' => 'no_active_moderators_available',
-                                'escalated_at' => now()->toISOString(),
-                                'requires_manual_intervention' => true
-                            ]
-                        ]);
-
+                        // Si no hay moderadores ni admins disponibles, dejar el caso sin asignar
+                        // Se asignará automáticamente cuando haya un moderador/admin disponible
                         $escalatedCount++;
-                        Log::warning("Caso {$case->id} escalado para intervención manual - No hay moderadores activos");
+                        Log::info("Caso {$case->id} quedó sin asignar - No hay moderadores ni admins activos disponibles. Se asignará automáticamente cuando haya uno disponible.");
                     }
 
                     DB::commit();
@@ -154,11 +141,11 @@ class ReassignModeratorCasesJob implements ShouldQueue
     }
 
     /**
-     * Encontrar moderador activo disponible (SOLO moderadores regulares)
+     * Encontrar moderador activo disponible (moderadores y admins, NO super_admin)
      */
     private function findAvailableModerator(): ?User
     {
-        return User::where('role', 'moderador')
+        return User::whereIn('role', ['moderador', 'admin']) // Solo moderadores y admins
             ->where('status', StatusType::HABILITADO->value)
             ->where('is_active', true)
             ->where('id', '!=', $this->moderatorId) // Excluir el moderador desactivado

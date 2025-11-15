@@ -107,4 +107,38 @@ class CreateModeratorRequest extends FormRequest
             'gender.in' => 'El género seleccionado no es válido.',
         ];
     }
+
+    /**
+     * Handle a failed validation attempt.
+     */
+    protected function failedValidation(\Illuminate\Contracts\Validation\Validator $validator)
+    {
+        $errors = $validator->errors();
+        
+        // Verificar si hay errores de unicidad (cedula, email, phone)
+        $duplicateErrors = [];
+        
+        if ($errors->has('cedula') && str_contains($errors->first('cedula'), 'ya está registrada')) {
+            $duplicateErrors[] = 'Esta cédula ya está registrada.';
+        }
+        
+        if ($errors->has('email') && str_contains($errors->first('email'), 'ya está registrado')) {
+            $duplicateErrors[] = 'Este correo electrónico ya está registrado.';
+        }
+        
+        if ($errors->has('phone') && str_contains($errors->first('phone'), 'ya está registrado')) {
+            $duplicateErrors[] = 'Este teléfono ya está registrado.';
+        }
+        
+        // Si hay errores de duplicados, mostrar como error general
+        if (!empty($duplicateErrors)) {
+            $errorMessage = implode('<br>', $duplicateErrors);
+            throw new \Illuminate\Validation\ValidationException($validator, 
+                redirect()->back()->withErrors(['general' => $errorMessage])->withInput()
+            );
+        }
+        
+        // Para otros errores, usar el comportamiento por defecto
+        parent::failedValidation($validator);
+    }
 }
