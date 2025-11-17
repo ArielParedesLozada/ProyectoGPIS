@@ -96,11 +96,9 @@ describe('Favoritos de publicaciones', () => {
     });
   };
 
-  // Resetear BD solo una vez al inicio de todos los tests
   before(() => {
     cy.request('POST', 'http://localhost:8080/testing/reset-db', { seed: true });
     
-    // Crear vendedor una sola vez
     cy.request('POST', 'http://localhost:8080/testing/user', {
       email: 'vendedor@test.com',
       password: 'Admin123@',
@@ -110,7 +108,6 @@ describe('Favoritos de publicaciones', () => {
   });
 
   it('PUB-FAV-004: Crear publicación servicio, marcar favorito, desmarcar desde favoritos y verificar en publicaciones', () => {
-    // Primero, crear la publicación como vendedor desde la interfaz
     cy.session('vendedor-login', () => {
       cy.request('GET', 'http://localhost:8080/testing/csrf').then((resp) => {
         const token = resp.body.token;
@@ -132,7 +129,6 @@ describe('Favoritos de publicaciones', () => {
       cy.setCookie('XSRF-TOKEN', token);
     });
 
-    // Crear publicación de tipo servicio desde la interfaz
     createPublication(
       'Servicio de Consultoría IT',
       'Servicio profesional de consultoría en tecnologías de la información.',
@@ -141,46 +137,51 @@ describe('Favoritos de publicaciones', () => {
     ).then((id) => {
       servicioId = id;
 
-      // El vendedor marca su propia publicación como favorito
-      // Visitar la página de la publicación
-      cy.visit(`http://localhost:8080/publication/${servicioId}`);
-      cy.contains('Servicio de Consultoría IT', { timeout: 10000 }).should('be.visible');
-      
-      // Marcar como favorito desde la página de la publicación
-      cy.get('button').contains('Agregar a Favoritos').click();
-      cy.wait(2000);
-
-      // Ir a la sección de favoritos
-      cy.visit('http://localhost:8080/favorites');
+      cy.visit('http://localhost:8080/publication');
       cy.contains('Servicio de Consultoría IT', { timeout: 10000 }).should('be.visible');
 
-      // Desmarcar desde favoritos - buscar el botón de favoritos en la card
-      // El botón está en la esquina inferior izquierda de la card y tiene el título "Quitar de favoritos"
       cy.contains('Servicio de Consultoría IT').then(($title) => {
-        // Buscar el contenedor padre que tiene la card completa
         cy.wrap($title).parents('div').filter((index, el) => {
-          // Buscar un div que contenga el título y un botón con título "Quitar de favoritos"
           const hasTitle = el.textContent?.includes('Servicio de Consultoría IT');
-          const hasFavoriteButton = el.querySelector('button[title*="Quitar"]') !== null ||
-                                   el.querySelector('button[title*="favorito"]') !== null;
+          const hasFavoriteButton = el.querySelector('button[title*="Agregar"]') !== null ||
+                                   el.querySelector('button[title*="favorito"]') !== null ||
+                                   el.querySelector('button svg') !== null;
           return hasTitle && hasFavoriteButton;
         }).first().within(() => {
-          // Buscar el botón con el título "Quitar de favoritos"
-          cy.get('button[title*="Quitar"], button[title*="favorito"]').first().click({ force: true });
+          cy.get('button').filter((index, el) => {
+            const title = el.getAttribute('title') || '';
+            const hasHeartIcon = el.querySelector('svg') !== null;
+            const isFavoriteButton = title.includes('Agregar') || title.includes('favorito') || hasHeartIcon;
+            return hasHeartIcon && isFavoriteButton;
+          }).first().click({ force: true });
         });
       });
 
       cy.wait(2000);
 
-      // Presionar en "Publicaciones" para verificar (en el sidebar)
-      // El enlace está dentro de un SidebarMenuButton que contiene un Link
+      cy.visit('http://localhost:8080/favorites');
+      cy.contains('Servicio de Consultoría IT', { timeout: 10000 }).should('be.visible');
+
+      cy.contains('Servicio de Consultoría IT').then(($title) => {
+        cy.wrap($title).parents('div').filter((index, el) => {
+          const hasTitle = el.textContent?.includes('Servicio de Consultoría IT');
+          const hasLink = el.querySelector('a[href*="/publication/"]') !== null;
+          return hasTitle && hasLink;
+        }).first().within(() => {
+          cy.get('a[href*="/publication/"]').first().click({ force: true });
+        });
+      });
+      cy.url({ timeout: 10000 }).should('include', `/publication/${servicioId}`);
+      cy.contains('Servicio de Consultoría IT', { timeout: 10000 }).should('be.visible');
+
+      cy.get('button').contains('Quitar de Favoritos').click();
+      cy.wait(2000);
+
       cy.contains('a', 'Publicaciones').click();
       cy.url({ timeout: 10000 }).should('include', '/publication');
 
-      // Verificar que la publicación sigue existiendo pero ya no está en favoritos
       cy.contains('Servicio de Consultoría IT', { timeout: 10000 }).should('be.visible');
 
-      // Verificar que ya no está en favoritos
       cy.visit('http://localhost:8080/favorites');
       cy.contains('Servicio de Consultoría IT', { timeout: 10000 }).should('not.exist');
     });
