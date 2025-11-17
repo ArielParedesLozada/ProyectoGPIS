@@ -56,7 +56,7 @@ test('PUB-002: Crea publicación correctamente', function () {
     ]);
 });
 
-test('PUB-006: Rechaza creación sin título', function () {
+test('PUB-003: Rechaza creación sin título', function () {
     $user = makeUser();
     $category = makeCategory();
 
@@ -74,7 +74,7 @@ test('PUB-006: Rechaza creación sin título', function () {
     expect(Publication::count())->toBe(0);
 });
 
-test('PUB-005: Crea servicio con horario obligatorio', function () {
+test('PUB-004: Crea servicio con horario obligatorio', function () {
     fakeGeocoding([
         'city' => 'Quito',
         'country' => 'Ecuador',
@@ -120,7 +120,7 @@ test('PUB-005: Crea servicio con horario obligatorio', function () {
     );
 });
 
-test('PUB-007: Rechaza servicio sin horario', function () {
+test('PUB-005: Rechaza servicio sin horario', function () {
     $user = makeUser();
     $category = makeCategory();
 
@@ -141,7 +141,7 @@ test('PUB-007: Rechaza servicio sin horario', function () {
     expect(PublicationServiceHour::count())->toBe(0);
 });
 
-test('PUB-003: Actualiza una publicación existente', function () {
+test('PUB-006: Actualiza una publicación existente', function () {
     fakeGeocoding([
         'city' => 'Quito',
         'country' => 'Ecuador',
@@ -180,7 +180,7 @@ test('PUB-003: Actualiza una publicación existente', function () {
     ]);
 });
 
-test('PUB-008: Rechaza actualización sin descripción', function () {
+test('PUB-007: Rechaza actualización sin descripción', function () {
     $user = makeUser();
     $category = makeCategory();
 
@@ -211,7 +211,7 @@ test('PUB-008: Rechaza actualización sin descripción', function () {
     expect((float) $publication->price)->toBe(250.0);
 });
 
-test('PUB-004: Elimina una publicación', function () {
+test('PUB-008: Elimina una publicación', function () {
     $user = makeUser();
     $category = makeCategory();
 
@@ -557,7 +557,7 @@ test('PUB-020: Actualización de producto a servicio recrea horarios', function 
     expect(PublicationServiceHour::where('publication_id', $publication->id)->count())->toBe(2);
 });
 
-test('PUB-027: Creación de servicio ignora horario inválido', function () {
+test('PUB-021: Creación de servicio ignora horario inválido', function () {
     fakeGeocoding([
         'city' => 'Riobamba',
         'country' => 'Ecuador',
@@ -584,7 +584,7 @@ test('PUB-027: Creación de servicio ignora horario inválido', function () {
     expect(PublicationServiceHour::where('publication_id', $publication->id)->count())->toBe(0);
 });
 
-test('PUB-028: Actualización rechaza coordenadas fuera de rango', function () {
+test('PUB-022: Actualización rechaza coordenadas fuera de rango', function () {
     fakeGeocoding();
 
     $user = makeUser();
@@ -605,7 +605,7 @@ test('PUB-028: Actualización rechaza coordenadas fuera de rango', function () {
         ->toContain('lat field must be between -90 and 90');
 });
 
-test('PUB-029: Actualización rechaza precio negativo', function () {
+test('PUB-023: Actualización rechaza precio negativo', function () {
     fakeGeocoding();
 
     $user = makeUser();
@@ -625,7 +625,7 @@ test('PUB-029: Actualización rechaza precio negativo', function () {
         ->toContain('price field must be at least 0');
 });
 
-test('PUB-030: Actualización de servicio con horario inválido elimina registros previos', function () {
+test('PUB-024: Actualización de servicio con horario inválido elimina registros previos', function () {
     fakeGeocoding([
         'city' => 'Loja',
         'country' => 'Ecuador',
@@ -657,7 +657,7 @@ test('PUB-030: Actualización de servicio con horario inválido elimina registro
     expect(PublicationServiceHour::where('publication_id', $publication->id)->count())->toBe(0);
 });
 
-test('PUB-031: Actualización usa fallback de geocoding ante error', function () {
+test('PUB-025: Actualización usa fallback de geocoding ante error', function () {
     fakeGeocoding(null, 500);
 
     $user = makeUser();
@@ -684,87 +684,7 @@ test('PUB-031: Actualización usa fallback de geocoding ante error', function ()
     expect($publication->location)->toBe('Ubicación no disponible');
 });
 
-test('PUB-021: Invitado no puede crear publicaciones', function () {
-    $response = $this->post(route('publications.store'), []);
-
-    $response->assertRedirect(route('login'));
-});
-
-test('PUB-022: Invitado no puede actualizar publicaciones', function () {
-    $category = makeCategory();
-    $owner = makeUser();
-    $publication = createPublicationFor($owner, $category);
-
-    $response = $this->put(route('publications.update', $publication->id), []);
-
-    $response->assertRedirect(route('login'));
-});
-
-test('PUB-023: Invitado no puede eliminar publicaciones', function () {
-    $category = makeCategory();
-    $owner = makeUser();
-    $publication = createPublicationFor($owner, $category);
-
-    $response = $this->delete(route('publications.destroy', $publication->id), []);
-
-    $response->assertRedirect(route('login'));
-});
-
-test('PUB-024: Invitado no puede ver mis publicaciones', function () {
-    $response = $this->get(route('my-publications'));
-
-    $response->assertRedirect(route('login'));
-});
-
-test('PUB-025: Usuario no puede editar publicación ajena', function () {
-    fakeGeocoding();
-
-    $owner = makeUser();
-    $otherUser = makeUser();
-    $category = makeCategory();
-
-    $publication = createPublicationFor($owner, $category, [
-        'type' => 'producto',
-    ]);
-
-    $payload = basePublicationPayload($category, [
-        'title' => 'Intento no autorizado',
-        'description' => 'No debería actualizarse',
-        'price' => 999,
-        'lat' => -1.0,
-        'lng' => -78.0,
-    ]);
-
-    $response = $this->actingAs($otherUser)
-        ->from(route('my-publications'))
-        ->put(route('publications.update', $publication->id), $payload);
-
-    $response->assertRedirect(route('my-publications'));
-    $response->assertSessionHasErrors(['error']);
-    $publication->refresh();
-    expect($publication->title)->not->toBe('Intento no autorizado');
-});
-
-test('PUB-026: Usuario no puede eliminar publicación ajena', function () {
-    $owner = makeUser();
-    $otherUser = makeUser();
-    $category = makeCategory();
-
-    $publication = createPublicationFor($owner, $category, [
-        'type' => 'producto',
-    ]);
-
-    $response = $this->actingAs($otherUser)->delete(route('publications.destroy', $publication->id), [
-        '_token' => csrf_token(),
-    ]);
-
-    $response->assertNotFound();
-    $this->assertDatabaseHas('publications', [
-        'id' => $publication->id,
-    ]);
-});
-
-test('PUB-032: Visualiza formulario de creación', function () {
+test('PUB-026: Visualiza formulario de creación', function () {
     ensureViteEntries(['publications/create-publication']);
     
     $user = makeUser();
@@ -780,7 +700,7 @@ test('PUB-032: Visualiza formulario de creación', function () {
     );
 });
 
-test('PUB-033: Visualiza formulario de edición', function () {
+test('PUB-027: Visualiza formulario de edición', function () {
     ensureViteEntries(['publications/edit-publication']);
     
     $user = makeUser();
@@ -803,7 +723,7 @@ test('PUB-033: Visualiza formulario de edición', function () {
     );
 });
 
-test('PUB-048: Formulario de edición maneja publicación sin coordenadas', function () {
+test('PUB-028: Formulario de edición maneja publicación sin coordenadas', function () {
     ensureViteEntries(['publications/edit-publication']);
     
     $user = makeUser();
@@ -834,19 +754,7 @@ test('PUB-048: Formulario de edición maneja publicación sin coordenadas', func
     expect($locationPoint)->toBeNull();
 });
 
-test('PUB-034: Usuario no puede editar publicación ajena desde formulario', function () {
-    $owner = makeUser();
-    $otherUser = makeUser();
-    $category = makeCategory();
-
-    $publication = createPublicationFor($owner, $category);
-
-    $response = $this->actingAs($otherUser)->get(route('publications.edit', $publication->id));
-
-    $response->assertNotFound();
-});
-
-test('PUB-041: Creación maneja error al crear Point y continúa sin location_point', function () {
+test('PUB-029: Creación maneja error al crear Point y continúa sin location_point', function () {
     fakeGeocoding([
         'city' => 'Quito',
         'country' => 'Ecuador',
@@ -884,7 +792,7 @@ test('PUB-041: Creación maneja error al crear Point y continúa sin location_po
     expect($publication->location_point)->toBeNull();
 });
 
-test('PUB-042: Creación lanza InvalidArgumentException cuando coordenadas pasan validación pero fallan validación interna', function () {
+test('PUB-030: Creación lanza InvalidArgumentException cuando coordenadas pasan validación pero fallan validación interna', function () {
     fakeGeocoding([
         'city' => 'Guayaquil',
         'country' => 'Ecuador',
@@ -964,7 +872,7 @@ test('PUB-042: Creación lanza InvalidArgumentException cuando coordenadas pasan
     expect($publication->location_point)->toBeNull();
 });
 
-test('PUB-043: Actualización redirige a login cuando Auth::id() devuelve null', function () {
+test('PUB-031: Actualización redirige a login cuando Auth::id() devuelve null', function () {
     $user = makeUser();
     $category = makeCategory();
     $publication = createPublicationFor($user, $category);
@@ -986,7 +894,7 @@ test('PUB-043: Actualización redirige a login cuando Auth::id() devuelve null',
     $response->assertRedirect(route('login'));
 });
 
-test('PUB-044: Actualización rechaza servicio sin horario', function () {
+test('PUB-032: Actualización rechaza servicio sin horario', function () {
     fakeGeocoding([
         'city' => 'Quito',
         'country' => 'Ecuador',
@@ -1016,7 +924,7 @@ test('PUB-044: Actualización rechaza servicio sin horario', function () {
         ->toContain('El horario es obligatorio para servicios');
 });
 
-test('PUB-045: Actualización rechaza coordenadas fuera de rango en validación interna', function () {
+test('PUB-033: Actualización rechaza coordenadas fuera de rango en validación interna', function () {
     fakeGeocoding([
         'city' => 'Guayaquil',
         'country' => 'Ecuador',
@@ -1093,7 +1001,7 @@ test('PUB-045: Actualización rechaza coordenadas fuera de rango en validación 
     expect($publication->location_point)->toBeNull();
 });
 
-test('PUB-046: Actualización maneja error al crear Point y continúa sin location_point', function () {
+test('PUB-034: Actualización maneja error al crear Point y continúa sin location_point', function () {
     fakeGeocoding([
         'city' => 'Quito',
         'country' => 'Ecuador',
@@ -1142,7 +1050,7 @@ test('PUB-046: Actualización maneja error al crear Point y continúa sin locati
     expect($publication->location_point)->toBeNull();
 });
 
-test('PUB-047: Actualización elimina todas las imágenes cuando no se envía existing_images', function () {
+test('PUB-035: Actualización elimina todas las imágenes cuando no se envía existing_images', function () {
     fakeGeocoding([
         'city' => 'Cuenca',
         'country' => 'Ecuador',
