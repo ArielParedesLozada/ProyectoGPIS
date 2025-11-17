@@ -1,0 +1,215 @@
+/// <reference types="cypress" />
+
+describe('Eliminar publicación', () => {
+  let productoId: number;
+  let servicioId: number;
+
+  const setupGeolocationStub = (win: Window) => {
+    win.navigator.geolocation.getCurrentPosition = (success: PositionCallback, error?: PositionErrorCallback, options?: PositionOptions) => {
+      setTimeout(() => {
+        success({
+          coords: {
+            latitude: -0.2299,
+            longitude: -78.5249,
+            accuracy: 10,
+            altitude: null,
+            altitudeAccuracy: null,
+            heading: null,
+            speed: null
+          } as GeolocationCoordinates,
+          timestamp: Date.now()
+        } as GeolocationPosition);
+      }, 100);
+    };
+  };
+
+  const getUserId = (): Cypress.Chainable<number> => {
+    return cy.request('GET', 'http://localhost:8080/testing/users').then((response) => {
+      const user = response.body.find((u: any) => u.email === 'vendedor@test.com');
+      if (!user) {
+        throw new Error('Usuario vendedor@test.com no encontrado');
+      }
+      return user.id;
+    });
+  };
+
+  const createPublication = (title: string, description: string, price: string, type: 'producto' | 'servicio'): Cypress.Chainable<number> => {
+    return cy.visit('http://localhost:8080/my-publications/create', {
+      onBeforeLoad: setupGeolocationStub
+    }).then(() => {
+      cy.contains('Crear Nueva Publicación', { timeout: 10000 });
+
+      return cy.request('GET', 'http://localhost:8080/testing/categories').then((response) => {
+        const category = response.body[0];
+        
+        cy.get('#title').type(title);
+        cy.get('#description').type(description);
+        cy.get('#price').type(price);
+        
+        cy.contains('label', 'Categoría').parent().within(() => {
+          cy.get('[role="combobox"]').click();
+        });
+        cy.get('[role="option"]').first().click();
+        cy.wait(500);
+
+        cy.contains('label', 'Tipo').parent().within(() => {
+          cy.get('[role="combobox"]').click();
+        });
+        cy.get('[role="option"]').contains(type === 'producto' ? 'Producto' : 'Servicio').click();
+        cy.wait(1000); 
+
+        cy.contains('button', 'Usar mi ubicación').click();
+        cy.wait(2000);
+
+        const fileName = 'test-image.png';
+        const fileContent = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+        cy.get('input[type="file"]').selectFile({
+          contents: Cypress.Buffer.from(fileContent, 'base64'),
+          fileName: fileName,
+          mimeType: 'image/png',
+        }, { force: true });
+
+        cy.wait(1000);
+
+        cy.get('button[type="submit"]').contains('Crear Publicación').click();
+
+        cy.url({ timeout: 10000 }).should('include', '/my-publications');
+        
+        cy.wait(4000);
+        
+        return getUserId().then((userId) => {
+          return cy.request('GET', 'http://localhost:8080/testing/publications').then((response) => {
+            const userPublications = response.body.filter((p: any) => p.created_by === userId);
+            const publication = userPublications.find((p: any) => 
+              p.title && (p.title.includes(title) || p.title === title)
+            );
+            
+            if (!publication && userPublications.length > 0) {
+              const sorted = userPublications.sort((a: any, b: any) => b.id - a.id);
+              return sorted[0].id;
+            } else if (publication) {
+              return publication.id;
+            }
+            throw new Error(`No se encontró la publicación con título: ${title}`);
+          });
+        });
+      });
+    });
+  };
+
+  before(() => {
+    cy.request('POST', 'http://localhost:8080/testing/reset-db', { seed: true });
+    
+    cy.request('POST', 'http://localhost:8080/testing/user', {
+      email: 'vendedor@test.com',
+      password: 'Admin123@',
+      role: 'vendedor',
+      email_verified_at: new Date().toISOString(),
+    });
+  });
+
+  beforeEach(() => {
+    cy.session('vendedor-login', () => {
+      cy.request('GET', 'http://localhost:8080/testing/csrf').then((resp) => {
+        const token = resp.body.token;
+        cy.setCookie('XSRF-TOKEN', token);
+      });
+
+      cy.visit('http://localhost:8080/login');
+      cy.get('input[name="email"]').type('vendedor@test.com');
+      cy.get('input[name="password"]').type('Admin123@');
+      cy.get('button[type="submit"]').click();
+      cy.url({ timeout: 15000 }).should('satisfy', (url) => {
+        return !url.includes('/login');
+      });
+      cy.wait(2000); 
+    });
+
+    cy.request('GET', 'http://localhost:8080/testing/csrf').then((resp) => {
+      const token = resp.body.token;
+      cy.setCookie('XSRF-TOKEN', token);
+    });
+  });
+
+  it('PUB-ELIMINAR-001: Eliminar publicación de tipo producto exitosamente', () => {
+    createPublication(
+      'Laptop Dell XPS 15',
+      'Laptop de alto rendimiento con procesador Intel i7.',
+      '1299.99',
+      'producto'
+    ).then((id) => {
+      productoId = id;
+      
+      return createPublication(
+        'Servicio de Reparación',
+        'Servicio profesional de reparación de equipos electrónicos.',
+        '199.99',
+        'servicio'
+      );
+    }).then((id) => {
+      servicioId = id;
+      
+      cy.request('GET', 'http://localhost:8080/testing/publications').then((response) => {
+        const producto = response.body.find((p: any) => p.id === productoId);
+        const servicio = response.body.find((p: any) => p.id === servicioId);
+        
+        expect(producto).to.exist;
+        expect(servicio).to.exist;
+        expect(producto.type).to.eq('producto');
+        expect(servicio.type).to.eq('servicio');
+      });
+      
+      cy.visit('http://localhost:8080/my-publications');
+      cy.wait(2000);
+
+      cy.contains('Laptop Dell XPS 15', { timeout: 10000 }).should('be.visible');
+      
+      cy.contains('Laptop Dell XPS 15').then(($title) => {
+        cy.wrap($title).parents().filter((index, el) => {
+          const hasButton = el.querySelector('button') !== null;
+          const hasTitle = el.textContent?.includes('Laptop Dell XPS 15');
+          return hasButton && hasTitle;
+        }).first().within(() => {
+          cy.get('button').filter((index, el) => {
+            return el.querySelector('svg') !== null;
+          }).first().click({ force: true });
+        });
+      });
+      
+      cy.wait(1000);
+      
+      cy.get('[role="menuitem"]').contains('Eliminar').should('be.visible').click({ force: true });
+      
+      cy.contains('Confirmar eliminación', { timeout: 5000 }).should('be.visible');
+      cy.contains('¿Estás seguro?').should('be.visible');
+      
+      cy.contains('¿Estás seguro?').parents('div').filter((index, el) => {
+        return el.textContent?.includes('Esta acción no se puede deshacer') && 
+               el.querySelector('button') !== null;
+      }).first().within(() => {
+        cy.get('button').contains('Eliminar').should('be.visible').click({ force: true });
+      });
+      
+      cy.wait(3000);
+      
+      cy.url({ timeout: 10000 }).should('include', '/my-publications');
+      
+      cy.request('GET', 'http://localhost:8080/testing/publications').then((response) => {
+        const deletedProducto = response.body.find((p: any) => p.id === productoId);
+        const servicio = response.body.find((p: any) => p.id === servicioId);
+        
+        expect(deletedProducto).to.be.undefined;
+        
+        expect(servicio).to.exist;
+        expect(servicio.type).to.eq('servicio');
+      });
+      
+      cy.visit('http://localhost:8080/my-publications');
+      cy.wait(2000);
+      cy.contains('Laptop Dell XPS 15').should('not.exist');
+      
+      cy.contains('Servicio de Reparación').should('be.visible');
+    });
+  });
+});
+
