@@ -179,7 +179,8 @@ class ModerationController extends Controller
 
         // Lógica estricta: Solo permitir acciones si está asignado a mí Y no está completado
         $canPerformActions = $isAssignedToMe && !$isCompleted;
-
+        
+        // Permitir revisar apelación si está asignado a mí, está en apelación, y no soy el moderador original
         $canReviewAppeal = $canPerformActions && $isAppealed && !$isOriginalModerator;
 
         return [
@@ -195,12 +196,14 @@ class ModerationController extends Controller
             // Permitir descartar solo en primera revisión (no en apelaciones)
             'canDismissCase' => $canPerformActions && !$isCompleted && !$isActionTaken && !$isAppealed,
             
+            // Permitir revisar apelación si está asignado a mí, está en apelación, y no soy el moderador original
+            'canReviewAppeal' => $canReviewAppeal,
+            
             'isAssignedToMe' => $isAssignedToMe,
             'isCompleted' => $isCompleted,
             'isAppealed' => $isAppealed,
             'isActionTaken' => $isActionTaken,
             'isOriginalModerator' => $isOriginalModerator,
-            'canReviewAppeal' => $canReviewAppeal,
         ];
     }
 
@@ -211,7 +214,7 @@ class ModerationController extends Controller
     {
         $this->checkModeratorPermissions();
         
-        $case = ModerationCase::findOrFail($id);
+        $case = ModerationCase::with('actions')->findOrFail($id);
         
         if ($case->assigned_moderator_id && $case->assigned_moderator_id !== Auth::id()) {
             return response()->json([
@@ -533,8 +536,18 @@ class ModerationController extends Controller
         ]);
 
         try {
-            $case = ModerationCase::findOrFail($id);
+            $case = ModerationCase::with(['actions', 'appeals', 'publication'])->findOrFail($id);
             $appeal = ModerationAppeal::findOrFail($request->appeal_id);
+
+            // Validaciones de estado del caso
+            $buttonStates = $this->getButtonStates($case);
+            
+            if (!$buttonStates['canReviewAppeal']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No puedes revisar esta apelación'
+                ], 403);
+            }
 
             // Verificar que la apelación pertenezca al caso
             if ($appeal->moderation_case_id !== $case->id) {
@@ -550,16 +563,6 @@ class ModerationController extends Controller
                     'success' => false,
                     'message' => 'Esta apelación ya ha sido revisada'
                 ], 400);
-            }
-
-            // Validaciones de estado del caso
-            $buttonStates = $this->getButtonStates($case);
-            
-            if (!$buttonStates['canReviewAppeal']) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No puedes revisar esta apelación'
-                ], 403);
             }
 
             DB::beginTransaction();
@@ -629,6 +632,19 @@ class ModerationController extends Controller
     {
         $this->checkModeratorPermissions();
 
+        // Usar SQL compatible con el driver de base de datos
+        $driver = DB::getDriverName();
+        if ($driver === 'pgsql') {
+            // PostgreSQL
+            $dateExpression = "to_char(created_at, 'YYYY-MM')";
+        } elseif (in_array($driver, ['mysql', 'mariadb'])) {
+            // MySQL / MariaDB
+            $dateExpression = "DATE_FORMAT(created_at, '%Y-%m')";
+        } else {
+            // Fallback genérico (SQLite u otro)
+            $dateExpression = "strftime('%Y-%m', created_at)";
+        }
+
         $stats = [
             'total_appeals' => ModerationAppeal::count(),
             'pending_appeals' => ModerationAppeal::whereNull('reviewed_at')->count(),
@@ -639,7 +655,7 @@ class ModerationController extends Controller
             'rejected_appeals' => ModerationAppeal::whereHas('moderationCase.actions', function($query) {
                 $query->where('action_type', 'appeal_rejected');
             })->count(),
-            'appeals_by_month' => ModerationAppeal::selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, COUNT(*) as count')
+            'appeals_by_month' => ModerationAppeal::selectRaw("$dateExpression as month, COUNT(*) as count")
                 ->where('created_at', '>=', now()->subMonths(6))
                 ->groupBy('month')
                 ->orderBy('month')
@@ -902,7 +918,7 @@ class ModerationController extends Controller
         }
 
         // Verificar que esté siendo reactivado
-        if ($moderator->status === StatusType::HABILITADO->value && $moderator->is_active) {
+        if ((int)$moderator->status === StatusType::HABILITADO->value && $moderator->is_active) {
             return response()->json([
                 'success' => false,
                 'message' => 'El moderador ya está activo'
@@ -936,17 +952,17 @@ class ModerationController extends Controller
     }
 
     /**
-     * Reasignar casos específicos a un moderador (por SuperAdmin)
+     * Reasignar casos específicos a un moderador (solo Admin)
      */
     public function reassignSpecificCases(Request $request, $moderatorId)
     {
         $this->checkModeratorPermissions();
         
-        // Verificar que el usuario actual sea super_admin
-        if (Auth::user()->role !== 'super_admin') {
+        // Solo admin puede realizar reasignaciones manuales
+        if (Auth::user()->role !== 'admin') {
             return response()->json([
                 'success' => false,
-                'message' => 'Solo el SuperAdmin puede realizar reasignaciones manuales'
+                'message' => 'Solo el Admin puede realizar reasignaciones manuales'
             ], 403);
         }
 
@@ -959,7 +975,7 @@ class ModerationController extends Controller
         $moderator = User::findOrFail($moderatorId);
         
         // Verificar que el moderador esté activo
-        if ($moderator->status !== StatusType::HABILITADO->value || !$moderator->is_active) {
+        if ((int)$moderator->status !== StatusType::HABILITADO->value || !$moderator->is_active) {
             return response()->json([
                 'success' => false,
                 'message' => 'El moderador debe estar activo para recibir casos'
@@ -1078,17 +1094,17 @@ class ModerationController extends Controller
     }
 
     /**
-     * Asignar caso crítico a un moderador específico (SuperAdmin)
+     * Asignar caso crítico a un moderador específico (solo Admin)
      */
     public function assignCriticalCase(Request $request, $caseId)
     {
         $this->checkModeratorPermissions();
         
-        // Solo super_admin puede asignar casos críticos
-        if (Auth::user()->role !== 'super_admin') {
+        // Solo admin puede asignar casos críticos
+        if (Auth::user()->role !== 'admin') {
             return response()->json([
                 'success' => false,
-                'message' => 'Solo el SuperAdmin puede asignar casos críticos'
+                'message' => 'Solo el Admin puede asignar casos críticos'
             ], 403);
         }
 
@@ -1100,19 +1116,19 @@ class ModerationController extends Controller
         $case = ModerationCase::findOrFail($caseId);
         $moderator = User::findOrFail($request->moderator_id);
 
-        // Verificar que el moderador esté activo
-        if ($moderator->status !== StatusType::HABILITADO->value || !$moderator->is_active) {
-            return response()->json([
-                'success' => false,
-                'message' => 'El moderador debe estar activo para recibir casos'
-            ], 400);
-        }
-
-        // Verificar que sea un moderador válido
+        // Verificar que sea un moderador válido (primero verificar el rol)
         if (!in_array($moderator->role, ['moderador', 'admin', 'super_admin'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'El usuario debe ser un moderador'
+            ], 400);
+        }
+
+        // Verificar que el moderador esté activo
+        if ((int)$moderator->status !== StatusType::HABILITADO->value || !$moderator->is_active) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El moderador debe estar activo para recibir casos'
             ], 400);
         }
 
@@ -1127,7 +1143,7 @@ class ModerationController extends Controller
             'moderation_case_id' => $case->id,
             'moderator_id' => Auth::id(),
             'action_type' => 'critical_case_assigned',
-            'action_description' => 'Caso crítico asignado manualmente por SuperAdmin',
+            'action_description' => 'Caso crítico asignado manualmente por Admin',
             'metadata' => [
                 'assigned_to' => $moderator->name . ' ' . $moderator->surname,
                 'assigned_by' => Auth::user()->name . ' ' . Auth::user()->surname,
@@ -1200,7 +1216,7 @@ class ModerationController extends Controller
         
         // Verificar que sea un moderador activo
         if ($moderator->role !== 'moderador' || 
-            $moderator->status !== StatusType::HABILITADO->value || 
+            (int)$moderator->status !== StatusType::HABILITADO->value || 
             !$moderator->is_active) {
             return response()->json([
                 'success' => false,
