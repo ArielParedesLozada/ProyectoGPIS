@@ -1,8 +1,6 @@
 /// <reference types="cypress" />
 
-describe('Favoritos de publicaciones', () => {
-  let servicioId: number;
-
+describe('Deshabilitar publicación', () => {
   const setupGeolocationStub = (win: Window) => {
     win.navigator.geolocation.getCurrentPosition = (success: PositionCallback, error?: PositionErrorCallback, options?: PositionOptions) => {
       setTimeout(() => {
@@ -22,11 +20,11 @@ describe('Favoritos de publicaciones', () => {
     };
   };
 
-  const getUserId = (email: string): Cypress.Chainable<number> => {
+  const getUserId = (): Cypress.Chainable<number> => {
     return cy.request('GET', 'http://localhost:8080/testing/users').then((response) => {
-      const user = response.body.find((u: any) => u.email === email);
+      const user = response.body.find((u: any) => u.email === 'vendedor@test.com');
       if (!user) {
-        throw new Error(`Usuario ${email} no encontrado`);
+        throw new Error('Usuario vendedor@test.com no encontrado');
       }
       return user.id;
     });
@@ -38,7 +36,7 @@ describe('Favoritos de publicaciones', () => {
     }).then(() => {
       cy.contains('Crear Nueva Publicación', { timeout: 10000 });
 
-      return cy.request('GET', 'http://localhost:8080/testing/categories').then((response) => {
+      cy.request('GET', 'http://localhost:8080/testing/categories').then((response) => {
         const category = response.body[0];
         
         cy.get('#title').type(title);
@@ -55,7 +53,7 @@ describe('Favoritos de publicaciones', () => {
           cy.get('[role="combobox"]').click();
         });
         cy.get('[role="option"]').contains(type === 'producto' ? 'Producto' : 'Servicio').click();
-        cy.wait(1000);
+        cy.wait(500);
 
         cy.contains('button', 'Usar mi ubicación').click();
         cy.wait(2000);
@@ -75,22 +73,23 @@ describe('Favoritos de publicaciones', () => {
         cy.url({ timeout: 10000 }).should('include', '/my-publications');
         
         cy.wait(4000);
-        
-        return getUserId('vendedor@test.com').then((userId) => {
-          return cy.request('GET', 'http://localhost:8080/testing/publications').then((response) => {
-            const userPublications = response.body.filter((p: any) => p.created_by === userId);
-            const publication = userPublications.find((p: any) => 
-              p.title && (p.title.includes(title) || p.title === title)
-            );
-            
-            if (!publication && userPublications.length > 0) {
-              const sorted = userPublications.sort((a: any, b: any) => b.id - a.id);
-              return sorted[0].id;
-            } else if (publication) {
-              return publication.id;
-            }
-            throw new Error(`No se encontró la publicación con título: ${title}`);
-          });
+      });
+
+      return getUserId().then((userId) => {
+        return cy.request('GET', 'http://localhost:8080/testing/publications').then((response) => {
+          const userPublications = response.body.filter((p: any) => p.created_by === userId);
+          
+          let publication = userPublications.find((p: any) => 
+            p.title && (p.title.includes(title) || p.title === title)
+          );
+          
+          if (!publication && userPublications.length > 0) {
+            const sorted = userPublications.sort((a: any, b: any) => b.id - a.id);
+            publication = sorted[0];
+          }
+          
+          expect(publication).to.exist;
+          return publication.id;
         });
       });
     });
@@ -107,7 +106,7 @@ describe('Favoritos de publicaciones', () => {
     });
   });
 
-  it('PUB-FAV-001: Crear publicación servicio, marcar favorito, desmarcar desde favoritos y verificar en publicaciones', () => {
+  beforeEach(() => {
     cy.session('vendedor-login', () => {
       cy.request('GET', 'http://localhost:8080/testing/csrf').then((resp) => {
         const token = resp.body.token;
@@ -121,69 +120,57 @@ describe('Favoritos de publicaciones', () => {
       cy.url({ timeout: 15000 }).should('satisfy', (url) => {
         return !url.includes('/login');
       });
-      cy.wait(2000);
+      cy.wait(2000); 
     });
 
     cy.request('GET', 'http://localhost:8080/testing/csrf').then((resp) => {
       const token = resp.body.token;
       cy.setCookie('XSRF-TOKEN', token);
     });
+  });
+
+  it('PUB-DESHABILITAR-001: Crear publicación, deshabilitarla y verificar que no aparece en publicaciones', () => {
+    let publicationId: number;
 
     createPublication(
-      'Servicio de Consultoría IT',
-      'Servicio profesional de consultoría en tecnologías de la información.',
-      '299.99',
-      'servicio'
+      'Producto de Prueba',
+      'Descripción del producto de prueba para deshabilitar.',
+      '199.99',
+      'producto'
     ).then((id) => {
-      servicioId = id;
+      publicationId = id;
 
-      cy.visit('http://localhost:8080/publication');
-      cy.contains('Servicio de Consultoría IT', { timeout: 10000 }).should('be.visible');
+      cy.visit('http://localhost:8080/my-publications');
+      cy.contains('Producto de Prueba', { timeout: 10000 }).should('be.visible');
 
-      cy.contains('Servicio de Consultoría IT').then(($title) => {
+      cy.contains('Producto de Prueba').then(($title) => {
         cy.wrap($title).parents('div').filter((index, el) => {
-          const hasTitle = el.textContent?.includes('Servicio de Consultoría IT');
-          const hasFavoriteButton = el.querySelector('button[title*="Agregar"]') !== null ||
-                                   el.querySelector('button[title*="favorito"]') !== null ||
-                                   el.querySelector('button svg') !== null;
-          return hasTitle && hasFavoriteButton;
+          const hasButton = el.querySelector('button') !== null;
+          const hasTitle = el.textContent?.includes('Producto de Prueba');
+          return hasButton && hasTitle;
         }).first().within(() => {
           cy.get('button').filter((index, el) => {
-            const title = el.getAttribute('title') || '';
-            const hasHeartIcon = el.querySelector('svg') !== null;
-            const isFavoriteButton = title.includes('Agregar') || title.includes('favorito') || hasHeartIcon;
-            return hasHeartIcon && isFavoriteButton;
+            return el.querySelector('svg') !== null;
           }).first().click({ force: true });
         });
       });
 
+      cy.wait(1000);
+
+      cy.get('[role="menuitem"]').contains('Inhabilitar').should('be.visible').click({ force: true });
+
       cy.wait(2000);
 
-      cy.visit('http://localhost:8080/favorites');
-      cy.contains('Servicio de Consultoría IT', { timeout: 10000 }).should('be.visible');
-
-      cy.contains('Servicio de Consultoría IT').then(($title) => {
-        cy.wrap($title).parents('div').filter((index, el) => {
-          const hasTitle = el.textContent?.includes('Servicio de Consultoría IT');
-          const hasLink = el.querySelector('a[href*="/publication/"]') !== null;
-          return hasTitle && hasLink;
-        }).first().within(() => {
-          cy.get('a[href*="/publication/"]').first().click({ force: true });
-        });
+      cy.request('GET', 'http://localhost:8080/testing/publications').then((response) => {
+        const publication = response.body.find((p: any) => p.id === publicationId);
+        expect(publication).to.exist;
+        expect(publication.status).to.eq(2);
       });
-      cy.url({ timeout: 10000 }).should('include', `/publication/${servicioId}`);
-      cy.contains('Servicio de Consultoría IT', { timeout: 10000 }).should('be.visible');
 
-      cy.get('button').contains('Quitar de Favoritos').click();
+      cy.visit('http://localhost:8080/publication');
       cy.wait(2000);
 
-      cy.contains('a', 'Publicaciones').click();
-      cy.url({ timeout: 10000 }).should('include', '/publication');
-
-      cy.contains('Servicio de Consultoría IT', { timeout: 10000 }).should('be.visible');
-
-      cy.visit('http://localhost:8080/favorites');
-      cy.contains('Servicio de Consultoría IT', { timeout: 10000 }).should('not.exist');
+      cy.contains('Producto de Prueba', { timeout: 10000 }).should('not.exist');
     });
   });
 });
