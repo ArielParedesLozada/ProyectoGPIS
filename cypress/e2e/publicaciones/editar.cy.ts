@@ -244,7 +244,7 @@ describe('Editar publicación', () => {
     });
   });
 
-  it('PUB-EDITAR-003: Validar errores de campos vacíos al editar publicación', () => {
+  it('PUB-EDITAR-002: Validar errores de campos vacíos al editar publicación', () => {
     let testPublicationId: number;
 
     createPublication(
@@ -301,7 +301,7 @@ describe('Editar publicación', () => {
     });
   });
 
-  it('PUB-EDITAR-004: Validar error al subir más de 5 imágenes', () => {
+  it('PUB-EDITAR-003: Validar error al subir más de 5 imágenes', () => {
     let testPublicationId: number;
 
     createPublication(
