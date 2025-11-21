@@ -192,5 +192,100 @@ describe('Crear publicación', () => {
       cy.wait(2000); 
     });
   });
+
+  it('PUB-CREAR-003: Validar errores de campos vacíos al crear publicación', () => {
+    cy.visit('http://localhost:8080/my-publications/create', {
+      onBeforeLoad: setupGeolocationStub
+    });
+
+    cy.contains('Crear Nueva Publicación', { timeout: 10000 });
+
+    cy.get('button[type="submit"]').contains('Crear Publicación').should('be.disabled');
+
+    cy.get('#title').type('Test Product');
+    cy.wait(300);
+    cy.get('button[type="submit"]').contains('Crear Publicación').should('be.disabled');
+
+    cy.get('#description').type('Descripción de prueba con más de 10 caracteres');
+    cy.wait(300);
+    cy.get('button[type="submit"]').contains('Crear Publicación').should('be.disabled');
+
+    cy.get('#price').type('100');
+    cy.wait(300);
+    cy.get('button[type="submit"]').contains('Crear Publicación').should('be.disabled');
+    
+    cy.request('GET', 'http://localhost:8080/testing/categories').then((response) => {
+      cy.contains('label', 'Categoría').parent().within(() => {
+        cy.get('[role="combobox"]').click();
+      });
+      cy.get('[role="option"]').first().click();
+      cy.wait(500);
+      cy.get('button[type="submit"]').contains('Crear Publicación').should('be.disabled');
+
+      cy.contains('label', 'Tipo').parent().within(() => {
+        cy.get('[role="combobox"]').click();
+      });
+      cy.get('[role="option"]').contains('Producto').click();
+      cy.wait(500);
+      cy.get('button[type="submit"]').contains('Crear Publicación').should('be.disabled');
+
+      const fileName = 'test-image.png';
+      const fileContent = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+      cy.get('input[type="file"]').selectFile({
+        contents: Cypress.Buffer.from(fileContent, 'base64'),
+        fileName: fileName,
+        mimeType: 'image/png',
+      }, { force: true });
+      cy.wait(1000);
+
+      cy.get('button[type="submit"]').contains('Crear Publicación').should('be.disabled');
+
+      cy.contains('Ubicación en el mapa *').should('be.visible');
+      
+      cy.contains('button', 'Usar mi ubicación').should('be.visible');
+
+      cy.contains('button', 'Usar mi ubicación').click();
+      cy.wait(2000);
+
+      cy.get('button[type="submit"]').contains('Crear Publicación').should('be.enabled');
+    });
+  });
+
+  it('PUB-CREAR-004: Validar error al subir más de 5 imágenes', () => {
+    cy.visit('http://localhost:8080/my-publications/create', {
+      onBeforeLoad: setupGeolocationStub
+    });
+
+    cy.contains('Crear Nueva Publicación', { timeout: 10000 });
+
+    const fileContent = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+
+    for (let i = 1; i <= 5; i++) {
+      cy.get('input[type="file"]').selectFile({
+        contents: Cypress.Buffer.from(fileContent, 'base64'),
+        fileName: `test-image-${i}.png`,
+        mimeType: 'image/png',
+      }, { force: true });
+      cy.wait(800);
+    }
+
+    cy.wait(2000);
+
+    cy.contains('Imágenes seleccionadas (5/5)', { timeout: 5000 }).should('be.visible');
+    
+    cy.contains('Límite alcanzado', { timeout: 3000 }).should('be.visible');
+
+    cy.get('input[type="file"]').selectFile({
+      contents: Cypress.Buffer.from(fileContent, 'base64'),
+      fileName: 'test-image-6.png',
+      mimeType: 'image/png',
+    }, { force: true });
+    cy.wait(2000);
+
+    cy.contains('Demasiadas imágenes', { timeout: 5000 }).should('be.visible');
+    cy.contains('No se pueden subir más de 5 imágenes.', { timeout: 5000 }).should('be.visible');
+
+    cy.contains('Imágenes seleccionadas (5/5)', { timeout: 3000 }).should('be.visible');
+  });
 });
 
