@@ -180,6 +180,8 @@ describe('Eliminar publicación', () => {
       
       cy.get('[role="menuitem"]').contains('Eliminar').should('be.visible').click({ force: true });
       
+      cy.wait(1000);
+      
       cy.contains('Confirmar eliminación', { timeout: 5000 }).should('be.visible');
       cy.contains('¿Estás seguro?').should('be.visible');
       
@@ -187,12 +189,21 @@ describe('Eliminar publicación', () => {
         return el.textContent?.includes('Esta acción no se puede deshacer') && 
                el.querySelector('button') !== null;
       }).first().within(() => {
-        cy.get('button').contains('Eliminar').should('be.visible').click({ force: true });
+        cy.get('button').contains('Eliminar').should('be.visible').should('not.be.disabled').click({ force: true });
       });
       
-      cy.wait(3000);
+      cy.wait(2000);
+      
+      cy.contains('Confirmar eliminación', { timeout: 10000 }).should('not.exist');
+      
+      cy.wait(2000);
       
       cy.url({ timeout: 10000 }).should('include', '/my-publications');
+      
+      cy.visit('http://localhost:8080/my-publications');
+      cy.wait(3000);
+      
+      cy.contains('Laptop Dell XPS 15', { timeout: 10000 }).should('not.exist');
       
       cy.request('GET', 'http://localhost:8080/testing/publications').then((response) => {
         const deletedProducto = response.body.find((p: any) => p.id === productoId);
@@ -204,11 +215,157 @@ describe('Eliminar publicación', () => {
         expect(servicio.type).to.eq('servicio');
       });
       
+      cy.contains('Servicio de Reparación').should('be.visible');
+    });
+  });
+
+  it('PUB-ELIMINAR-002: Cancelar eliminación de publicación y verificar que no se eliminó', () => {
+    let testPublicationId: number;
+
+    createPublication(
+      'Producto para Cancelar',
+      'Descripción del producto para probar cancelar eliminación.',
+      '299.99',
+      'producto'
+    ).then((id) => {
+      testPublicationId = id;
+
+      cy.request('GET', 'http://localhost:8080/testing/publications').then((response) => {
+        const publication = response.body.find((p: any) => p.id === testPublicationId);
+        expect(publication).to.exist;
+      });
+
       cy.visit('http://localhost:8080/my-publications');
       cy.wait(2000);
-      cy.contains('Laptop Dell XPS 15').should('not.exist');
-      
-      cy.contains('Servicio de Reparación').should('be.visible');
+
+      cy.contains('Producto para Cancelar', { timeout: 10000 }).should('be.visible');
+
+      cy.contains('Producto para Cancelar').then(($title) => {
+        cy.wrap($title).parents().filter((index, el) => {
+          const hasButton = el.querySelector('button') !== null;
+          const hasTitle = el.textContent?.includes('Producto para Cancelar');
+          return hasButton && hasTitle;
+        }).first().within(() => {
+          cy.get('button').filter((index, el) => {
+            return el.querySelector('svg') !== null;
+          }).first().click({ force: true });
+        });
+      });
+
+      cy.wait(1000);
+
+      cy.get('[role="menuitem"]').contains('Eliminar').should('be.visible').click({ force: true });
+
+      cy.contains('Confirmar eliminación', { timeout: 5000 }).should('be.visible');
+      cy.contains('¿Estás seguro?').should('be.visible');
+
+      cy.get('button').contains('Cancelar').should('be.visible').click({ force: true });
+
+      cy.wait(2000);
+
+      cy.url({ timeout: 10000 }).should('include', '/my-publications');
+
+      cy.request('GET', 'http://localhost:8080/testing/publications').then((response) => {
+        const publication = response.body.find((p: any) => p.id === testPublicationId);
+        expect(publication).to.exist;
+        expect(publication.title).to.include('Producto para Cancelar');
+      });
+
+      cy.visit('http://localhost:8080/my-publications');
+      cy.wait(2000);
+      cy.contains('Producto para Cancelar', { timeout: 10000 }).should('be.visible');
+    });
+  });
+
+  it('PUB-ELIMINAR-003: Deshabilitar publicación y luego eliminarla', () => {
+    let testPublicationId: number;
+
+    createPublication(
+      'Producto para Deshabilitar y Eliminar',
+      'Descripción del producto para deshabilitar y luego eliminar.',
+      '399.99',
+      'producto'
+    ).then((id) => {
+      testPublicationId = id;
+
+      cy.request('GET', 'http://localhost:8080/testing/publications').then((response) => {
+        const publication = response.body.find((p: any) => p.id === testPublicationId);
+        expect(publication).to.exist;
+        expect(publication.status).to.eq(1);
+      });
+
+      cy.visit('http://localhost:8080/my-publications');
+      cy.wait(2000);
+
+      cy.contains('Producto para Deshabilitar y Eliminar', { timeout: 10000 }).should('be.visible');
+
+      cy.contains('Producto para Deshabilitar y Eliminar').then(($title) => {
+        cy.wrap($title).parents().filter((index, el) => {
+          const hasButton = el.querySelector('button') !== null;
+          const hasTitle = el.textContent?.includes('Producto para Deshabilitar y Eliminar');
+          return hasButton && hasTitle;
+        }).first().within(() => {
+          cy.get('button').filter((index, el) => {
+            return el.querySelector('svg') !== null;
+          }).first().click({ force: true });
+        });
+      });
+
+      cy.wait(1000);
+
+      cy.get('[role="menuitem"]').contains('Inhabilitar').should('be.visible').click({ force: true });
+
+      cy.wait(2000);
+
+      cy.request('GET', 'http://localhost:8080/testing/publications').then((response) => {
+        const publication = response.body.find((p: any) => p.id === testPublicationId);
+        expect(publication).to.exist;
+        expect(publication.status).to.eq(2);
+      });
+
+      cy.visit('http://localhost:8080/my-publications');
+      cy.wait(2000);
+
+      cy.contains('Producto para Deshabilitar y Eliminar', { timeout: 10000 }).should('be.visible');
+
+      cy.contains('Producto para Deshabilitar y Eliminar').then(($title) => {
+        cy.wrap($title).parents().filter((index, el) => {
+          const hasButton = el.querySelector('button') !== null;
+          const hasTitle = el.textContent?.includes('Producto para Deshabilitar y Eliminar');
+          return hasButton && hasTitle;
+        }).first().within(() => {
+          cy.get('button').filter((index, el) => {
+            return el.querySelector('svg') !== null;
+          }).first().click({ force: true });
+        });
+      });
+
+      cy.wait(1000);
+
+      cy.get('[role="menuitem"]').contains('Eliminar').should('be.visible').click({ force: true });
+
+      cy.contains('Confirmar eliminación', { timeout: 5000 }).should('be.visible');
+      cy.contains('¿Estás seguro?').should('be.visible');
+
+      cy.contains('¿Estás seguro?').parents('div').filter((index, el) => {
+        return el.textContent?.includes('Esta acción no se puede deshacer') && 
+               el.querySelector('button') !== null;
+      }).first().within(() => {
+        cy.get('button').contains('Eliminar').should('be.visible').click({ force: true });
+      });
+
+      cy.wait(3000);
+
+      cy.url({ timeout: 10000 }).should('include', '/my-publications');
+
+      cy.request('GET', 'http://localhost:8080/testing/publications').then((response) => {
+        const deletedPublication = response.body.find((p: any) => p.id === testPublicationId);
+        expect(deletedPublication).to.be.undefined;
+      });
+
+      cy.visit('http://localhost:8080/my-publications');
+      cy.wait(2000);
+      cy.contains('Producto para Deshabilitar y Eliminar').should('not.exist');
     });
   });
 });
