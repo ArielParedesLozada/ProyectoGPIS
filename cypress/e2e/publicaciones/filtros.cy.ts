@@ -240,11 +240,14 @@ describe('Filtros de publicaciones', () => {
         cy.get('#min-price').clear({ force: true }).type('100', { force: true });
         cy.get('#max-price').clear({ force: true }).type('300', { force: true });
         cy.get('button').contains('Aplicar Filtro de Precio').click({ force: true });
-        cy.wait(2000);
+        
+        cy.url({ timeout: 10000 }).should('include', 'min_price=100');
+        cy.url({ timeout: 10000 }).should('include', 'max_price=300');
+        cy.wait(3000);
 
         cy.contains('Servicio de Diseño de Moda', { timeout: 10000 }).should('be.visible');
-        cy.contains('Smartphone Samsung Galaxy').should('not.exist');
-        cy.contains('Mesa de Comedor Moderna').should('not.exist');
+        cy.contains('Smartphone Samsung Galaxy', { timeout: 10000 }).should('not.exist');
+        cy.contains('Mesa de Comedor Moderna', { timeout: 10000 }).should('not.exist');
 
         cy.get('#min-price').clear({ force: true });
         cy.get('#max-price').clear({ force: true });
