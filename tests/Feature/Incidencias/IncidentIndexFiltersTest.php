@@ -29,7 +29,7 @@ beforeEach(function () {
     $this->category = Category::factory()->create();
 });
 
-test('INT-029T: index limpia filtros correctamente', function () {
+test('INC-010: index limpia filtros correctamente', function () {
     $response = $this->actingAs($this->moderator)
         ->get(route('moderation.index', ['clear_filters' => true]));
 
@@ -37,7 +37,7 @@ test('INT-029T: index limpia filtros correctamente', function () {
     $response->assertSessionHas('success');
 });
 
-test('INT-029U: index valida que date_from no sea mayor que date_to', function () {
+test('INC-011: index valida que date_from no sea mayor que date_to', function () {
     $response = $this->actingAs($this->moderator)
         ->get(route('moderation.index', [
             'date_from' => now()->addDay()->format('Y-m-d'),
@@ -48,7 +48,7 @@ test('INT-029U: index valida que date_from no sea mayor que date_to', function (
     $response->assertSessionHas('error');
 });
 
-test('INT-029V: index muestra mensaje cuando solo se selecciona date_from', function () {
+test('INC-012: index muestra mensaje cuando solo se selecciona date_from', function () {
     $response = $this->actingAs($this->moderator)
         ->get(route('moderation.index', [
             'date_from' => now()->subDay()->format('Y-m-d'),
@@ -58,7 +58,7 @@ test('INT-029V: index muestra mensaje cuando solo se selecciona date_from', func
     $response->assertSessionHas('info');
 });
 
-test('INT-029W: index muestra mensaje cuando solo se selecciona date_to', function () {
+test('INC-013: index muestra mensaje cuando solo se selecciona date_to', function () {
     $response = $this->actingAs($this->moderator)
         ->get(route('moderation.index', [
             'date_to' => now()->format('Y-m-d'),
@@ -68,7 +68,7 @@ test('INT-029W: index muestra mensaje cuando solo se selecciona date_to', functi
     $response->assertSessionHas('info');
 });
 
-test('INT-029X: index filtra por status correctamente', function () {
+test('INC-014: index filtra por status correctamente', function () {
     $publication1 = createTestPublication($this->vendor, $this->category);
     $case1 = createModerationCase($publication1, ['status' => 'pending']);
 
@@ -86,7 +86,7 @@ test('INT-029X: index filtra por status correctamente', function () {
     );
 });
 
-test('INT-029Y: index filtra por source correctamente', function () {
+test('INC-015: index filtra por source correctamente', function () {
     $publication1 = createTestPublication($this->vendor, $this->category);
     $case1 = createModerationCase($publication1, ['source' => 'user']);
 
@@ -104,7 +104,7 @@ test('INT-029Y: index filtra por source correctamente', function () {
     );
 });
 
-test('INT-029Z: index filtra por assigned_to_me correctamente', function () {
+test('INC-016: index filtra por assigned_to_me correctamente', function () {
     $publication1 = createTestPublication($this->vendor, $this->category);
     $case1 = createModerationCase($publication1, [
         'assigned_moderator_id' => $this->moderator->id,
@@ -126,7 +126,7 @@ test('INT-029Z: index filtra por assigned_to_me correctamente', function () {
     );
 });
 
-test('INT-029AA: index filtra por unassigned correctamente', function () {
+test('INC-017: index filtra por unassigned correctamente', function () {
     $publication1 = createTestPublication($this->vendor, $this->category);
     $case1 = createModerationCase($publication1, [
         'assigned_moderator_id' => null,
@@ -148,7 +148,7 @@ test('INT-029AA: index filtra por unassigned correctamente', function () {
     );
 });
 
-test('INT-029AB: index filtra por category_id correctamente', function () {
+test('INC-018: index filtra por category_id correctamente', function () {
     $category1 = Category::factory()->create();
     $category2 = Category::factory()->create();
 
@@ -169,7 +169,7 @@ test('INT-029AB: index filtra por category_id correctamente', function () {
     );
 });
 
-test('INT-029AC: index filtra por date_from y date_to correctamente', function () {
+test('INC-019: index filtra por date_from y date_to correctamente', function () {
     // Crear un caso con fecha específica dentro del rango
     $publication1 = createTestPublication($this->vendor, $this->category);
     $case1 = createModerationCase($publication1);

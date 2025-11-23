@@ -16,15 +16,14 @@ require_once __DIR__.'/moderation-test-helpers.php';
 
 uses(RefreshDatabase::class);
 
-describe('Moderation index', function () {
-    beforeEach(function () {
-        $testData = setupModerationTestData();
-        $this->category = $testData->category;
-        $this->moderator = $testData->moderator;
-        $this->vendor = $testData->vendor;
-    });
+beforeEach(function () {
+    $testData = setupModerationTestData();
+    $this->category = $testData->category;
+    $this->moderator = $testData->moderator;
+    $this->vendor = $testData->vendor;
+});
 
-    it('MOD-IDX-001: Muestra la bandeja de moderación con estadísticas', function () {
+test('MOD-059: Muestra la bandeja de moderación con estadísticas', function () {
         $publication = createTestPublication($this->vendor, $this->category);
         createModerationCase($publication, ['status' => 'pending']);
         createModerationCase($publication, ['status' => 'in_review']);
@@ -50,7 +49,7 @@ describe('Moderation index', function () {
         );
     });
 
-    it('MOD-IDX-002: Limpia filtros correctamente', function () {
+    test('MOD-060: Limpia filtros correctamente', function () {
         $response = $this->actingAs($this->moderator)
             ->get(route('moderation.index', ['clear_filters' => true]));
 
@@ -58,7 +57,7 @@ describe('Moderation index', function () {
         $response->assertSessionHas('success');
     });
 
-    it('MOD-IDX-003: Valida error cuando date_from es mayor que date_to', function () {
+    test('MOD-061: Valida error cuando date_from es mayor que date_to', function () {
         $response = $this->actingAs($this->moderator)
             ->get(route('moderation.index', [
                 'date_from' => now()->addDay()->format('Y-m-d'),
@@ -69,7 +68,7 @@ describe('Moderation index', function () {
         $response->assertSessionHas('error');
     });
 
-    it('MOD-IDX-004: Muestra info cuando solo se selecciona date_from', function () {
+    test('MOD-062: Muestra info cuando solo se selecciona date_from', function () {
         $response = $this->actingAs($this->moderator)
             ->get(route('moderation.index', [
                 'date_from' => now()->subDay()->format('Y-m-d'),
@@ -79,7 +78,7 @@ describe('Moderation index', function () {
         $response->assertSessionHas('info');
     });
 
-    it('MOD-IDX-005: Muestra info cuando solo se selecciona date_to', function () {
+    test('MOD-063: Muestra info cuando solo se selecciona date_to', function () {
         $response = $this->actingAs($this->moderator)
             ->get(route('moderation.index', [
                 'date_to' => now()->format('Y-m-d'),
@@ -89,7 +88,7 @@ describe('Moderation index', function () {
         $response->assertSessionHas('info');
     });
 
-    it('MOD-IDX-006: Filtra por status', function () {
+    test('MOD-064: Filtra por status', function () {
         $publication = createTestPublication($this->vendor, $this->category);
         createModerationCase($publication, ['status' => 'pending']);
         createModerationCase($publication, ['status' => 'closed']);
@@ -104,7 +103,7 @@ describe('Moderation index', function () {
         );
     });
 
-    it('MOD-IDX-007: Filtra por source', function () {
+    test('MOD-065: Filtra por source', function () {
         $publication = createTestPublication($this->vendor, $this->category);
         createModerationCase($publication, ['source' => 'user']);
         createModerationCase($publication, ['source' => 'system']);
@@ -119,7 +118,7 @@ describe('Moderation index', function () {
         );
     });
 
-    it('MOD-IDX-008: Filtra por assigned_to_me', function () {
+    test('MOD-066: Filtra por assigned_to_me', function () {
         $publication = createTestPublication($this->vendor, $this->category);
         createModerationCase($publication, ['assigned_moderator_id' => $this->moderator->id]);
         createModerationCase($publication, ['assigned_moderator_id' => null]);
@@ -134,7 +133,7 @@ describe('Moderation index', function () {
         );
     });
 
-    it('MOD-IDX-009: Filtra por unassigned', function () {
+    test('MOD-067: Filtra por unassigned', function () {
         $publication = createTestPublication($this->vendor, $this->category);
         createModerationCase($publication, ['assigned_moderator_id' => null]);
         createModerationCase($publication, ['assigned_moderator_id' => $this->moderator->id]);
@@ -149,7 +148,7 @@ describe('Moderation index', function () {
         );
     });
 
-    it('MOD-IDX-010: Filtra por category_id', function () {
+    test('MOD-068: Filtra por category_id', function () {
         $category2 = Category::factory()->create();
         $publication1 = createTestPublication($this->vendor, $this->category);
         $publication2 = createTestPublication($this->vendor, $category2);
@@ -166,7 +165,7 @@ describe('Moderation index', function () {
         );
     });
 
-    it('MOD-IDX-011: Filtra por date_from y date_to', function () {
+    test('MOD-069: Filtra por date_from y date_to', function () {
         $publication = createTestPublication($this->vendor, $this->category);
         $case1 = createModerationCase($publication);
         // Actualizar created_at usando DB para evitar problemas con timestamps
@@ -189,7 +188,7 @@ describe('Moderation index', function () {
         );
     });
 
-    it('MOD-IDX-012: Incluye casos eliminados cuando include_deleted es true', function () {
+    test('MOD-070: Incluye casos eliminados cuando include_deleted es true', function () {
         $publication = createTestPublication($this->vendor, $this->category);
         $case = createModerationCase($publication);
         $case->delete();
@@ -203,7 +202,7 @@ describe('Moderation index', function () {
         );
     });
 
-    it('MOD-IDX-013: Solo muestra casos eliminados cuando only_deleted es true', function () {
+    test('MOD-071: Solo muestra casos eliminados cuando only_deleted es true', function () {
         $publication = createTestPublication($this->vendor, $this->category);
         $case1 = createModerationCase($publication);
         $case2 = createModerationCase($publication);
@@ -218,7 +217,7 @@ describe('Moderation index', function () {
         );
     });
 
-    it('MOD-IDX-014: Calcula estadísticas correctamente', function () {
+    test('MOD-072: Calcula estadísticas correctamente', function () {
         $publication = createTestPublication($this->vendor, $this->category);
         createModerationCase($publication, ['status' => 'pending']);
         createModerationCase($publication, ['status' => 'pending']);
@@ -248,7 +247,7 @@ describe('Moderation index', function () {
         );
     });
 
-    it('MOD-IDX-015: Combina múltiples filtros', function () {
+    test('MOD-073: Combina múltiples filtros', function () {
         $publication = createTestPublication($this->vendor, $this->category);
         createModerationCase($publication, [
             'status' => 'pending',
@@ -272,8 +271,7 @@ describe('Moderation index', function () {
             ->has('cases.data', 1)
             ->where('cases.data.0.status', 'pending')
             ->where('cases.data.0.source', 'user')
-            ->where('cases.data.0.assigned_moderator_id', $this->moderator->id)
-        );
-    });
+        ->where('cases.data.0.assigned_moderator_id', $this->moderator->id)
+    );
 });
 

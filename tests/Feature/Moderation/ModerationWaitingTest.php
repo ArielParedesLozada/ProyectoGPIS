@@ -13,17 +13,16 @@ require_once __DIR__.'/moderation-test-helpers.php';
 
 uses(RefreshDatabase::class);
 
-describe('Casos en espera', function () {
-    beforeEach(function () {
-        $testData = setupModerationTestData();
-        $this->category = $testData->category;
-        $this->moderator = $testData->moderator;
-        $this->admin = $testData->admin;
-        $this->superAdmin = $testData->superAdmin;
-        $this->vendor = $testData->vendor;
-    });
+beforeEach(function () {
+    $testData = setupModerationTestData();
+    $this->category = $testData->category;
+    $this->moderator = $testData->moderator;
+    $this->admin = $testData->admin;
+    $this->superAdmin = $testData->superAdmin;
+    $this->vendor = $testData->vendor;
+});
 
-    it('MOD-WAIT-001: assignWaitingCasesToNewModerator asigna casos en espera a nuevo moderador', function () {
+test('MOD-113: assignWaitingCasesToNewModerator asigna casos en espera a nuevo moderador', function () {
         $publication = createTestPublication($this->vendor, $this->category, ['is_hidden' => true]);
         $case1 = createModerationCase($publication, [
             'status' => 'appealed',
@@ -106,7 +105,7 @@ describe('Casos en espera', function () {
             ->exists())->toBeTrue();
     });
 
-    it('MOD-WAIT-002: assignWaitingCasesToNewModerator requiere permisos de admin o super_admin', function () {
+    test('MOD-114: assignWaitingCasesToNewModerator requiere permisos de admin o super_admin', function () {
         $this->actingAs($this->moderator);
         $response = callModerationMethod('assignWaitingCasesToNewModerator', [$this->moderator->id]);
         $responseData = json_decode($response->getContent(), true);
@@ -116,7 +115,7 @@ describe('Casos en espera', function () {
         expect($responseData['message'])->toBe('No tienes permisos para realizar esta acción');
     });
 
-    it('MOD-WAIT-003: assignWaitingCasesToNewModerator valida que el moderador sea activo y role moderador', function () {
+    test('MOD-115: assignWaitingCasesToNewModerator valida que el moderador sea activo y role moderador', function () {
         $inactiveModerator = User::factory()->create([
             'role' => RoleType::MODERADOR->value,
             'status' => StatusType::INHABILITADO->value,
@@ -132,7 +131,7 @@ describe('Casos en espera', function () {
         expect($responseData['message'])->toBe('El usuario debe ser un moderador activo');
     });
 
-    it('MOD-WAIT-004: getWaitingCases retorna casos en espera', function () {
+    test('MOD-116: getWaitingCases retorna casos en espera', function () {
         $publication = createTestPublication($this->vendor, $this->category, ['is_hidden' => true]);
         $case1 = createModerationCase($publication, [
             'status' => 'appealed',
@@ -154,7 +153,7 @@ describe('Casos en espera', function () {
         expect($responseData)->toHaveCount(2);
     });
 
-    it('MOD-WAIT-005: getWaitingCasesStats retorna estadísticas de casos en espera', function () {
+    test('MOD-117: getWaitingCasesStats retorna estadísticas de casos en espera', function () {
         $publication = createTestPublication($this->vendor, $this->category, ['is_hidden' => true]);
         $case1 = createModerationCase($publication, [
             'status' => 'appealed',
@@ -179,7 +178,6 @@ describe('Casos en espera', function () {
         expect($responseData)->toHaveKeys(['waiting_cases_count', 'active_moderators_count', 'oldest_waiting_case']);
         expect($responseData['waiting_cases_count'])->toBe(2);
         expect($responseData['active_moderators_count'])->toBeGreaterThanOrEqual(1); // Al menos 1 moderador activo
-        expect($responseData['oldest_waiting_case']['id'])->toBe($case1->id);
-    });
+    expect($responseData['oldest_waiting_case']['id'])->toBe($case1->id);
 });
 

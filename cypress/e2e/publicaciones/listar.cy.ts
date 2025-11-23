@@ -28,7 +28,6 @@ describe('Listar publicaciones', () => {
       cy.get('input[name="email"]').type('usuario@test.com');
       cy.get('input[name="password"]').type('Admin123@');
       cy.get('button[type="submit"]').click();
-      // Esperar a que la redirección se complete
       cy.url({ timeout: 15000 }).should('satisfy', (url) => {
         return !url.includes('/login');
       });

@@ -281,8 +281,10 @@ class ModerationController extends Controller
         DB::beginTransaction();
 
         try {
-            // Ocultar la publicación
-            $case->publication->update(['is_hidden' => true]);
+            // Ocultar la publicación - asegurar que se persista correctamente
+            $publication = $case->publication;
+            $publication->is_hidden = true;
+            $publication->save();
 
             // Actualizar el caso
             $case->update([

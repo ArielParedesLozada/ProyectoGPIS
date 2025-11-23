@@ -36,7 +36,7 @@ beforeEach(function () {
     ]);
 });
 
-test('INT-040: aceptar una apelación restaura la publicación', function () {
+test('APE-022: aceptar una apelación restaura la publicación', function () {
     $publication = createHiddenPublicationForAppeal($this->owner, $this->category);
     $case = createModerationCaseForAppeal($publication, $this->moderatorA, [
         'status' => 'appealed',
@@ -73,7 +73,7 @@ test('INT-040: aceptar una apelación restaura la publicación', function () {
         ->exists())->toBeTrue();
 });
 
-test('INT-041: rechazar una apelación mantiene la decisión original', function () {
+test('APE-023: rechazar una apelación mantiene la decisión original', function () {
     $publication = createHiddenPublicationForAppeal($this->owner, $this->category);
     $case = createModerationCaseForAppeal($publication, $this->moderatorA, [
         'status' => 'appealed',
@@ -108,7 +108,7 @@ test('INT-041: rechazar una apelación mantiene la decisión original', function
         ->exists())->toBeTrue();
 });
 
-test('INT-042: solo el moderador asignado puede revisar la apelación', function () {
+test('APE-024: solo el moderador asignado puede revisar la apelación', function () {
     $publication = createHiddenPublicationForAppeal($this->owner, $this->category);
     $case = createModerationCaseForAppeal($publication, $this->moderatorA, [
         'status' => 'appealed',
@@ -135,7 +135,7 @@ test('INT-042: solo el moderador asignado puede revisar la apelación', function
     expect($appeal->reviewed_at)->toBeNull();
 });
 
-test('INT-043: no se puede revisar una apelación ya revisada', function () {
+test('APE-025: no se puede revisar una apelación ya revisada', function () {
     $publication = createHiddenPublicationForAppeal($this->owner, $this->category);
     $case = createModerationCaseForAppeal($publication, $this->moderatorA, [
         'status' => 'appealed',
@@ -162,7 +162,7 @@ test('INT-043: no se puede revisar una apelación ya revisada', function () {
     $response->assertJson(['success' => false]);
 });
 
-test('INT-044: valida que la apelación pertenezca al caso antes de resolver', function () {
+test('APE-026: valida que la apelación pertenezca al caso antes de resolver', function () {
     $publication = createHiddenPublicationForAppeal($this->owner, $this->category);
     $case = createModerationCaseForAppeal($publication, $this->moderatorA, [
         'status' => 'appealed',
@@ -191,7 +191,7 @@ test('INT-044: valida que la apelación pertenezca al caso antes de resolver', f
     $response->assertJson(['success' => false]);
 });
 
-test('INT-040B: el moderador puede restaurar una publicación desde una apelación', function () {
+test('APE-027: el moderador puede restaurar una publicación desde una apelación', function () {
     $publication = createHiddenPublicationForAppeal($this->owner, $this->category);
     $case = createModerationCaseForAppeal($publication, $this->moderatorA, [
         'status' => 'appealed',
@@ -225,7 +225,7 @@ test('INT-040B: el moderador puede restaurar una publicación desde una apelaci�
     expect($action)->not->toBeNull();
 });
 
-test('INT-040C: no se puede restaurar publicación si no está asignada al moderador', function () {
+test('APE-028: no se puede restaurar publicación si no está asignada al moderador', function () {
     $publication = createHiddenPublicationForAppeal($this->owner, $this->category);
     $case = createModerationCaseForAppeal($publication, $this->moderatorA, [
         'status' => 'appealed',
@@ -243,7 +243,7 @@ test('INT-040C: no se puede restaurar publicación si no está asignada al moder
     expect($publication->is_hidden)->toBeTrue();
 });
 
-test('INT-040D: no se puede restaurar publicación si el caso ya está completado', function () {
+test('APE-029: no se puede restaurar publicación si el caso ya está completado', function () {
     $publication = createHiddenPublicationForAppeal($this->owner, $this->category);
     $case = createModerationCaseForAppeal($publication, $this->moderatorA, [
         'status' => 'closed',
@@ -262,7 +262,7 @@ test('INT-040D: no se puede restaurar publicación si el caso ya está completad
     expect($publication->is_hidden)->toBeTrue();
 });
 
-test('INT-040E: no se puede restaurar publicación si no está en estado appealed', function () {
+test('APE-030: no se puede restaurar publicación si no está en estado appealed', function () {
     $publication = createHiddenPublicationForAppeal($this->owner, $this->category);
     $case = createModerationCaseForAppeal($publication, $this->moderatorA, [
         'status' => 'pending',

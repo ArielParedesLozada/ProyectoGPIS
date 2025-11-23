@@ -36,7 +36,7 @@ beforeEach(function () {
     ]);
 });
 
-test('INT-045: el historial registra cada acción sobre la apelación', function () {
+test('APE-021: el historial registra cada acción sobre la apelación', function () {
     $publication = createHiddenPublicationForAppeal($this->owner, $this->category);
     $case = createModerationCaseForAppeal($publication, $this->moderatorA, [
         'status' => 'appealed',

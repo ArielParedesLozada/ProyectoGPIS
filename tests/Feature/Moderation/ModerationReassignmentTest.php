@@ -14,18 +14,17 @@ require_once __DIR__.'/moderation-test-helpers.php';
 
 uses(RefreshDatabase::class);
 
-describe('Reasignación de casos', function () {
-    beforeEach(function () {
-        $testData = setupModerationTestData();
-        $this->category = $testData->category;
-        $this->moderator = $testData->moderator;
-        $this->anotherModerator = $testData->anotherModerator;
-        $this->admin = $testData->admin;
-        $this->superAdmin = $testData->superAdmin;
-        $this->vendor = $testData->vendor;
-    });
+beforeEach(function () {
+    $testData = setupModerationTestData();
+    $this->category = $testData->category;
+    $this->moderator = $testData->moderator;
+    $this->anotherModerator = $testData->anotherModerator;
+    $this->admin = $testData->admin;
+    $this->superAdmin = $testData->superAdmin;
+    $this->vendor = $testData->vendor;
+});
 
-    it('MOD-REASSIGN-001: reassignInactiveModeratorCases despacha job para admin', function () {
+test('MOD-087: reassignInactiveModeratorCases despacha job para admin', function () {
         Bus::fake();
 
         $this->actingAs($this->admin);
@@ -42,7 +41,7 @@ describe('Reasignación de casos', function () {
         Bus::assertDispatched(\App\Jobs\ReassignModeratorCasesJob::class);
     });
 
-    it('MOD-REASSIGN-002: reassignInactiveModeratorCases requiere permisos de admin o super_admin', function () {
+    test('MOD-088: reassignInactiveModeratorCases requiere permisos de admin o super_admin', function () {
         Bus::fake();
 
         $this->actingAs($this->moderator);
@@ -56,7 +55,7 @@ describe('Reasignación de casos', function () {
         Bus::assertNothingDispatched();
     });
 
-    it('MOD-REASSIGN-003: reassignSpecificCases reasigna casos específicos (solo admin)', function () {
+    test('MOD-089: reassignSpecificCases reasigna casos específicos', function () {
         $publication = createTestPublication($this->vendor, $this->category);
         $case1 = createModerationCase($publication, [
             'status' => 'pending',
@@ -95,7 +94,7 @@ describe('Reasignación de casos', function () {
         expect($case2->assigned_moderator_id)->toBe($this->anotherModerator->id);
     });
 
-    it('MOD-REASSIGN-004: reassignSpecificCases requiere permisos de admin', function () {
+    test('MOD-090: reassignSpecificCases requiere permisos de admin', function () {
         $publication = createTestPublication($this->vendor, $this->category);
         $case = createModerationCase($publication);
 
@@ -113,7 +112,7 @@ describe('Reasignación de casos', function () {
         expect($responseData['message'])->toBe('Solo el Admin puede realizar reasignaciones manuales');
     });
 
-    it('MOD-REASSIGN-005: reassignSpecificCases valida que el moderador esté activo', function () {
+    test('MOD-091: reassignSpecificCases valida que el moderador esté activo', function () {
         $inactiveModerator = User::factory()->create([
             'role' => RoleType::MODERADOR->value,
             'status' => StatusType::INHABILITADO->value,
@@ -137,7 +136,7 @@ describe('Reasignación de casos', function () {
         expect($responseData['message'])->toBe('El moderador debe estar activo para recibir casos');
     });
 
-    it('MOD-REASSIGN-006: reassignSpecificCases rechaza casos con estado inválido', function () {
+    test('MOD-092: reassignSpecificCases rechaza casos con estado inválido', function () {
         $publication = createTestPublication($this->vendor, $this->category);
         $case1 = createModerationCase($publication, ['status' => 'pending']);
         $case2 = createModerationCase($publication, ['status' => 'closed']);
@@ -168,7 +167,7 @@ describe('Reasignación de casos', function () {
         expect($responseData['errors'][0])->toContain('no puede ser reasignado');
     });
 
-    it('MOD-REASSIGN-007: getReassignedCasesFromModerator retorna casos reasignados', function () {
+    test('MOD-093: getReassignedCasesFromModerator retorna casos reasignados', function () {
         $publication = createTestPublication($this->vendor, $this->category);
         $case = createModerationCase($publication, [
             'assigned_moderator_id' => $this->anotherModerator->id,
@@ -187,7 +186,7 @@ describe('Reasignación de casos', function () {
         expect($responseData[0]['id'])->toBe($case->id);
     });
 
-    it('MOD-REASSIGN-008: reassignInactiveModeratorCases maneja excepciones', function () {
+    test('MOD-094: reassignInactiveModeratorCases maneja excepciones', function () {
         // Forzar excepción en el dispatch del job
         Bus::fake();
         
@@ -203,7 +202,7 @@ describe('Reasignación de casos', function () {
         expect($responseData['message'])->toContain('Error al iniciar la reasignación');
     });
 
-    it('MOD-REASSIGN-009: reassignSpecificCases maneja excepciones en casos individuales', function () {
+    test('MOD-095: reassignSpecificCases maneja excepciones en casos individuales', function () {
         $publication = createTestPublication($this->vendor, $this->category);
         $case1 = createModerationCase($publication, ['status' => 'pending']);
         $case2 = createModerationCase($publication, ['status' => 'pending']);
@@ -232,7 +231,7 @@ describe('Reasignación de casos', function () {
         expect(count($responseData['errors']))->toBeGreaterThanOrEqual(1); // case2 tiene error
     });
 
-    it('MOD-REASSIGN-010: reassignCaseToAvailableModerator asigna caso a moderador disponible (método privado)', function () {
+    test('MOD-096: reassignCaseToAvailableModerator asigna caso a moderador disponible', function () {
         $publication = createTestPublication($this->vendor, $this->category);
         $case = createModerationCase($publication, [
             'status' => 'pending',
@@ -254,7 +253,7 @@ describe('Reasignación de casos', function () {
         expect($result->id)->toBe($case->assigned_moderator_id);
     });
 
-    it('MOD-REASSIGN-011: reassignCaseToAvailableModerator retorna null cuando no hay moderadores disponibles', function () {
+    test('MOD-097: reassignCaseToAvailableModerator retorna null cuando no hay moderadores disponibles', function () {
         $publication = createTestPublication($this->vendor, $this->category);
         $case = createModerationCase($publication, [
             'status' => 'pending',
@@ -275,7 +274,6 @@ describe('Reasignación de casos', function () {
         // Verificar que no se asignó ningún moderador
         expect($result)->toBeNull();
         $case->refresh();
-        expect($case->assigned_moderator_id)->toBeNull();
-    });
+    expect($case->assigned_moderator_id)->toBeNull();
 });
 

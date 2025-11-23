@@ -15,16 +15,15 @@ require_once __DIR__.'/moderation-test-helpers.php';
 
 uses(RefreshDatabase::class);
 
-describe('Moderation show y button states', function () {
-    beforeEach(function () {
-        $testData = setupModerationTestData();
-        $this->category = $testData->category;
-        $this->moderator = $testData->moderator;
-        $this->anotherModerator = $testData->anotherModerator;
-        $this->vendor = $testData->vendor;
-    });
+beforeEach(function () {
+    $testData = setupModerationTestData();
+    $this->category = $testData->category;
+    $this->moderator = $testData->moderator;
+    $this->anotherModerator = $testData->anotherModerator;
+    $this->vendor = $testData->vendor;
+});
 
-    it('MOD-SHW-001: Muestra detalles del caso con relaciones cargadas', function () {
+test('MOD-098: Muestra detalles del caso con relaciones cargadas', function () {
         $publication = createTestPublication($this->vendor, $this->category);
         $case = createModerationCase($publication, [
             'assigned_moderator_id' => $this->moderator->id,
@@ -44,7 +43,7 @@ describe('Moderation show y button states', function () {
         );
     });
 
-    it('MOD-SHW-002: getCaseButtonStates retorna estados correctos para caso pendiente asignado', function () {
+    test('MOD-099: getCaseButtonStates retorna estados correctos para caso pendiente asignado', function () {
         $publication = createTestPublication($this->vendor, $this->category);
         $case = createModerationCase($publication, [
             'status' => 'pending',
@@ -64,7 +63,7 @@ describe('Moderation show y button states', function () {
         expect($responseData['canDismissCase'])->toBeTrue();
     });
 
-    it('MOD-SHW-003: getCaseButtonStates retorna canHidePublication false si hay apelación pendiente', function () {
+    test('MOD-100: getCaseButtonStates retorna canHidePublication false si hay apelación pendiente', function () {
         $publication = createTestPublication($this->vendor, $this->category);
         $case = createModerationCase($publication, [
             'status' => 'pending',
@@ -81,7 +80,7 @@ describe('Moderation show y button states', function () {
         expect($responseData['canHidePublication'])->toBeFalse();
     });
 
-    it('MOD-SHW-004: getCaseButtonStates retorna canRestorePublication true para apelación asignada a segundo moderador', function () {
+    test('MOD-101: getCaseButtonStates retorna canRestorePublication true para apelación asignada a segundo moderador', function () {
         $publication = createTestPublication($this->vendor, $this->category, ['is_hidden' => true]);
         $case = createModerationCase($publication, [
             'status' => 'appealed',
@@ -100,7 +99,7 @@ describe('Moderation show y button states', function () {
         expect($responseData['isOriginalModerator'])->toBeFalse();
     });
 
-    it('MOD-SHW-005: getCaseButtonStates retorna isOriginalModerator true cuando el moderador actual es el original', function () {
+    test('MOD-102: getCaseButtonStates retorna isOriginalModerator true cuando el moderador actual es el original', function () {
         $publication = createTestPublication($this->vendor, $this->category, ['is_hidden' => true]);
         $case = createModerationCase($publication, [
             'status' => 'appealed',
@@ -119,7 +118,7 @@ describe('Moderation show y button states', function () {
         expect($responseData['canConfirmHideDecision'])->toBeFalse();
     });
 
-    it('MOD-SHW-006: getCaseButtonStates retorna canDismissCase false para caso apelado', function () {
+    test('MOD-103: getCaseButtonStates retorna canDismissCase false para caso apelado', function () {
         $publication = createTestPublication($this->vendor, $this->category);
         $case = createModerationCase($publication, [
             'status' => 'appealed',
@@ -135,7 +134,7 @@ describe('Moderation show y button states', function () {
         expect($responseData['isAppealed'])->toBeTrue();
     });
 
-    it('MOD-SHW-007: getCaseButtonStates retorna isCompleted true para caso cerrado', function () {
+    test('MOD-104: getCaseButtonStates retorna isCompleted true para caso cerrado', function () {
         $publication = createTestPublication($this->vendor, $this->category);
         $case = createModerationCase($publication, [
             'status' => 'closed',
@@ -152,7 +151,7 @@ describe('Moderation show y button states', function () {
         expect($responseData['canDismissCase'])->toBeFalse();
     });
 
-    it('MOD-SHW-008: getCaseButtonStates retorna isAssignedToMe false cuando no está asignado', function () {
+    test('MOD-105: getCaseButtonStates retorna isAssignedToMe false cuando no está asignado', function () {
         $publication = createTestPublication($this->vendor, $this->category);
         $case = createModerationCase($publication, [
             'assigned_moderator_id' => null,
@@ -168,7 +167,7 @@ describe('Moderation show y button states', function () {
         expect($responseData['canDismissCase'])->toBeFalse();
     });
 
-    it('MOD-SHW-009: getCaseButtonStates retorna canHidePublication false si publicación ya está oculta', function () {
+    test('MOD-106: getCaseButtonStates retorna canHidePublication false si publicación ya está oculta', function () {
         $publication = createTestPublication($this->vendor, $this->category, ['is_hidden' => true]);
         $case = createModerationCase($publication, [
             'assigned_moderator_id' => $this->moderator->id,
@@ -182,7 +181,7 @@ describe('Moderation show y button states', function () {
         expect($responseData['canHidePublication'])->toBeFalse();
     });
 
-    it('MOD-SHW-010: getCaseButtonStates retorna canHidePublication false si status es action_taken', function () {
+    test('MOD-107: getCaseButtonStates retorna canHidePublication false si status es action_taken', function () {
         $publication = createTestPublication($this->vendor, $this->category);
         $case = createModerationCase($publication, [
             'status' => 'action_taken',
@@ -195,7 +194,6 @@ describe('Moderation show y button states', function () {
 
         expect($response->getStatusCode())->toBe(200);
         expect($responseData['canHidePublication'])->toBeFalse();
-        expect($responseData['isActionTaken'])->toBeTrue();
-    });
+    expect($responseData['isActionTaken'])->toBeTrue();
 });
 

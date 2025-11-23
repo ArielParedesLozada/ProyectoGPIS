@@ -49,7 +49,7 @@ beforeEach(function () {
     $this->category = Category::factory()->create();
 });
 
-test('INT-027: el historial registra todas las acciones sobre una incidencia', function () {
+test('INC-007: el historial registra todas las acciones sobre una incidencia', function () {
     $publication = createTestPublication($this->vendor, $this->category, ['is_hidden' => false]);
     $case = createModerationCase($publication, [
         'assigned_moderator_id' => $this->moderator->id,
@@ -99,7 +99,7 @@ test('INT-027: el historial registra todas las acciones sobre una incidencia', f
     expect($actions)->toContain('close_case');
 });
 
-test('INT-028: el sistema entrega estadísticas correctas de incidencias', function () {
+test('INC-008: el sistema entrega estadísticas correctas de incidencias', function () {
     createModerationCase(createTestPublication($this->vendor, $this->category), [
         'status' => 'pending',
         'assigned_moderator_id' => $this->moderator->id,
@@ -139,7 +139,7 @@ test('INT-028: el sistema entrega estadísticas correctas de incidencias', funct
     );
 });
 
-test('INT-029: permite listar y filtrar incidencias por estado y ordenar por fecha', function () {
+test('INC-009: permite listar y filtrar incidencias por estado y ordenar por fecha', function () {
     $recentCase = createModerationCase(createTestPublication($this->vendor, $this->category), [
         'status' => 'pending',
         'created_at' => now(),

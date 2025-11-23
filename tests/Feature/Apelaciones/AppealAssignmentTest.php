@@ -37,7 +37,7 @@ beforeEach(function () {
     ]);
 });
 
-test('INT-035: la apelación se asigna automáticamente a un moderador diferente', function () {
+test('APE-001: la apelación se asigna automáticamente a un moderador diferente', function () {
     $extraModerator = User::factory()->create([
         'role' => RoleType::MODERADOR->value,
         'status' => StatusType::HABILITADO->value,
@@ -57,7 +57,7 @@ test('INT-035: la apelación se asigna automáticamente a un moderador diferente
     expect($case->assigned_moderator_id)->not->toBe($this->moderatorA->id);
 });
 
-test('INT-036: el moderador puede asignarse manualmente una apelación disponible', function () {
+test('APE-002: el moderador puede asignarse manualmente una apelación disponible', function () {
     $publication = createHiddenPublicationForAppeal($this->owner, $this->category);
     $case = createModerationCaseForAppeal($publication, $this->moderatorA, [
         'status' => 'appealed',
@@ -98,7 +98,7 @@ test('INT-036: el moderador puede asignarse manualmente una apelación disponibl
     expect($case->assigned_moderator_id)->toBe($this->moderatorB->id);
 });
 
-test('INT-037: el sistema impide reasignar la apelación al moderador original', function () {
+test('APE-003: el sistema impide reasignar la apelación al moderador original', function () {
     $publication = createHiddenPublicationForAppeal($this->owner, $this->category);
     $case = createModerationCaseForAppeal($publication, $this->moderatorA, [
         'status' => 'appealed',
@@ -122,7 +122,7 @@ test('INT-037: el sistema impide reasignar la apelación al moderador original',
     expect($case->assigned_moderator_id)->toBeNull();
 });
 
-test('INT-038: apelaciones pendientes se asignan a moderadores recién activados', function () {
+test('APE-004: apelaciones pendientes se asignan a moderadores recién activados', function () {
     $inactiveModerator = User::factory()->create([
         'role' => RoleType::MODERADOR->value,
         'status' => StatusType::HABILITADO->value,
@@ -163,7 +163,7 @@ test('INT-038: apelaciones pendientes se asignan a moderadores recién activados
     expect($case->assigned_moderator_id)->toBe($inactiveModerator->id);
 });
 
-test('INT-039: la asignación automática solo considera moderadores activos y habilitados', function () {
+test('APE-005: la asignación automática solo considera moderadores activos y habilitados', function () {
     $inactiveModerator = User::factory()->create([
         'role' => RoleType::MODERADOR->value,
         'status' => StatusType::HABILITADO->value,

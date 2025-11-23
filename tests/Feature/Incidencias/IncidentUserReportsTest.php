@@ -49,7 +49,7 @@ beforeEach(function () {
     $this->category = Category::factory()->create();
 });
 
-test('INT-015: bloquea reportes repetidos dentro de 60 minutos', function () {
+test('INC-027: bloquea reportes repetidos dentro de 60 minutos', function () {
     $publication = createTestPublication($this->vendor, $this->category);
 
     $reporter = User::factory()->create([
@@ -83,7 +83,7 @@ test('INT-015: bloquea reportes repetidos dentro de 60 minutos', function () {
     expect(ModerationReport::count())->toBe(1);
 });
 
-test('INT-016: impide que el creador reporte su propia publicación', function () {
+test('INC-028: impide que el creador reporte su propia publicación', function () {
     $publication = createTestPublication($this->vendor, $this->category);
 
     $response = $this->actingAs($this->vendor)
@@ -99,7 +99,7 @@ test('INT-016: impide que el creador reporte su propia publicación', function (
     expect(ModerationReport::count())->toBe(0);
 });
 
-test('INT-017: agrega reportes de distintos usuarios a la misma incidencia', function () {
+test('INC-029: agrega reportes de distintos usuarios a la misma incidencia', function () {
     $publication = createTestPublication($this->vendor, $this->category);
 
     $reporterA = User::factory()->create([
@@ -143,7 +143,7 @@ test('INT-017: agrega reportes de distintos usuarios a la misma incidencia', fun
     expect(ModerationReport::where('moderation_case_id', $case->id)->count())->toBe(2);
 });
 
-test('INT-018: reabre incidencia cerrada hace menos de 90 días con nuevo reporte', function () {
+test('INC-030: reabre incidencia cerrada hace menos de 90 días con nuevo reporte', function () {
     $publication = createTestPublication($this->vendor, $this->category, [
         'is_hidden' => true,
     ]);
@@ -204,7 +204,7 @@ test('INT-018: reabre incidencia cerrada hace menos de 90 días con nuevo report
     expect(ModerationReport::where('moderation_case_id', $closedCase->id)->count())->toBe(2);
 });
 
-test('INT-019: mantiene incidencia descartada sin generar nuevos casos', function () {
+test('INC-031: mantiene incidencia descartada sin generar nuevos casos', function () {
     $publication = createTestPublication($this->vendor, $this->category, [
         'is_hidden' => false,
     ]);
@@ -240,7 +240,7 @@ test('INT-019: mantiene incidencia descartada sin generar nuevos casos', functio
     expect(ModerationReport::count())->toBe(0);
 });
 
-test('INT-020: crea nueva incidencia si el caso anterior está cerrado hace más de 90 días', function () {
+test('INC-032: crea nueva incidencia si el caso anterior está cerrado hace más de 90 días', function () {
     $publication = createTestPublication($this->vendor, $this->category, [
         'is_hidden' => false,
     ]);

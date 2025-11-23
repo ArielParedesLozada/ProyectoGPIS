@@ -36,7 +36,7 @@ beforeEach(function () {
     ]);
 });
 
-test('INT-031B: canAppeal retorna false si el usuario no es propietario', function () {
+test('APE-006: canAppeal retorna false si el usuario no es propietario', function () {
     $publication = createHiddenPublicationForAppeal($this->owner, $this->category);
     createModerationCaseForAppeal($publication, $this->moderatorA);
 
@@ -50,7 +50,7 @@ test('INT-031B: canAppeal retorna false si el usuario no es propietario', functi
     ]);
 });
 
-test('INT-032B: canAppeal retorna false si la publicación no está oculta', function () {
+test('APE-007: canAppeal retorna false si la publicación no está oculta', function () {
     $publication = createHiddenPublicationForAppeal($this->owner, $this->category, [
         'is_hidden' => false,
     ]);
@@ -66,7 +66,7 @@ test('INT-032B: canAppeal retorna false si la publicación no está oculta', fun
     ]);
 });
 
-test('INT-034B: canAppeal retorna false si el caso está cerrado', function () {
+test('APE-008: canAppeal retorna false si el caso está cerrado', function () {
     $publication = createHiddenPublicationForAppeal($this->owner, $this->category);
     $case = createModerationCaseForAppeal($publication, $this->moderatorA, [
         'status' => 'closed',
@@ -82,7 +82,7 @@ test('INT-034B: canAppeal retorna false si el caso está cerrado', function () {
     ]);
 });
 
-test('INT-030B: canAppeal retorna true para casos de auto-moderación', function () {
+test('APE-009: canAppeal retorna true para casos de auto-moderación', function () {
     $publication = createHiddenPublicationForAppeal($this->owner, $this->category);
     $case = ModerationCase::create([
         'publication_id' => $publication->id,
@@ -112,7 +112,7 @@ test('INT-030B: canAppeal retorna true para casos de auto-moderación', function
     ]);
 });
 
-test('INT-033B: canAppeal retorna true para casos en estado appealed', function () {
+test('APE-010: canAppeal retorna true para casos en estado appealed', function () {
     $publication = createHiddenPublicationForAppeal($this->owner, $this->category);
     $case = createModerationCaseForAppeal($publication, $this->moderatorA, [
         'status' => 'appealed',
@@ -127,7 +127,7 @@ test('INT-033B: canAppeal retorna true para casos en estado appealed', function 
     ]);
 });
 
-test('INT-030C: canAppeal retorna false si no existe caso de moderación', function () {
+test('APE-011: canAppeal retorna false si no existe caso de moderación', function () {
     $publication = createHiddenPublicationForAppeal($this->owner, $this->category);
 
     $response = $this->actingAs($this->owner)
@@ -140,7 +140,7 @@ test('INT-030C: canAppeal retorna false si no existe caso de moderación', funct
     ]);
 });
 
-test('INT-035B: assignAppealToDifferentModerator asigna a moderador diferente cuando no hay moderador original', function () {
+test('APE-012: assignAppealToDifferentModerator asigna a moderador diferente cuando no hay moderador original', function () {
     $publication = createHiddenPublicationForAppeal($this->owner, $this->category);
     $case = ModerationCase::create([
         'publication_id' => $publication->id,
@@ -159,7 +159,7 @@ test('INT-035B: assignAppealToDifferentModerator asigna a moderador diferente cu
     expect($case->assigned_moderator_id)->not->toBeNull();
 });
 
-test('INT-038B: handleNoModeratorsAvailable se ejecuta cuando no hay moderadores disponibles', function () {
+test('APE-013: handleNoModeratorsAvailable se ejecuta cuando no hay moderadores disponibles', function () {
     // Desactivar todos los moderadores
     $this->moderatorA->update(['is_active' => false]);
 
@@ -189,7 +189,7 @@ test('INT-038B: handleNoModeratorsAvailable se ejecuta cuando no hay moderadores
     expect($waitingAction->metadata['waiting_reason'])->toBe('no_moderators_available');
 });
 
-test('INT-018B: canReopenCase retorna false para casos descartados', function () {
+test('APE-014: canReopenCase retorna false para casos descartados', function () {
     require_once __DIR__.'/../Incidencias/incident-test-helpers.php';
     $publication = createTestPublication($this->owner, $this->category, ['is_hidden' => true]);
     $case = ModerationCase::create([
@@ -220,7 +220,7 @@ test('INT-018B: canReopenCase retorna false para casos descartados', function ()
     expect($case->status)->toBe('dismissed');
 });
 
-test('INT-018C: canReopenCase retorna false para casos cerrados hace más de 90 días', function () {
+test('APE-015: canReopenCase retorna false para casos cerrados hace más de 90 días', function () {
     require_once __DIR__.'/../Incidencias/incident-test-helpers.php';
     $publication = createTestPublication($this->owner, $this->category, ['is_hidden' => false]);
     $oldCase = ModerationCase::create([

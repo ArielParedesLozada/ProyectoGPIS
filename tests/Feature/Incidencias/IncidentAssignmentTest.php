@@ -49,7 +49,7 @@ beforeEach(function () {
     $this->category = Category::factory()->create();
 });
 
-test('INT-021: asigna incidencia al moderador con menor carga de trabajo', function () {
+test('INC-001: asigna incidencia al moderador con menor carga de trabajo', function () {
     $lightModerator = User::factory()->create([
         'role' => RoleType::MODERADOR->value,
         'status' => StatusType::HABILITADO->value,
@@ -104,7 +104,7 @@ test('INT-021: asigna incidencia al moderador con menor carga de trabajo', funct
     expect($case->assigned_moderator_id)->toBe($lightModerator->id);
 });
 
-test('INT-022: la asignación automática ignora moderadores inactivos', function () {
+test('INC-002: la asignación automática ignora moderadores inactivos', function () {
     $inactiveModerator = User::factory()->create([
         'role' => RoleType::MODERADOR->value,
         'status' => StatusType::HABILITADO->value,
@@ -132,7 +132,7 @@ test('INT-022: la asignación automática ignora moderadores inactivos', functio
     expect([$this->moderator->id, $this->anotherModerator->id])->toContain($case->assigned_moderator_id);
 });
 
-test('INT-023: reasigna automáticamente incidencias de moderador inactivo', function () {
+test('INC-003: reasigna automáticamente incidencias de moderador inactivo', function () {
     $publication = createTestPublication($this->vendor, $this->category, ['is_hidden' => true]);
     $case = ModerationCase::create([
         'publication_id' => $publication->id,

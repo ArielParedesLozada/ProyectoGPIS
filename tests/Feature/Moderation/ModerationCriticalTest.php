@@ -13,18 +13,17 @@ require_once __DIR__.'/moderation-test-helpers.php';
 
 uses(RefreshDatabase::class);
 
-describe('Casos críticos', function () {
-    beforeEach(function () {
-        $testData = setupModerationTestData();
-        $this->category = $testData->category;
-        $this->moderator = $testData->moderator;
-        $this->anotherModerator = $testData->anotherModerator;
-        $this->admin = $testData->admin;
-        $this->superAdmin = $testData->superAdmin;
-        $this->vendor = $testData->vendor;
-    });
+beforeEach(function () {
+    $testData = setupModerationTestData();
+    $this->category = $testData->category;
+    $this->moderator = $testData->moderator;
+    $this->anotherModerator = $testData->anotherModerator;
+    $this->admin = $testData->admin;
+    $this->superAdmin = $testData->superAdmin;
+    $this->vendor = $testData->vendor;
+});
 
-    it('MOD-CRIT-001: getCasesRequiringManualIntervention retorna casos que requieren intervención (solo super_admin)', function () {
+test('MOD-049: getCasesRequiringManualIntervention retorna casos que requieren intervención', function () {
         $publication = createTestPublication($this->vendor, $this->category, ['is_hidden' => true]);
         $case = createModerationCase($publication, [
             'status' => 'appealed',
@@ -46,7 +45,7 @@ describe('Casos críticos', function () {
         }
     });
 
-    it('MOD-CRIT-002: getCasesRequiringManualIntervention requiere permisos de super_admin', function () {
+    test('MOD-050: getCasesRequiringManualIntervention requiere permisos de super_admin', function () {
         $this->actingAs($this->admin);
         $response = callModerationMethod('getCasesRequiringManualIntervention');
         $responseData = json_decode($response->getContent(), true);
@@ -56,7 +55,7 @@ describe('Casos críticos', function () {
         expect($responseData['message'])->toBe('Solo el SuperAdmin puede ver casos que requieren intervención manual');
     });
 
-    it('MOD-CRIT-010: getCasesRequiringManualIntervention retorna casos con todas las relaciones cargadas', function () {
+    test('MOD-051: getCasesRequiringManualIntervention retorna casos con todas las relaciones cargadas', function () {
         $publication = createTestPublication($this->vendor, $this->category, ['is_hidden' => true]);
         $case1 = createModerationCase($publication, [
             'status' => 'appealed',
@@ -82,7 +81,7 @@ describe('Casos críticos', function () {
         }
     });
 
-    it('MOD-CRIT-003: assignCriticalCase asigna caso crítico a moderador (solo admin)', function () {
+    test('MOD-052: assignCriticalCase asigna caso crítico a moderador', function () {
         $publication = createTestPublication($this->vendor, $this->category, ['is_hidden' => true]);
         $case = createModerationCase($publication, [
             'status' => 'appealed',
@@ -115,7 +114,7 @@ describe('Casos críticos', function () {
         expect($case->assigned_moderator_id)->toBe($this->moderator->id);
     });
 
-    it('MOD-CRIT-004: assignCriticalCase requiere permisos de admin', function () {
+    test('MOD-053: assignCriticalCase requiere permisos de admin', function () {
         $publication = createTestPublication($this->vendor, $this->category);
         $case = createModerationCase($publication);
 
@@ -133,7 +132,7 @@ describe('Casos críticos', function () {
         expect($responseData['message'])->toBe('Solo el Admin puede asignar casos críticos');
     });
 
-    it('MOD-CRIT-005: assignCriticalCase valida que el moderador esté activo', function () {
+    test('MOD-054: assignCriticalCase valida que el moderador esté activo', function () {
         $inactiveModerator = User::factory()->create([
             'role' => RoleType::MODERADOR->value,
             'status' => StatusType::INHABILITADO->value,
@@ -157,7 +156,7 @@ describe('Casos críticos', function () {
         expect($responseData['message'])->toBe('El moderador debe estar activo para recibir casos');
     });
 
-    it('MOD-CRIT-006: assignCriticalCase valida que el usuario sea moderador válido', function () {
+    test('MOD-055: assignCriticalCase valida que el usuario sea moderador válido', function () {
         $vendor = User::factory()->create([
             'role' => RoleType::VENDEDOR->value,
             'status' => StatusType::HABILITADO->value,
@@ -181,7 +180,7 @@ describe('Casos críticos', function () {
         expect($responseData['message'])->toBe('El usuario debe ser un moderador');
     });
 
-    it('MOD-CRIT-007: getCriticalCasesStats retorna estadísticas de casos críticos (solo super_admin)', function () {
+    test('MOD-056: getCriticalCasesStats retorna estadísticas de casos críticos', function () {
         $publication = createTestPublication($this->vendor, $this->category);
         $case1 = createModerationCase($publication, ['assigned_moderator_id' => null]);
         $case2 = createModerationCase($publication);
@@ -202,7 +201,7 @@ describe('Casos críticos', function () {
         }
     });
 
-    it('MOD-CRIT-008: getCriticalCasesStats requiere permisos de super_admin', function () {
+    test('MOD-057: getCriticalCasesStats requiere permisos de super_admin', function () {
         $this->actingAs($this->admin);
         $response = callModerationMethod('getCriticalCasesStats');
         $responseData = json_decode($response->getContent(), true);
@@ -212,7 +211,7 @@ describe('Casos críticos', function () {
         expect($responseData['message'])->toBe('Solo el SuperAdmin puede ver estadísticas de casos críticos');
     });
 
-    it('MOD-CRIT-009: getCriticalCasesStats retorna estadísticas completas cuando hay casos', function () {
+    test('MOD-058: getCriticalCasesStats retorna estadísticas completas cuando hay casos', function () {
         $publication = createTestPublication($this->vendor, $this->category);
         
         // Crear casos con diferentes tipos de acciones
@@ -240,8 +239,7 @@ describe('Casos críticos', function () {
             $responseData = json_decode($response->getContent(), true);
             expect($response->getStatusCode())->toBe(403);
         } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
-            expect($e->getStatusCode())->toBe(403);
-        }
-    });
+        expect($e->getStatusCode())->toBe(403);
+    }
 });
 

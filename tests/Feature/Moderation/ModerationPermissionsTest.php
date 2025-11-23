@@ -10,70 +10,69 @@ require_once __DIR__.'/moderation-test-helpers.php';
 
 uses(RefreshDatabase::class);
 
-describe('Autorización y permisos', function () {
-    beforeEach(function () {
-        $this->category = Category::factory()->create();
-        
-        $this->moderator = User::factory()->create([
-            'role' => RoleType::MODERADOR->value,
-            'status' => StatusType::HABILITADO->value,
-            'is_active' => true,
-        ]);
+beforeEach(function () {
+    $this->category = Category::factory()->create();
+    
+    $this->moderator = User::factory()->create([
+        'role' => RoleType::MODERADOR->value,
+        'status' => StatusType::HABILITADO->value,
+        'is_active' => true,
+    ]);
 
-        $this->admin = User::factory()->create([
-            'role' => RoleType::ADMIN->value,
-            'status' => StatusType::HABILITADO->value,
-            'is_active' => true,
-        ]);
+    $this->admin = User::factory()->create([
+        'role' => RoleType::ADMIN->value,
+        'status' => StatusType::HABILITADO->value,
+        'is_active' => true,
+    ]);
 
-        $this->superAdmin = User::factory()->create([
-            'role' => 'super_admin',
-            'status' => StatusType::HABILITADO->value,
-            'is_active' => true,
-        ]);
+    $this->superAdmin = User::factory()->create([
+        'role' => 'super_admin',
+        'status' => StatusType::HABILITADO->value,
+        'is_active' => true,
+    ]);
 
-        $this->vendor = User::factory()->create([
-            'role' => RoleType::VENDEDOR->value,
-            'status' => StatusType::HABILITADO->value,
-            'is_active' => true,
-        ]);
-    });
+    $this->vendor = User::factory()->create([
+        'role' => RoleType::VENDEDOR->value,
+        'status' => StatusType::HABILITADO->value,
+        'is_active' => true,
+    ]);
+});
 
-    it('MOD-AUTH-001: Moderador puede acceder a index', function () {
+test('MOD-074: Moderador puede acceder a index', function () {
         $response = $this->actingAs($this->moderator)
             ->get(route('moderation.index'));
 
         $response->assertStatus(200);
     });
 
-    it('MOD-AUTH-002: Admin puede acceder a index', function () {
+    test('MOD-075: Admin puede acceder a index', function () {
         $response = $this->actingAs($this->admin)
             ->get(route('moderation.index'));
 
         $response->assertStatus(200);
     });
 
-    it('MOD-AUTH-003: SuperAdmin NO puede acceder a index (checkModeratorPermissions bloquea)', function () {
+    test('MOD-076: SuperAdmin NO puede acceder a index', function () {
         $response = $this->actingAs($this->superAdmin)
             ->get(route('moderation.index'));
 
         $response->assertStatus(403);
     });
 
-    it('MOD-AUTH-004: Vendedor NO puede acceder a index', function () {
+    test('MOD-077: Vendedor NO puede acceder a index', function () {
         $response = $this->actingAs($this->vendor)
             ->get(route('moderation.index'));
 
         $response->assertStatus(403);
     });
 
-    it('MOD-AUTH-005: Usuario no autenticado NO puede acceder a index', function () {
+    test('MOD-078: Usuario no autenticado NO puede acceder a index', function () {
         $response = $this->get(route('moderation.index'));
 
         $response->assertRedirect(route('login'));
     });
 
-    it('MOD-AUTH-006: Moderador puede acceder a show', function () {
+    test('MOD-079: Moderador puede acceder a show', function () {
         $publication = createTestPublication($this->vendor, $this->category);
         $case = createModerationCase($publication, [
             'assigned_moderator_id' => $this->moderator->id,
@@ -85,7 +84,7 @@ describe('Autorización y permisos', function () {
         $response->assertStatus(200);
     });
 
-    it('MOD-AUTH-007: Admin puede acceder a show', function () {
+    test('MOD-080: Admin puede acceder a show', function () {
         $publication = createTestPublication($this->vendor, $this->category);
         $case = createModerationCase($publication, [
             'assigned_moderator_id' => $this->admin->id,
@@ -97,7 +96,7 @@ describe('Autorización y permisos', function () {
         $response->assertStatus(200);
     });
 
-    it('MOD-AUTH-008: SuperAdmin NO puede acceder a show', function () {
+    test('MOD-081: SuperAdmin NO puede acceder a show', function () {
         $publication = createTestPublication($this->vendor, $this->category);
         $case = createModerationCase($publication);
 
@@ -107,7 +106,7 @@ describe('Autorización y permisos', function () {
         $response->assertStatus(403);
     });
 
-    it('MOD-AUTH-009: Vendedor NO puede acceder a show', function () {
+    test('MOD-082: Vendedor NO puede acceder a show', function () {
         $publication = createTestPublication($this->vendor, $this->category);
         $case = createModerationCase($publication);
 
@@ -117,7 +116,7 @@ describe('Autorización y permisos', function () {
         $response->assertStatus(403);
     });
 
-    it('MOD-AUTH-010: Moderador puede acceder a getAppealStats', function () {
+    test('MOD-083: Moderador puede acceder a getAppealStats', function () {
         $this->actingAs($this->moderator);
         $response = callModerationMethod('getAppealStats');
         
@@ -138,7 +137,7 @@ describe('Autorización y permisos', function () {
         ]);
     });
 
-    it('MOD-AUTH-011: Admin puede acceder a getAppealStats', function () {
+    test('MOD-084: Admin puede acceder a getAppealStats', function () {
         $this->actingAs($this->admin);
         $response = callModerationMethod('getAppealStats');
         
@@ -159,7 +158,7 @@ describe('Autorización y permisos', function () {
         ]);
     });
 
-    it('MOD-AUTH-012: SuperAdmin NO puede acceder a getAppealStats', function () {
+    test('MOD-085: SuperAdmin NO puede acceder a getAppealStats', function () {
         $this->actingAs($this->superAdmin);
         $response = callModerationMethod('getAppealStats');
         $responseData = json_decode($response->getContent(), true);
@@ -168,13 +167,12 @@ describe('Autorización y permisos', function () {
         expect($responseData['success'])->toBeFalse();
     });
 
-    it('MOD-AUTH-013: Vendedor NO puede acceder a getAppealStats', function () {
+    test('MOD-086: Vendedor NO puede acceder a getAppealStats', function () {
         $this->actingAs($this->vendor);
         $response = callModerationMethod('getAppealStats');
         $responseData = json_decode($response->getContent(), true);
 
         expect($response->getStatusCode())->toBe(403);
-        expect($responseData['success'])->toBeFalse();
-    });
+    expect($responseData['success'])->toBeFalse();
 });
 

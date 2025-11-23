@@ -48,7 +48,7 @@ beforeEach(function () {
     $this->category = Category::factory()->create();
 });
 
-test('INT-024: el moderador asignado puede resolver la incidencia', function () {
+test('INC-020: el moderador asignado puede resolver la incidencia', function () {
     $publication = createTestPublication($this->vendor, $this->category, ['is_hidden' => false]);
     $case = createModerationCase($publication, [
         'assigned_moderator_id' => $this->moderator->id,
@@ -77,7 +77,7 @@ test('INT-024: el moderador asignado puede resolver la incidencia', function () 
     expect($action->metadata['reason'])->toBe('Contenido prohibido detectado');
 });
 
-test('INT-025: solo el moderador asignado puede resolver la incidencia', function () {
+test('INC-021: solo el moderador asignado puede resolver la incidencia', function () {
     $publication = createTestPublication($this->vendor, $this->category, ['is_hidden' => false]);
     $case = createModerationCase($publication, [
         'assigned_moderator_id' => $this->moderator->id,
@@ -107,7 +107,7 @@ test('INT-025: solo el moderador asignado puede resolver la incidencia', functio
     expect($case->status)->toBe('action_taken');
 });
 
-test('INT-026: impide acciones sobre incidencias cerradas o descartadas', function () {
+test('INC-022: impide acciones sobre incidencias cerradas o descartadas', function () {
     $publication = createTestPublication($this->vendor, $this->category, ['is_hidden' => true]);
     $case = createModerationCase($publication, [
         'status' => 'closed',
@@ -128,7 +128,7 @@ test('INT-026: impide acciones sobre incidencias cerradas o descartadas', functi
     expect($case->status)->toBe('closed');
 });
 
-test('INT-026B: el moderador puede descartar un caso', function () {
+test('INC-023: el moderador puede descartar un caso', function () {
     $publication = createTestPublication($this->vendor, $this->category, ['is_hidden' => false]);
     $case = createModerationCase($publication, [
         'assigned_moderator_id' => $this->moderator->id,
@@ -157,7 +157,7 @@ test('INT-026B: el moderador puede descartar un caso', function () {
     expect($action)->not->toBeNull();
 });
 
-test('INT-026C: no se puede descartar un caso no asignado', function () {
+test('INC-024: no se puede descartar un caso no asignado', function () {
     $publication = createTestPublication($this->vendor, $this->category);
     $case = createModerationCase($publication, [
         'assigned_moderator_id' => $this->anotherModerator->id,
@@ -175,7 +175,7 @@ test('INT-026C: no se puede descartar un caso no asignado', function () {
     expect($case->status)->not->toBe('dismissed');
 });
 
-test('INT-026D: descartar un caso restaura la publicación si estaba oculta', function () {
+test('INC-025: descartar un caso restaura la publicación si estaba oculta', function () {
     $publication = createTestPublication($this->vendor, $this->category, ['is_hidden' => true]);
     $case = createModerationCase($publication, [
         'assigned_moderator_id' => $this->moderator->id,
@@ -204,7 +204,7 @@ test('INT-026D: descartar un caso restaura la publicación si estaba oculta', fu
     expect($action->metadata['publication_restored'])->toBeTrue();
 });
 
-test('INT-026E: no se puede descartar un caso ya completado', function () {
+test('INC-026: no se puede descartar un caso ya completado', function () {
     $publication = createTestPublication($this->vendor, $this->category);
     $case = createModerationCase($publication, [
         'status' => 'action_taken',

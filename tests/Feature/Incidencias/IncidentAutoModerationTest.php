@@ -49,7 +49,7 @@ beforeEach(function () {
     $this->category = Category::factory()->create();
 });
 
-test('INT-012: crea incidencia automática cuando la publicación tiene contenido prohibido', function () {
+test('INC-004: crea incidencia automática cuando la publicación tiene contenido prohibido', function () {
     $payload = [
         'title' => 'Servicio de limpieza profesional',
         'description' => 'Ofrecemos trabajo sin palabras como puta ni contenido ofensivo',
@@ -81,7 +81,7 @@ test('INT-012: crea incidencia automática cuando la publicación tiene contenid
     expect($action->metadata['detected_words'])->toContain('puta');
 });
 
-test('INT-013: crea incidencia de reporte de usuario y la asigna automáticamente', function () {
+test('INC-005: crea incidencia de reporte de usuario y la asigna automáticamente', function () {
     $publication = createTestPublication($this->vendor, $this->category);
 
     $reporter = User::factory()->create([
@@ -114,7 +114,7 @@ test('INT-013: crea incidencia de reporte de usuario y la asigna automáticament
     expect($report->reason)->toBe('Contenido inapropiado');
 });
 
-test('INT-014: consolida múltiples palabras prohibidas en una sola incidencia', function () {
+test('INC-006: consolida múltiples palabras prohibidas en una sola incidencia', function () {
     $payload = [
         'title' => 'Servicio premium',
         'description' => 'Este anuncio es una mierda cabron y puta con mucho contenido prohibido',

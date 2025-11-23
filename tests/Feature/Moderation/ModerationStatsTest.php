@@ -13,18 +13,17 @@ require_once __DIR__.'/moderation-test-helpers.php';
 
 uses(RefreshDatabase::class);
 
-describe('Estadísticas de moderadores', function () {
-    beforeEach(function () {
-        $testData = setupModerationTestData();
-        $this->category = $testData->category;
-        $this->moderator = $testData->moderator;
-        $this->anotherModerator = $testData->anotherModerator;
-        $this->admin = $testData->admin;
-        $this->superAdmin = $testData->superAdmin;
-        $this->vendor = $testData->vendor;
-    });
+beforeEach(function () {
+    $testData = setupModerationTestData();
+    $this->category = $testData->category;
+    $this->moderator = $testData->moderator;
+    $this->anotherModerator = $testData->anotherModerator;
+    $this->admin = $testData->admin;
+    $this->superAdmin = $testData->superAdmin;
+    $this->vendor = $testData->vendor;
+});
 
-    it('MOD-MODSTAT-001: getActiveModeratorsStats retorna estadísticas de moderadores activos', function () {
+test('MOD-108: getActiveModeratorsStats retorna estadísticas de moderadores activos', function () {
         $inactiveModerator = User::factory()->create([
             'role' => RoleType::MODERADOR->value,
             'status' => StatusType::INHABILITADO->value,
@@ -55,7 +54,7 @@ describe('Estadísticas de moderadores', function () {
         expect($responseData['moderators_with_cases'])->toBe(1);
     });
 
-    it('MOD-MODSTAT-002: handleModeratorReactivation retorna estadísticas de reactivación (solo admin o super_admin)', function () {
+    test('MOD-109: handleModeratorReactivation retorna estadísticas de reactivación', function () {
         $inactiveModerator = User::factory()->create([
             'role' => RoleType::MODERADOR->value,
             'status' => StatusType::INHABILITADO->value,
@@ -84,7 +83,7 @@ describe('Estadísticas de moderadores', function () {
         expect($responseData['stats']['cases_reassigned_while_inactive'])->toBe(1);
     });
 
-    it('MOD-MODSTAT-003: handleModeratorReactivation requiere permisos de admin o super_admin', function () {
+    test('MOD-110: handleModeratorReactivation requiere permisos de admin o super_admin', function () {
         $inactiveModerator = User::factory()->create([
             'role' => RoleType::MODERADOR->value,
             'status' => StatusType::INHABILITADO->value,
@@ -100,7 +99,7 @@ describe('Estadísticas de moderadores', function () {
         expect($responseData['message'])->toBe('No tienes permisos para realizar esta acción');
     });
 
-    it('MOD-MODSTAT-004: handleModeratorReactivation valida que el usuario sea moderador', function () {
+    test('MOD-111: handleModeratorReactivation valida que el usuario sea moderador', function () {
         $vendor = User::factory()->create([
             'role' => RoleType::VENDEDOR->value,
             'status' => StatusType::HABILITADO->value,
@@ -116,7 +115,7 @@ describe('Estadísticas de moderadores', function () {
         expect($responseData['message'])->toBe('El usuario no es un moderador');
     });
 
-    it('MOD-MODSTAT-005: handleModeratorReactivation valida que el moderador no esté ya activo', function () {
+    test('MOD-112: handleModeratorReactivation valida que el moderador no esté ya activo', function () {
         // Asegurar que el moderador esté activo antes de llamar al método
         $this->moderator->refresh();
         expect((int)$this->moderator->status)->toBe(StatusType::HABILITADO->value);
@@ -133,7 +132,6 @@ describe('Estadísticas de moderadores', function () {
         expect($responseData)->not->toBeNull();
         expect($response->getStatusCode())->toBe(400);
         expect($responseData['success'])->toBeFalse();
-        expect($responseData['message'])->toBe('El moderador ya está activo');
-    });
+    expect($responseData['message'])->toBe('El moderador ya está activo');
 });
 

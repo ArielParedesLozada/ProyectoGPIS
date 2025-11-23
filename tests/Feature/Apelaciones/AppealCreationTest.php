@@ -42,7 +42,7 @@ beforeEach(function () {
     ]);
 });
 
-test('INT-030: crea apelación y actualiza estado del caso', function () {
+test('APE-016: crea apelación y actualiza estado del caso', function () {
     $publication = createHiddenPublicationForAppeal($this->owner, $this->category);
     $case = createModerationCaseForAppeal($publication, $this->moderatorA);
 
@@ -67,7 +67,7 @@ test('INT-030: crea apelación y actualiza estado del caso', function () {
     expect($appeal->appeal_reason)->toBe('Considero que la decisión fue injusta');
 });
 
-test('INT-031: solo el creador puede presentar apelación', function () {
+test('APE-017: solo el creador puede presentar apelación', function () {
     $publication = createHiddenPublicationForAppeal($this->owner, $this->category);
     $case = createModerationCaseForAppeal($publication, $this->moderatorA);
 
@@ -89,7 +89,7 @@ test('INT-031: solo el creador puede presentar apelación', function () {
     expect(ModerationAppeal::count())->toBe(1);
 });
 
-test('INT-032: solo se pueden apelar publicaciones ocultas', function () {
+test('APE-018: solo se pueden apelar publicaciones ocultas', function () {
     $publication = createHiddenPublicationForAppeal($this->owner, $this->category, [
         'is_hidden' => false,
     ]);
@@ -104,7 +104,7 @@ test('INT-032: solo se pueden apelar publicaciones ocultas', function () {
     expect(ModerationAppeal::count())->toBe(0);
 });
 
-test('INT-033: evita múltiples apelaciones pendientes para el mismo caso', function () {
+test('APE-019: evita múltiples apelaciones pendientes para el mismo caso', function () {
     $publication = createHiddenPublicationForAppeal($this->owner, $this->category);
     $case = createModerationCaseForAppeal($publication, $this->moderatorA, [
         'status' => 'appealed',
@@ -127,7 +127,7 @@ test('INT-033: evita múltiples apelaciones pendientes para el mismo caso', func
     expect(ModerationAppeal::where('moderation_case_id', $case->id)->count())->toBe(1);
 });
 
-test('INT-034: no se pueden apelar casos cerrados', function () {
+test('APE-020: no se pueden apelar casos cerrados', function () {
     $publication = createHiddenPublicationForAppeal($this->owner, $this->category);
     $case = createModerationCaseForAppeal($publication, $this->moderatorA, [
         'status' => 'closed',
