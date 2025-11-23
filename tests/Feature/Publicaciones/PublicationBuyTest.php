@@ -6,7 +6,7 @@ require_once __DIR__.'/publication-test-helpers.php';
 
 uses(RefreshDatabase::class);
 
-test('PUB-035: Compra publicación exitosamente', function () {
+test('PUB-BUY-001: Compra publicación exitosamente', function () {
     $buyer = makeUser(['role' => \App\Enums\RoleType::COMPRADOR->value]);
     $seller = makeUser(['role' => \App\Enums\RoleType::VENDEDOR->value]);
     $category = makeCategory();
@@ -38,7 +38,7 @@ test('PUB-035: Compra publicación exitosamente', function () {
     ]);
 });
 
-test('PUB-036: Rechaza compra de publicación no disponible', function () {
+test('PUB-BUY-002: Rechaza compra de publicación no disponible', function () {
     $buyer = makeUser(['role' => \App\Enums\RoleType::COMPRADOR->value]);
     $seller = makeUser(['role' => \App\Enums\RoleType::VENDEDOR->value]);
     $category = makeCategory();
@@ -58,7 +58,7 @@ test('PUB-036: Rechaza compra de publicación no disponible', function () {
         ->toContain('ya no está disponible');
 });
 
-test('PUB-037: Rechaza compra de propia publicación', function () {
+test('PUB-BUY-003: Rechaza compra de propia publicación', function () {
     $user = makeUser(['role' => \App\Enums\RoleType::VENDEDOR->value]);
     $category = makeCategory();
 
@@ -77,7 +77,7 @@ test('PUB-037: Rechaza compra de propia publicación', function () {
         ->toContain('No puedes comprar tu propia publicación');
 });
 
-test('PUB-038: Rechaza compra cuando vendedor está deshabilitado', function () {
+test('PUB-BUY-004: Rechaza compra cuando vendedor está deshabilitado', function () {
     $buyer = makeUser(['role' => \App\Enums\RoleType::COMPRADOR->value]);
     $seller = makeUser([
         'role' => \App\Enums\RoleType::VENDEDOR->value,
@@ -101,7 +101,7 @@ test('PUB-038: Rechaza compra cuando vendedor está deshabilitado', function () 
         ->toContain('cuenta desactivada');
 });
 
-test('PUB-039: Invitado no puede comprar', function () {
+test('PUB-BUY-005: Invitado no puede comprar', function () {
     $seller = makeUser(['role' => \App\Enums\RoleType::VENDEDOR->value]);
     $category = makeCategory();
 
@@ -127,7 +127,7 @@ test('PUB-039: Invitado no puede comprar', function () {
     ]);
 });
 
-test('PUB-040: Usuario con rol inválido no puede comprar', function () {
+test('PUB-BUY-006: Usuario con rol inválido no puede comprar', function () {
     $buyer = makeUser(['role' => \App\Enums\RoleType::ADMIN->value]);
     $seller = makeUser(['role' => \App\Enums\RoleType::VENDEDOR->value]);
     $category = makeCategory();
@@ -147,7 +147,7 @@ test('PUB-040: Usuario con rol inválido no puede comprar', function () {
         ->toContain('Tu rol no te permite realizar compras');
 });
 
-test('PUB-049: Compra redirige cuando Auth::user() devuelve null', function () {
+test('PUB-BUY-007: Compra redirige cuando Auth::user() devuelve null', function () {
     $seller = makeUser(['role' => \App\Enums\RoleType::VENDEDOR->value]);
     $category = makeCategory();
 
@@ -202,7 +202,7 @@ test('PUB-049: Compra redirige cuando Auth::user() devuelve null', function () {
     expect($logWarningMessage)->toContain('Usuario no autenticado intentando comprar');
 });
 
-test('PUB-050: Compra maneja excepciones correctamente', function () {
+test('PUB-BUY-008: Compra maneja excepciones correctamente', function () {
     $buyer = makeUser(['role' => \App\Enums\RoleType::COMPRADOR->value]);
     $seller = makeUser(['role' => \App\Enums\RoleType::VENDEDOR->value]);
     $category = makeCategory();
