@@ -72,23 +72,90 @@ Route::prefix('testing')->group(function () {
         $publication = Publication::findOrFail($id);
         return response()->json($publication);
     });
+    Route::patch('/publication/{id}', function ($id) {
+        $publication = Publication::findOrFail($id);
+        $publication->update(request()->all());
+        return response()->json($publication);
+    });
     Route::patch('/user/{id}', function ($id) {
         $user = User::findOrFail($id);
         $user->update(request()->all());
         return response()->json($user);
     });
+    Route::patch('/moderation-case/{id}', function ($id) {
+        $case = \App\Models\ModerationCase::findOrFail($id);
+        $data = request()->all();
+        
+        // Validar source si se proporciona
+        if (isset($data['source'])) {
+            $validSources = ['user', 'system'];
+            if ($data['source'] === 'auto') {
+                $data['source'] = 'system';
+            }
+            if (!in_array($data['source'], $validSources)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => "Invalid source: '{$data['source']}'. Valid values are: " . implode(', ', $validSources)
+                ], 400);
+            }
+        }
+        
+        // Validar status si se proporciona
+        if (isset($data['status'])) {
+            $validStatuses = ['pending', 'triage', 'in_review', 'action_taken', 'dismissed', 'appealed', 'closed'];
+            if (!in_array($data['status'], $validStatuses)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => "Invalid status: '{$data['status']}'. Valid values are: " . implode(', ', $validStatuses)
+                ], 400);
+            }
+        }
+        
+        $case->update($data);
+        return response()->json($case);
+    });
     Route::post('/moderation-case', function () {
         $data = request()->all();
         
         try {
+            // Validar y normalizar el source: solo permite 'user' o 'system' según el enum de la BD
+            $validSources = ['user', 'system'];
+            $source = $data['source'] ?? 'system';
+            
+            // Si se proporciona 'auto', convertirlo a 'system' para testing
+            if ($source === 'auto') {
+                $source = 'system';
+            }
+            
+            // Validar que el source sea válido
+            if (!in_array($source, $validSources)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => "Invalid source: '{$source}'. Valid values are: " . implode(', ', $validSources)
+                ], 400);
+            }
+            
+            // Validar que el status sea válido según el enum de la migración
+            $validStatuses = ['pending', 'triage', 'in_review', 'action_taken', 'dismissed', 'appealed', 'closed'];
+            $status = $data['status'] ?? 'pending';
+            
+            if (!in_array($status, $validStatuses)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => "Invalid status: '{$status}'. Valid values are: " . implode(', ', $validStatuses)
+                ], 400);
+            }
+            
             // Crear el caso SIN eventos para evitar observers/events que puedan causar hang
-            $case = \App\Models\ModerationCase::withoutEvents(function () use ($data) {
+            $case = \App\Models\ModerationCase::withoutEvents(function () use ($data, $source, $status) {
                 return \App\Models\ModerationCase::create([
                     'publication_id' => $data['publication_id'],
-                    'source' => $data['source'] ?? 'auto',
-                    'status' => $data['status'] ?? 'pending',
+                    'source' => $source,
+                    'status' => $status,
                     'assigned_moderator_id' => $data['assigned_moderator_id'] ?? null,
                     'assigned_at' => $data['assigned_at'] ?? now(),
+                    'resolution_notes' => $data['resolution_notes'] ?? null,
+                    'resolved_at' => $data['resolved_at'] ?? null,
                 ]);
             });
             
@@ -96,7 +163,8 @@ Route::prefix('testing')->group(function () {
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => app()->environment('local') ? $e->getTraceAsString() : null
             ], 500);
         }
     });
@@ -227,10 +295,11 @@ Route::prefix('testing')->group(function () {
         return response()->json($action);
     });
     Route::post('/reassign-cases', function () {
-        $fromModeratorId = request('from_moderator_id');
-        $toModeratorId = request('to_moderator_id');
+        $fromModeratorId = (int) request('from_moderator_id');
+        $toModeratorId = (int) request('to_moderator_id');
         
         // Buscar casos (sin incluir eliminados por defecto)
+        // Asegurar que assigned_moderator_id no sea null y coincida exactamente
         $cases = \App\Models\ModerationCase::where('assigned_moderator_id', $fromModeratorId)
             ->whereIn('status', ['pending', 'in_review', 'appealed'])
             ->get();
@@ -250,6 +319,13 @@ Route::prefix('testing')->group(function () {
             'found_cases' => $cases->count(),
             'from_moderator_id' => $fromModeratorId,
             'to_moderator_id' => $toModeratorId,
+            'debug' => [
+                'query_conditions' => [
+                    'assigned_moderator_id' => $fromModeratorId,
+                    'status_in' => ['pending', 'in_review', 'appealed'],
+                ],
+                'total_cases_found' => $cases->count(),
+            ],
         ]);
     });
     Route::post('/login', function () {

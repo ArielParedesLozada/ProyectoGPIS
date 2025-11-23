@@ -533,8 +533,8 @@ class ModerationController extends Controller
         
         $request->validate([
             'appeal_id' => 'required|exists:moderation_appeals,id',
-            'review_notes' => 'required|string|max:1000',
-            'final_decision' => 'required|in:uphold,overturn', // Nueva validación
+            'review_notes' => 'required|string|min:10|max:100',
+            'final_decision' => 'required|in:uphold,overturn',
         ]);
 
         try {
@@ -545,26 +545,17 @@ class ModerationController extends Controller
             $buttonStates = $this->getButtonStates($case);
             
             if (!$buttonStates['canReviewAppeal']) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No puedes revisar esta apelación'
-                ], 403);
+                return redirect()->back()->withErrors(['error' => 'No puedes revisar esta apelación']);
             }
 
             // Verificar que la apelación pertenezca al caso
             if ($appeal->moderation_case_id !== $case->id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'La apelación no pertenece a este caso'
-                ], 400);
+                return redirect()->back()->withErrors(['error' => 'La apelación no pertenece a este caso']);
             }
 
             // Verificar que no esté ya revisada
             if ($appeal->reviewed_at) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Esta apelación ya ha sido revisada'
-                ], 400);
+                return redirect()->back()->withErrors(['error' => 'Esta apelación ya ha sido revisada']);
             }
 
             DB::beginTransaction();
@@ -582,10 +573,12 @@ class ModerationController extends Controller
                 $case->publication->update(['is_hidden' => false]);
                 $actionType = 'appeal_overturned';
                 $actionDescription = 'Apelación aceptada - Publicación restaurada';
+                $successMessage = 'Apelación aceptada correctamente. La publicación ha sido restaurada.';
             } else {
                 // Mantener la decisión original
                 $actionType = 'appeal_rejected';
                 $actionDescription = 'Apelación rechazada - Decisión original mantenida';
+                $successMessage = 'Apelación rechazada correctamente. La decisión original se mantiene.';
             }
 
             // Registrar la acción
@@ -610,20 +603,14 @@ class ModerationController extends Controller
 
             DB::commit();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Apelación revisada correctamente',
-                'decision' => $request->final_decision
-            ]);
+            // Devolver redirect de Inertia con mensaje de éxito
+            return redirect()->back()->with('success', $successMessage);
 
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al revisar apelación: ' . $e->getMessage());
             
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al procesar la revisión de la apelación'
-            ], 500);
+            return redirect()->back()->withErrors(['error' => 'Error al procesar la revisión de la apelación']);
         }
     }
 

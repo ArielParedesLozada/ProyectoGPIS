@@ -1171,7 +1171,7 @@ class PublicationController extends Controller
         ]);
 
         $request->validate([
-            'reason' => 'required|string|max:1000',
+            'reason' => 'required|string|max:100',
         ]);
 
         try {
