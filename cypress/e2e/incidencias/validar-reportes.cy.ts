@@ -94,7 +94,7 @@ describe('Gestión de incidencias – validación de mensajes de error en report
     });
   });
 
-  it('debe impedir que un usuario reporte su propia publicación mostrando que el control de reporte no está disponible', () => {
+  it('UI-INC-003: La interfaz muestra mensajes de error apropiados al reportar - auto-reporte', () => {
     cy.request('POST', 'http://localhost:8080/testing/publication', {
       title: 'Mi propia publicación',
       description: 'Descripción',
@@ -116,7 +116,7 @@ describe('Gestión de incidencias – validación de mensajes de error en report
     });
   });
 
-  it('debe mostrar mensaje de error claro cuando se intenta reportar la misma publicación dentro de la ventana de tiempo permitida', () => {
+  it('UI-INC-003: La interfaz muestra mensajes de error apropiados al reportar - doble reporte', () => {
     cy.visit(`http://localhost:8080/publication/${publicationId}`);
     cy.contains('Publicación para validar reportes', { timeout: 10000 });
 
@@ -170,7 +170,7 @@ describe('Gestión de incidencias – validación de mensajes de error en report
     cy.contains('Ya has reportado esta publicación recientemente', { timeout: 10000 }).should('be.visible');
   });
 
-  it('debe mostrar mensaje de error claro cuando se intenta reportar una publicación con caso descartado', () => {
+  it('UI-INC-003: La interfaz muestra mensajes de error apropiados al reportar - caso descartado', () => {
     cy.request('POST', 'http://localhost:8080/testing/publication', {
       title: 'Publicación descartada',
       description: 'Descripción',

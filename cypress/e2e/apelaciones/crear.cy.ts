@@ -109,7 +109,7 @@ describe('Creación de apelaciones', () => {
       .then((resp) => cy.setCookie('XSRF-TOKEN', resp.body.token));
   });
 
-  it('El usuario puede crear una apelación desde la interfaz', () => {
+  it('UI-APE-001: El usuario puede crear una apelación desde la interfaz', () => {
     // Verificar que caseId está definido
     expect(caseId).to.exist;
     

@@ -79,7 +79,7 @@ describe('Gestión de incidencias – dashboard de estadísticas de incidencias'
     });
   });
 
-  it('debe mostrar los indicadores de incidencias (pendientes, asignadas, atendidas, descartadas) en el dashboard', () => {
+  it('UI-INC-010: La interfaz muestra los indicadores de incidencias (pendientes, asignadas, atendidas, descartadas) y los actualiza', () => {
     cy.visit('http://localhost:8080/moderation');
 
     cy.contains('Moderación', { timeout: 10000 });
@@ -91,7 +91,7 @@ describe('Gestión de incidencias – dashboard de estadísticas de incidencias'
     cy.contains('Sin Asignar', { timeout: 10000 }).should('be.visible');
   });
 
-  it('debe actualizar los indicadores correctamente al resolver una incidencia', () => {
+  it('UI-INC-010: La interfaz actualiza los indicadores correctamente al resolver una incidencia', () => {
     cy.visit('http://localhost:8080/moderation');
 
     cy.contains('Moderación', { timeout: 10000 });

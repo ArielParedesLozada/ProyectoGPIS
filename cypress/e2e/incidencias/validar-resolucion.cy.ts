@@ -65,7 +65,7 @@ describe('Gestión de incidencias – validación de formulario de resolución d
   });
 
   beforeEach(() => {
-    cy.session('moderador-login', () => {
+    cy.session('moderador-login-validar-resolucion', () => {
       cy.request('GET', 'http://localhost:8080/testing/csrf').then((resp) => {
         cy.setCookie('XSRF-TOKEN', resp.body.token);
       });
@@ -73,9 +73,21 @@ describe('Gestión de incidencias – validación de formulario de resolución d
       cy.get('input[name="email"]', { timeout: 10000 }).should('be.visible');
       cy.get('input[name="email"]').type('moderador@test.com');
       cy.get('input[name="password"]').type('Admin123@');
+      
+      // Interceptar la petición de login
+      cy.intercept('POST', '**/login').as('loginRequest');
       cy.get('button[type="submit"]').should('be.visible').click();
-      cy.wait(3000);
-      cy.url({ timeout: 20000 }).should('satisfy', (url) => !url.includes('/login'));
+      
+      // Esperar a que se complete la petición de login
+      cy.wait('@loginRequest', { timeout: 15000 }).then((interception) => {
+        expect(interception.response?.statusCode).to.be.oneOf([200, 302]);
+      });
+      
+      cy.wait(2000);
+      cy.url({ timeout: 20000 }).should('satisfy', (url) => {
+        const urlStr = typeof url === 'string' ? url : url.href;
+        return !urlStr.includes('/login');
+      });
       cy.wait(2000);
     });
     cy.request('GET', 'http://localhost:8080/testing/csrf').then((resp) => {
@@ -83,7 +95,7 @@ describe('Gestión de incidencias – validación de formulario de resolución d
     });
   });
 
-  it('debe impedir resolver sin motivo mostrando mensaje de validación apropiado', () => {
+  it('UI-INC-007: La interfaz valida los campos requeridos al resolver una incidencia - sin motivo', () => {
     cy.visit(`http://localhost:8080/moderation/${caseId}`);
 
     cy.contains('Publicación para validar', { timeout: 10000 });
@@ -98,7 +110,7 @@ describe('Gestión de incidencias – validación de formulario de resolución d
     cy.contains(/El campo|obligatorio|requerido|motivo/i, { timeout: 10000 }).should('be.visible');
   });
 
-  it('debe impedir resolver con motivo que excede el límite de caracteres mostrando mensaje de validación', () => {
+  it('UI-INC-007: La interfaz valida los campos requeridos al resolver una incidencia - texto demasiado largo', () => {
     cy.visit(`http://localhost:8080/moderation/${caseId}`);
 
     cy.contains('Publicación para validar', { timeout: 10000 });
@@ -132,7 +144,7 @@ describe('Gestión de incidencias – validación de formulario de resolución d
     });
   });
 
-  it('debe permitir resolver con datos válidos guardando la resolución y actualizando estado e historial', () => {
+  it('UI-INC-007: La interfaz valida los campos requeridos al resolver una incidencia - datos válidos', () => {
     cy.request('POST', 'http://localhost:8080/testing/publication', {
       title: 'Publicación válida',
       description: 'Descripción',

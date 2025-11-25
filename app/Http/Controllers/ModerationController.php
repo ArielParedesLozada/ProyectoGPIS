@@ -537,6 +537,21 @@ class ModerationController extends Controller
             'final_decision' => 'required|in:uphold,overturn',
         ]);
 
+        // Detectar si la petición espera JSON (para pruebas o peticiones AJAX)
+        // IMPORTANTE: Excluir peticiones de Inertia (que usan router.post())
+        // Inertia envía X-Inertia header y espera redirect, no JSON
+        $isInertiaRequest = $request->header('X-Inertia') !== null;
+        
+        // postJson() en pruebas establece automáticamente Accept: application/json
+        // Solo devolver JSON si NO es una petición Inertia Y la petición explícitamente quiere JSON
+        $wantsJson = !$isInertiaRequest && (
+            $request->wantsJson() 
+            || $request->expectsJson() 
+            || ($request->header('Accept') === 'application/json' && !$isInertiaRequest)
+            || (str_contains($request->header('Accept', ''), 'application/json') && !$isInertiaRequest)
+            || ($request->isJson() && !$isInertiaRequest)
+        );
+
         try {
             $case = ModerationCase::with(['actions', 'appeals', 'publication'])->findOrFail($id);
             $appeal = ModerationAppeal::findOrFail($request->appeal_id);
@@ -545,16 +560,25 @@ class ModerationController extends Controller
             $buttonStates = $this->getButtonStates($case);
             
             if (!$buttonStates['canReviewAppeal']) {
+                if ($wantsJson) {
+                    return response()->json(['success' => false, 'message' => 'No puedes revisar esta apelación'], 403);
+                }
                 return redirect()->back()->withErrors(['error' => 'No puedes revisar esta apelación']);
             }
 
             // Verificar que la apelación pertenezca al caso
             if ($appeal->moderation_case_id !== $case->id) {
+                if ($wantsJson) {
+                    return response()->json(['success' => false, 'message' => 'La apelación no pertenece a este caso'], 400);
+                }
                 return redirect()->back()->withErrors(['error' => 'La apelación no pertenece a este caso']);
             }
 
             // Verificar que no esté ya revisada
             if ($appeal->reviewed_at) {
+                if ($wantsJson) {
+                    return response()->json(['success' => false, 'message' => 'Esta apelación ya ha sido revisada'], 400);
+                }
                 return redirect()->back()->withErrors(['error' => 'Esta apelación ya ha sido revisada']);
             }
 
@@ -603,12 +627,25 @@ class ModerationController extends Controller
 
             DB::commit();
 
+            // Devolver respuesta según el tipo de petición
+            if ($wantsJson) {
+                return response()->json([
+                    'success' => true,
+                    'decision' => $request->final_decision,
+                    'message' => $successMessage
+                ]);
+            }
+
             // Devolver redirect de Inertia con mensaje de éxito
             return redirect()->back()->with('success', $successMessage);
 
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al revisar apelación: ' . $e->getMessage());
+            
+            if ($wantsJson) {
+                return response()->json(['success' => false, 'message' => 'Error al procesar la revisión de la apelación'], 500);
+            }
             
             return redirect()->back()->withErrors(['error' => 'Error al procesar la revisión de la apelación']);
         }

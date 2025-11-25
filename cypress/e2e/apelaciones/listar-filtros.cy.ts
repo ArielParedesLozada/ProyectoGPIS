@@ -166,7 +166,7 @@ describe('Vista y filtrado de apelaciones', () => {
         cy.request('POST', 'http://localhost:8080/testing/moderation-case', {
           publication_id: pubId1,
           source: 'system',
-          status: 'appealed',
+          status: 'pending',
           assigned_moderator_id: moderadorId,
         }).then((caseResponse) => {
           cy.request('POST', 'http://localhost:8080/testing/moderation-appeal', {
@@ -209,27 +209,37 @@ describe('Vista y filtrado de apelaciones', () => {
   });
 
   beforeEach(() => {
-    cy.session('moderador-login', () => {
+    cy.session('moderador-login-listar-filtros', () => {
       cy.request('GET', 'http://localhost:8080/testing/csrf').then((resp) => {
-        const token = resp.body.token;
-        cy.setCookie('XSRF-TOKEN', token);
+        cy.setCookie('XSRF-TOKEN', resp.body.token);
       });
-
+      
       cy.visit('http://localhost:8080/login');
-      cy.get('input[name="email"]').type('moderador@test.com');
+      cy.get('input[name="email"]', { timeout: 10000 }).should('be.visible').type('moderador@test.com');
       cy.get('input[name="password"]').type('Admin123@');
-      cy.get('button[type="submit"]').click();
-      cy.wait(3000);
-      cy.url().should('not.include', '/login');
+      
+      // Interceptar la petición POST de login
+      cy.intercept('POST', 'http://localhost:8080/login').as('loginRequest');
+      
+      cy.get('button[type="submit"]').should('be.visible').click();
+      
+      // Esperar a que la petición de login se complete
+      cy.wait('@loginRequest').then((interception) => {
+        expect(interception.response?.statusCode).to.be.oneOf([200, 302]);
+      });
+      
+      // Verificar que la URL cambió (login exitoso)
+      cy.url({ timeout: 20000 }).should('satisfy', (url) => !url.includes('/login'));
+      cy.wait(2000);
     });
 
+    // Obtener CSRF token después de la sesión
     cy.request('GET', 'http://localhost:8080/testing/csrf').then((resp) => {
-      const token = resp.body.token;
-      cy.setCookie('XSRF-TOKEN', token);
+      cy.setCookie('XSRF-TOKEN', resp.body.token);
     });
   });
 
-  it('Filtrar apelaciones por estado', () => {
+  it('UI-APE-007: Listar y filtrar apelaciones según su estado u otros criterios definidos - filtrar por estado', () => {
     // Interceptar la request inicial de carga de la página
     cy.intercept('GET', '**/moderation**').as('loadModeration');
     
@@ -244,14 +254,41 @@ describe('Vista y filtrado de apelaciones', () => {
     // Seleccionar estado "Pendiente" usando el helper (ya incluye intercept y wait)
     selectEstado('Pendiente');
 
+    // Esperar un momento para que la página se actualice después del filtro
+    cy.wait(1500);
+
     // Verificar que la publicación pendiente aparece
-    cy.contains('Publicación apelada pendiente', { timeout: 10000 }).should('be.visible');
+    // Usar polling para esperar a que aparezca después del filtro
+    const waitForPendingPublication = (retries = 20): Cypress.Chainable => {
+      return cy.get('body', { timeout: 1000 }).then(($body) => {
+        const bodyText = $body.text();
+        if (bodyText.includes('Publicación apelada pendiente')) {
+          cy.contains('Publicación apelada pendiente', { timeout: 10000 }).should('be.visible');
+          return cy.wrap(true);
+        } else if (retries > 0) {
+          cy.wait(500);
+          return waitForPendingPublication(retries - 1);
+        } else {
+          throw new Error('La publicación pendiente no apareció después de aplicar el filtro');
+        }
+      });
+    };
+    
+    waitForPendingPublication();
     
     // Validación: verificar que la publicación cerrada NO aparece cuando se filtra por "Pendiente"
-    cy.contains('Publicación apelación cerrada', { timeout: 5000 }).should('not.exist');
+    // Usar polling para verificar que no existe
+    cy.get('body', { timeout: 5000 }).then(($body) => {
+      const bodyText = $body.text();
+      if (bodyText.includes('Publicación apelación cerrada')) {
+        // Si aparece, esperar un poco más y verificar de nuevo
+        cy.wait(1000);
+        cy.contains('Publicación apelación cerrada', { timeout: 2000 }).should('not.exist');
+      }
+    });
   });
 
-  it('Filtrar apelaciones por fecha', () => {
+  it('UI-APE-007: Listar y filtrar apelaciones según su estado u otros criterios definidos - filtrar por fecha', () => {
     // Interceptar la request inicial de carga de la página
     cy.intercept('GET', '**/moderation**').as('loadModeration');
     
@@ -293,7 +330,7 @@ describe('Vista y filtrado de apelaciones', () => {
       });
   });
 
-  it('Limpiar filtros', () => {
+  it('UI-APE-007: Listar y filtrar apelaciones según su estado u otros criterios definidos - limpiar filtros', () => {
     // Interceptar la request inicial de carga de la página
     cy.intercept('GET', '**/moderation**').as('loadModeration');
     
@@ -302,21 +339,37 @@ describe('Vista y filtrado de apelaciones', () => {
     // Esperar a que la página cargue completamente
     cy.wait('@loadModeration', { timeout: 10000 });
 
+    // Verificar que ambas publicaciones aparecen inicialmente (sin filtros)
+    cy.contains('Publicación apelada pendiente', { timeout: 10000 }).should('be.visible');
+    cy.contains('Publicación apelación cerrada', { timeout: 10000 }).should('be.visible');
+
     // Asegurar que los filtros estén abiertos
     ensureFiltersOpen();
 
-    // Interceptar la request que se dispara al limpiar filtros
-    cy.intercept('GET', '**/moderation**').as('clearFilters');
+    // Interceptar la request que se dispara al aplicar el filtro
+    cy.intercept('GET', '**/moderation**').as('applyFilter');
 
-    // Aplicar un filtro primero (estado Pendiente)
-    // El helper ya incluye intercept y wait
+    // Aplicar un filtro (estado "Pendiente" para la primera publicación)
+    // La publicación "apelada pendiente" tiene estado "pending"
     selectEstado('Pendiente');
+
+    // Esperar a que la página se actualice después del filtro
+    cy.wait('@applyFilter', { timeout: 10000 });
+    
+    // Esperar un momento adicional para que la UI se actualice
+    cy.wait(1000);
+
+    // Verificar que la URL contiene el filtro de estado
+    cy.url().should('include', 'status=pending');
 
     // Verificar que la publicación pendiente aparece
     cy.contains('Publicación apelada pendiente', { timeout: 10000 }).should('be.visible');
     
     // Verificar que la publicación cerrada NO aparece (filtro aplicado)
     cy.contains('Publicación apelación cerrada', { timeout: 5000 }).should('not.exist');
+
+    // Interceptar la request que se dispara al limpiar filtros
+    cy.intercept('GET', '**/moderation**').as('clearFilters');
 
     // Limpiar filtros
     cy.contains('button', /Limpiar filtros|Limpiar/i, { timeout: 10000 })
@@ -327,6 +380,9 @@ describe('Vista y filtrado de apelaciones', () => {
     
     // Esperar a que se complete la request HTTP de limpiar filtros
     cy.wait('@clearFilters', { timeout: 10000 });
+    
+    // Esperar un momento adicional para que la UI se actualice
+    cy.wait(1000);
 
     // Verificar que ambas publicaciones aparecen después de limpiar
     cy.contains('Publicación apelada pendiente', { timeout: 10000 }).should('be.visible');

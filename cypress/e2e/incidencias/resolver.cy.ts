@@ -107,7 +107,7 @@ describe('Gestión de incidencias – resolución de incidencias desde interfaz 
     });
   });
 
-  it('debe permitir ocultar una publicación ingresando motivo, mostrando mensaje de éxito, actualizando estado y registrando en historial', () => {
+  it('UI-INC-006: Interfaz completa de resolución para moderador - ocultar publicación', () => {
     // Verificar que caseId está definido
     expect(caseId).to.exist;
     
@@ -194,7 +194,7 @@ describe('Gestión de incidencias – resolución de incidencias desde interfaz 
     cy.contains('Publicación ocultada por moderación', { timeout: 10000 }).should('be.visible');
   });
 
-  it('debe permitir descartar un caso ingresando notas, mostrando mensaje de éxito, actualizando estado y registrando en historial', () => {
+  it('UI-INC-006: Interfaz completa de resolución para moderador - descartar caso', () => {
     cy.request('POST', 'http://localhost:8080/testing/publication', {
       title: 'Publicación para descartar',
       description: 'Descripción',

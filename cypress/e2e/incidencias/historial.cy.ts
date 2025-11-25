@@ -98,7 +98,7 @@ describe('Gestión de incidencias – visualización de historial de acciones co
     });
   });
 
-  it('debe mostrar el historial de acciones en orden cronológico con descripción de acciones y filtros funcionales si están disponibles', () => {
+  it('UI-INC-008: Visualización del historial y filtros en el panel', () => {
     cy.visit(`http://localhost:8080/moderation/${caseId}`);
 
     cy.contains('Publicación con historial', { timeout: 10000 });

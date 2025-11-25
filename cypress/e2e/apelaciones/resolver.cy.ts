@@ -111,7 +111,7 @@ describe('Resolución de apelaciones - Interfaz completa', () => {
       .then((resp) => cy.setCookie('XSRF-TOKEN', resp.body.token));
   });
 
-  it('Restaurar publicación desde interfaz', () => {
+  it('UI-APE-004: La interfaz del moderador muestra todas las opciones para resolver una apelación - aceptar apelación', () => {
     // Interceptar la request POST /moderation/:id/restore-publication
     cy.intercept('POST', `**/moderation/${caseId}/restore-publication**`).as('restorePublication');
     
@@ -174,7 +174,7 @@ describe('Resolución de apelaciones - Interfaz completa', () => {
     });
   });
 
-  it('Confirmar decisión de ocultar desde interfaz', () => {
+  it('UI-APE-004: La interfaz del moderador muestra todas las opciones para resolver una apelación - rechazar apelación', () => {
     cy.request('POST', 'http://localhost:8080/testing/publication', {
       title: 'Publicación para rechazar apelación',
       description: 'Descripción',

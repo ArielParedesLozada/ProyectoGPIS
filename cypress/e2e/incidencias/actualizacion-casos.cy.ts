@@ -75,7 +75,7 @@ describe('Gestión de incidencias – actualización de casos asignados tras rea
     });
   });
 
-  it('debe reflejar en el panel cuando un caso ya no está asignado tras reasignación, desapareciendo de Mis incidencias asignadas del moderador original y apareciendo en el panel del nuevo moderador activo', () => {
+  it('UI-INC-011: El panel del moderador/administrador refleja que un caso ya no está asignado cuando el sistema lo reasigna automáticamente', () => {
     cy.session('moderador1-login', () => {
       cy.request('GET', 'http://localhost:8080/testing/csrf').then((resp) => {
         const token = resp.body.token;

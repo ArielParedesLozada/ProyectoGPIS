@@ -88,7 +88,7 @@ describe('Panel del moderador - Reasignación automática', () => {
     });
   });
 
-  it('Panel refleja reasignación automática de apelaciones', () => {
+  it('UI-APE-008: El panel refleja los cambios cuando una apelación se reasigna automáticamente a otro moderador/administrador', () => {
     // ============================================
     // PASO 1: Iniciar sesión como moderador1
     // ============================================

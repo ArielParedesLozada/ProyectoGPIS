@@ -100,7 +100,7 @@ describe('Gestión de incidencias – visualización de casos automáticos en pa
     });
   });
 
-  it('debe mostrar los casos creados automáticamente en el listado de pendientes con origen automático y publicación asociada visible, permitiendo abrir y gestionar el caso', () => {
+  it('UI-INC-004: Los casos creados automáticamente se muestran correctamente en el panel del moderador/administrador', () => {
     // Verificar que caseId está definido
     expect(caseId).to.exist;
     

@@ -23,7 +23,7 @@ describe('Favoritos de publicaciones', () => {
   };
 
   const getUserId = (email: string): Cypress.Chainable<number> => {
-    return cy.request('GET', 'http://localhost:8080/testing/users').then((response) => {
+    return cy.request('GET', 'http:
       const user = response.body.find((u: any) => u.email === email);
       if (!user) {
         throw new Error(`Usuario ${email} no encontrado`);
@@ -33,18 +33,18 @@ describe('Favoritos de publicaciones', () => {
   };
 
   const createPublication = (title: string, description: string, price: string, type: 'producto' | 'servicio'): Cypress.Chainable<number> => {
-    return cy.visit('http://localhost:8080/my-publications/create', {
+    return cy.visit('http:
       onBeforeLoad: setupGeolocationStub
     }).then(() => {
       cy.contains('Crear Nueva Publicación', { timeout: 10000 });
 
-      return cy.request('GET', 'http://localhost:8080/testing/categories').then((response) => {
+      return cy.request('GET', 'http:
         const category = response.body[0];
-        
+
         cy.get('#title').type(title);
         cy.get('#description').type(description);
         cy.get('#price').type(price);
-        
+
         cy.contains('label', 'Categoría').parent().within(() => {
           cy.get('[role="combobox"]').click();
         });
@@ -73,16 +73,16 @@ describe('Favoritos de publicaciones', () => {
         cy.get('button[type="submit"]').contains('Crear Publicación').click();
 
         cy.url({ timeout: 10000 }).should('include', '/my-publications');
-        
+
         cy.wait(4000);
-        
+
         return getUserId('vendedor@test.com').then((userId) => {
-          return cy.request('GET', 'http://localhost:8080/testing/publications').then((response) => {
+          return cy.request('GET', 'http:
             const userPublications = response.body.filter((p: any) => p.created_by === userId);
-            const publication = userPublications.find((p: any) => 
+            const publication = userPublications.find((p: any) =>
               p.title && (p.title.includes(title) || p.title === title)
             );
-            
+
             if (!publication && userPublications.length > 0) {
               const sorted = userPublications.sort((a: any, b: any) => b.id - a.id);
               return sorted[0].id;
@@ -97,9 +97,9 @@ describe('Favoritos de publicaciones', () => {
   };
 
   before(() => {
-    cy.request('POST', 'http://localhost:8080/testing/reset-db', { seed: true });
-    
-    cy.request('POST', 'http://localhost:8080/testing/user', {
+    cy.request('POST', 'http:
+
+    cy.request('POST', 'http:
       email: 'vendedor@test.com',
       password: 'Admin123@',
       role: 'vendedor',
@@ -109,12 +109,12 @@ describe('Favoritos de publicaciones', () => {
 
   it('PUB-FAV-001: Crear publicación servicio, marcar favorito, desmarcar desde favoritos y verificar en publicaciones', () => {
     cy.session('vendedor-login', () => {
-      cy.request('GET', 'http://localhost:8080/testing/csrf').then((resp) => {
+      cy.request('GET', 'http:
         const token = resp.body.token;
         cy.setCookie('XSRF-TOKEN', token);
       });
 
-      cy.visit('http://localhost:8080/login');
+      cy.visit('http:
       cy.get('input[name="email"]').type('vendedor@test.com');
       cy.get('input[name="password"]').type('Admin123@');
       cy.get('button[type="submit"]').click();
@@ -124,7 +124,7 @@ describe('Favoritos de publicaciones', () => {
       cy.wait(2000);
     });
 
-    cy.request('GET', 'http://localhost:8080/testing/csrf').then((resp) => {
+    cy.request('GET', 'http:
       const token = resp.body.token;
       cy.setCookie('XSRF-TOKEN', token);
     });
@@ -137,7 +137,7 @@ describe('Favoritos de publicaciones', () => {
     ).then((id) => {
       servicioId = id;
 
-      cy.visit('http://localhost:8080/publication');
+      cy.visit('http:
       cy.contains('Servicio de Consultoría IT', { timeout: 10000 }).should('be.visible');
 
       cy.contains('Servicio de Consultoría IT').then(($title) => {
@@ -159,7 +159,7 @@ describe('Favoritos de publicaciones', () => {
 
       cy.wait(2000);
 
-      cy.visit('http://localhost:8080/favorites');
+      cy.visit('http:
       cy.contains('Servicio de Consultoría IT', { timeout: 10000 }).should('be.visible');
 
       cy.contains('Servicio de Consultoría IT').then(($title) => {
@@ -182,9 +182,8 @@ describe('Favoritos de publicaciones', () => {
 
       cy.contains('Servicio de Consultoría IT', { timeout: 10000 }).should('be.visible');
 
-      cy.visit('http://localhost:8080/favorites');
+      cy.visit('http:
       cy.contains('Servicio de Consultoría IT', { timeout: 10000 }).should('not.exist');
     });
   });
 });
-

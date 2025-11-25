@@ -150,7 +150,7 @@ describe('Visualización de apelaciones asignadas', () => {
       .then((resp) => cy.setCookie('XSRF-TOKEN', resp.body.token));
   });
 
-  it('Visualizar apelaciones pendientes asignadas', () => {
+  it('UI-APE-003: Visualización de apelaciones pendientes en el panel del moderador/administrador', () => {
     cy.visit('http://localhost:8080/moderation');
 
     // Verificar que la página cargó correctamente

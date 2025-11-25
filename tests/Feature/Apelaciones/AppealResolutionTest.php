@@ -50,7 +50,7 @@ test('APE-022: aceptar una apelación restaura la publicación', function () {
         'appeal_reason' => 'Solicito restauración',
     ]);
 
-    $response = $this->actingAs($this->moderatorB)->post(route('moderation.review-appeal', $case->id), [
+    $response = $this->actingAs($this->moderatorB)->postJson(route('moderation.review-appeal', $case->id), [
         'appeal_id' => $appeal->id,
         'review_notes' => 'La apelación es válida',
         'final_decision' => 'overturn',
@@ -87,7 +87,7 @@ test('APE-023: rechazar una apelación mantiene la decisión original', function
         'appeal_reason' => 'Solicito revisión',
     ]);
 
-    $response = $this->actingAs($this->moderatorB)->post(route('moderation.review-appeal', $case->id), [
+    $response = $this->actingAs($this->moderatorB)->postJson(route('moderation.review-appeal', $case->id), [
         'appeal_id' => $appeal->id,
         'review_notes' => 'Se mantiene la decisión original',
         'final_decision' => 'uphold',
@@ -122,7 +122,7 @@ test('APE-024: solo el moderador asignado puede revisar la apelación', function
         'appeal_reason' => 'Esperando revisión',
     ]);
 
-    $response = $this->actingAs($this->moderatorA)->post(route('moderation.review-appeal', $case->id), [
+    $response = $this->actingAs($this->moderatorA)->postJson(route('moderation.review-appeal', $case->id), [
         'appeal_id' => $appeal->id,
         'review_notes' => 'Intento no autorizado',
         'final_decision' => 'uphold',
@@ -152,7 +152,7 @@ test('APE-025: no se puede revisar una apelación ya revisada', function () {
         'reviewed_at' => now()->subDay(),
     ]);
 
-    $response = $this->actingAs($this->moderatorB)->post(route('moderation.review-appeal', $case->id), [
+    $response = $this->actingAs($this->moderatorB)->postJson(route('moderation.review-appeal', $case->id), [
         'appeal_id' => $appeal->id,
         'review_notes' => 'Intento de segunda revisión',
         'final_decision' => 'uphold',
@@ -181,7 +181,7 @@ test('APE-026: valida que la apelación pertenezca al caso antes de resolver', f
         'appeal_reason' => 'Apelación de otro caso',
     ]);
 
-    $response = $this->actingAs($this->moderatorB)->post(route('moderation.review-appeal', $case->id), [
+    $response = $this->actingAs($this->moderatorB)->postJson(route('moderation.review-appeal', $case->id), [
         'appeal_id' => $appealOther->id,
         'review_notes' => 'Intento con apelación incorrecta',
         'final_decision' => 'uphold',

@@ -101,7 +101,7 @@ describe('Gestión de incidencias – listado de incidencias con filtros por est
     });
   });
 
-  it('debe filtrar incidencias por estado mostrando solo las que coinciden con el filtro seleccionado', () => {
+  it('UI-INC-009: La interfaz permite filtrar incidencias por estado, fecha, y limpiar los filtros - filtrar por estado', () => {
     cy.visit('http://localhost:8080/moderation');
 
     cy.contains('Moderación', { timeout: 10000 });
@@ -123,7 +123,7 @@ describe('Gestión de incidencias – listado de incidencias con filtros por est
     cy.contains('Publicación cerrada').should('not.exist');
   });
 
-  it('debe filtrar incidencias por rango de fechas mostrando solo las incidencias dentro del rango', () => {
+  it('UI-INC-009: La interfaz permite filtrar incidencias por estado, fecha, y limpiar los filtros - filtrar por fecha', () => {
     cy.visit('http://localhost:8080/moderation');
 
     cy.contains('Moderación', { timeout: 10000 });
@@ -161,7 +161,7 @@ describe('Gestión de incidencias – listado de incidencias con filtros por est
     cy.contains('Publicación pendiente', { timeout: 10000 }).should('be.visible');
   });
 
-  it('debe limpiar los filtros aplicados mostrando todas las incidencias nuevamente', () => {
+  it('UI-INC-009: La interfaz permite filtrar incidencias por estado, fecha, y limpiar los filtros - limpiar filtros', () => {
     cy.visit('http://localhost:8080/moderation');
 
     cy.contains('Moderación', { timeout: 10000 });

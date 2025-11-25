@@ -79,7 +79,7 @@ describe('Gestión de incidencias – creación automática por contenido prohib
     });
   });
 
-  it('debe ocultar la publicación en el listado público cuando contiene contenido prohibido y mostrarla como oculta en Mis publicaciones con mensaje de moderación automática', () => {
+  it('UI-INC-001: La publicación se oculta automáticamente en la interfaz cuando contiene contenido prohibido', () => {
     cy.visit('http://localhost:8080/my-publications/create', {
       onBeforeLoad: setupGeolocationStub
     });

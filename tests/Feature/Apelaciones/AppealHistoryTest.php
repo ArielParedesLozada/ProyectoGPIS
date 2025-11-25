@@ -50,7 +50,7 @@ test('APE-021: el historial registra cada acción sobre la apelación', function
         'appeal_reason' => 'Apelación para historial',
     ]);
 
-    $this->actingAs($this->moderatorB)->post(route('moderation.review-appeal', $case->id), [
+    $this->actingAs($this->moderatorB)->postJson(route('moderation.review-appeal', $case->id), [
         'appeal_id' => $appeal->id,
         'review_notes' => 'Se mantiene decisión',
         'final_decision' => 'uphold',

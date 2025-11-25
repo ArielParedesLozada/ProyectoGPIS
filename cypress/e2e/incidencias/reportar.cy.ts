@@ -83,7 +83,7 @@ describe('Gestión de incidencias – creación por reporte de usuario', () => {
     });
   });
 
-  it('debe permitir al usuario reportar una publicación desde la interfaz seleccionando un motivo y confirmando el envío del reporte', () => {
+  it('UI-INC-002: El usuario puede reportar una publicación desde la interfaz', () => {
     cy.visit(`http://localhost:8080/publication/${publicationId}`);
 
     cy.contains('Publicación para reportar', { timeout: 10000 });

@@ -113,7 +113,7 @@ describe('Gestión de incidencias – visualización de casos asignados al moder
     });
   });
 
-  it('debe mostrar los casos asignados al moderador en el panel con estado, publicación y fecha de asignación, ordenados por fecha reciente', () => {
+  it('UI-INC-005: Visualizar casos asignados al moderador/administrador en el panel', () => {
     cy.visit('http://localhost:8080/moderation');
     cy.wait(2000);
 

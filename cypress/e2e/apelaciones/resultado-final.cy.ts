@@ -195,7 +195,7 @@ describe('Resultado final de apelación', () => {
       .then((resp) => cy.setCookie('XSRF-TOKEN', resp.body.token));
   });
 
-  it('Mostrar resultado de apelación aceptada', () => {
+  it('UI-APE-006: La interfaz muestra de manera clara el resultado final de la apelación - aceptada', () => {
     cy.visit(`http://localhost:8080/moderation/${caseId1}`);
 
     // Verificar que la página carga correctamente
@@ -225,7 +225,7 @@ describe('Resultado final de apelación', () => {
       });
   });
 
-  it('Mostrar resultado de apelación rechazada', () => {
+  it('UI-APE-006: La interfaz muestra de manera clara el resultado final de la apelación - rechazada', () => {
     cy.visit(`http://localhost:8080/moderation/${caseId2}`);
 
     // Verificar que la página carga correctamente
