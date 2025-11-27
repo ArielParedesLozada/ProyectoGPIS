@@ -4,6 +4,8 @@ import react from '@vitejs/plugin-react';
 import laravel from 'laravel-vite-plugin';
 import { defineConfig } from 'vite';
 
+const isCI = process.env.CI === 'true';
+
 export default defineConfig({
     plugins: [
         laravel({
@@ -15,6 +17,10 @@ export default defineConfig({
         tailwindcss(),
         wayfinder({
             formVariants: true,
+            // 👇 aquí está la magia: en CI usamos docker, en local php normal
+            command: isCI
+                ? 'docker exec -w /var/www/html php83_app php artisan wayfinder:generate --with-form'
+                : 'php artisan wayfinder:generate --with-form',
         }),
     ],
     esbuild: {
