@@ -10,8 +10,9 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: clave_piola
     volumes:
-      - ~/.docker/postgis:/var/lib/postgresql
+      - postgis_data:/var/lib/postgresql
     networks: [app_net]
+
 
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -51,3 +52,8 @@ services:
 
 networks:
   app_net:
+    driver: bridge
+
+volumes:
+  postgis_data:
+
