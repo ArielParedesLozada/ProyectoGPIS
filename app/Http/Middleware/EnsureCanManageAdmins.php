@@ -6,7 +6,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class EnsureAdmin
+class EnsureCanManageAdmins
 {
     /**
      * Handle an incoming request.
@@ -15,9 +15,6 @@ class EnsureAdmin
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!$request->user() || !$request->user()->isAdmin()) {
-            abort(403, 'No tiene los permisos de un administrador');
-        }
         return $next($request);
     }
 }
