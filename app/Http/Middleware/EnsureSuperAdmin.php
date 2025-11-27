@@ -15,6 +15,9 @@ class EnsureSuperAdmin
      */
     public function handle(Request $request, Closure $next): Response
     {
+        if (!$request->user() || !$request->user()->canManageAdmins()) {
+            abort(403, 'No tienes permisos para gestionar administradores.');
+        }
         return $next($request);
     }
 }

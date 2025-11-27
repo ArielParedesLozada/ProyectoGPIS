@@ -243,7 +243,6 @@ class ModeratorUserController extends Controller
             'phone',
             'address',
             'gender',
-            'email'
         ]);
 
         // Solo actualizar la contraseña si se proporciona
