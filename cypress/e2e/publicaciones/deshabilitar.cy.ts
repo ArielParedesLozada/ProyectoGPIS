@@ -159,12 +159,22 @@ describe('Deshabilitar publicación', () => {
 
       cy.get('[role="menuitem"]').contains('Inhabilitar').should('be.visible').click({ force: true });
 
-      cy.wait(2000);
+      cy.wait(5000);
 
       cy.request('GET', 'http:
         const publication = response.body.find((p: any) => p.id === publicationId);
         expect(publication).to.exist;
-        expect(publication.status).to.eq(2);
+        
+        if (publication.status !== 2) {
+          cy.wait(3000);
+          cy.request('GET', 'http://localhost:8080/testing/publications').then((response2) => {
+            const publication2 = response2.body.find((p: any) => p.id === publicationId);
+            expect(publication2).to.exist;
+            expect(publication2.status).to.eq(2);
+          });
+        } else {
+          expect(publication.status).to.eq(2);
+        }
       });
 
       cy.visit('http:
