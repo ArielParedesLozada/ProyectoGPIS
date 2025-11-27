@@ -34,7 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'can-manage-moderators' => EnsureCanManageModerators::class,
             'is-admin' => EnsureAdmin::class,
-            'is-super-admin' => EnsureSuperAdmin::class,
+            'is-superadmin' => EnsureSuperAdmin::class,
             'is-administrative' => EnsureIsAdministrative::class,
         ]);
     })
