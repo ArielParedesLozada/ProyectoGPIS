@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Middleware\EnsureAdmin;
+use App\Http\Middleware\EnsureCanManageModerators;
+use App\Http\Middleware\EnsureIsAdministrative;
+use App\Http\Middleware\EnsureSuperAdmin;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\JWTMiddleware;
@@ -27,6 +31,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'testing/*'
         ]);
 
+        $middleware->alias([
+            'can-manage-moderators' => EnsureCanManageModerators::class,
+            'is-admin' => EnsureAdmin::class,
+            'is-super-admin' => EnsureSuperAdmin::class,
+            'is-administrative' => EnsureIsAdministrative::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
