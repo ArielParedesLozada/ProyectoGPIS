@@ -1,6 +1,5 @@
 /// <reference types="cypress" />
 
-// SIS-014: Historial y vista
 describe('Gestión de incidencias – visualización de historial de acciones con filtros', () => {
   let moderadorId: number;
   let vendedorId: number;
@@ -60,7 +59,6 @@ describe('Gestión de incidencias – visualización de historial de acciones co
         }).then((caseResponse) => {
           caseId = caseResponse.body.id;
           
-          // Crear la acción de moderación
           cy.request({
             method: 'POST',
             url: 'http://localhost:8080/testing/moderation-action',
@@ -103,14 +101,11 @@ describe('Gestión de incidencias – visualización de historial de acciones co
 
     cy.contains('Publicación con historial', { timeout: 10000 });
 
-    // Verificar que el historial se muestra
     cy.contains('Historial de Acciones', { timeout: 10000 }).should('be.visible');
 
-    // Verificar que se muestra la descripción de la acción
     cy.contains('Publicación ocultada por moderación', { timeout: 10000 }).should('be.visible');
 
-    // Verificar que el diseño es legible (las acciones son visibles)
-    cy.get('body').should('be.visible'); // Verificación básica de que la página cargó
+    cy.get('body').should('be.visible'); 
   });
 });
 

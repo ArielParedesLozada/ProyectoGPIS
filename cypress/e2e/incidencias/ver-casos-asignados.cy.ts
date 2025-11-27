@@ -1,6 +1,5 @@
 /// <reference types="cypress" />
 
-// SIS-011: Casos asignados
 describe('Gestión de incidencias – visualización de casos asignados al moderador', () => {
   let moderadorId: number;
   let vendedorId: number;
@@ -119,19 +118,15 @@ describe('Gestión de incidencias – visualización de casos asignados al moder
 
     cy.contains('Moderación', { timeout: 10000 });
 
-    // Verificar que el caso asignado aparece en el panel
     cy.contains('Publicación asignada', { timeout: 15000 }).should('be.visible');
     cy.wait(1000);
 
-    // Abrir el caso para ver detalles
     cy.contains('Publicación asignada').click();
     cy.wait(2000);
     cy.location('pathname', { timeout: 10000 }).should('include', '/moderation/');
 
-    // Verificar que se muestra la publicación asociada (verificación principal)
     cy.contains('Publicación asignada', { timeout: 15000 }).should('be.visible');
     
-    // Verificar que la página cargó correctamente
     cy.get('body').should('be.visible');
   });
 });

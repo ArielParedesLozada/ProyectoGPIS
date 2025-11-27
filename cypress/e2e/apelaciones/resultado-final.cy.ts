@@ -1,9 +1,5 @@
 /// <reference types="cypress" />
 
-/**
- * SIS-023: Resultado final de apelación
- * Mostrar resultado de apelación aceptada y rechazada
- */
 
 describe('Resultado final de apelación', () => {
   let moderadorId: number;
@@ -46,9 +42,7 @@ describe('Resultado final de apelación', () => {
     cy.request('GET', 'http://localhost:8080/testing/categories').then((response) => {
       categoryId = response.body[0].id;
       
-      // ============================================
-      // CASO 1: Apelación ACEPTADA (publicación restaurada)
-      // ============================================
+     
       cy.request('POST', 'http://localhost:8080/testing/publication', {
         title: 'Publicación apelación aceptada',
         description: 'Descripción',
@@ -62,16 +56,14 @@ describe('Resultado final de apelación', () => {
       }).then((pubResponse) => {
         publicationId1 = pubResponse.body.id;
         
-        // Crear caso en estado 'appealed' (no 'closed' directamente)
         cy.request('POST', 'http://localhost:8080/testing/moderation-case', {
           publication_id: publicationId1,
           source: 'system',
-          status: 'appealed', // Estado inicial: apelado
+          status: 'appealed', 
           assigned_moderator_id: moderadorId,
         }).then((caseResponse) => {
           caseId1 = caseResponse.body.id;
           
-          // Crear apelación con revisión completada (aceptada)
           cy.request('POST', 'http://localhost:8080/testing/moderation-appeal', {
             moderation_case_id: caseId1,
             appealer_id: vendedorId,
@@ -82,7 +74,6 @@ describe('Resultado final de apelación', () => {
           }).then((appealResponse) => {
             appealId1 = appealResponse.body.id;
             
-            // Crear la acción que representa la apelación aceptada
             cy.request('POST', 'http://localhost:8080/testing/moderation-action', {
               moderation_case_id: caseId1,
               moderator_id: moderadorId,
@@ -96,13 +87,11 @@ describe('Resultado final de apelación', () => {
               },
             });
             
-            // Actualizar el caso a 'closed' y restaurar la publicación
             cy.request('PATCH', `http://localhost:8080/testing/moderation-case/${caseId1}`, {
               status: 'closed',
               resolved_at: new Date().toISOString(),
             });
             
-            // Restaurar la publicación (is_hidden = false)
             cy.request('PATCH', `http://localhost:8080/testing/publication/${publicationId1}`, {
               is_hidden: false,
             });
@@ -110,9 +99,7 @@ describe('Resultado final de apelación', () => {
         });
       });
 
-      // ============================================
-      // CASO 2: Apelación RECHAZADA (decisión mantenida)
-      // ============================================
+     
       cy.request('POST', 'http://localhost:8080/testing/publication', {
         title: 'Publicación apelación rechazada',
         description: 'Descripción',
@@ -126,16 +113,14 @@ describe('Resultado final de apelación', () => {
       }).then((pubResponse) => {
         publicationId2 = pubResponse.body.id;
         
-        // Crear caso en estado 'appealed' (no 'closed' directamente)
         cy.request('POST', 'http://localhost:8080/testing/moderation-case', {
           publication_id: publicationId2,
           source: 'system',
-          status: 'appealed', // Estado inicial: apelado
+          status: 'appealed', 
           assigned_moderator_id: moderadorId,
         }).then((caseResponse) => {
           caseId2 = caseResponse.body.id;
           
-          // Crear apelación con revisión completada (rechazada)
           cy.request('POST', 'http://localhost:8080/testing/moderation-appeal', {
             moderation_case_id: caseId2,
             appealer_id: vendedorId,
@@ -146,7 +131,6 @@ describe('Resultado final de apelación', () => {
           }).then((appealResponse) => {
             appealId2 = appealResponse.body.id;
             
-            // Crear la acción que representa la apelación rechazada
             cy.request('POST', 'http://localhost:8080/testing/moderation-action', {
               moderation_case_id: caseId2,
               moderator_id: moderadorId,
@@ -160,7 +144,6 @@ describe('Resultado final de apelación', () => {
               },
             });
             
-            // Actualizar el caso a 'closed' (la publicación sigue oculta)
             cy.request('PATCH', `http://localhost:8080/testing/moderation-case/${caseId2}`, {
               status: 'closed',
               resolved_at: new Date().toISOString(),
@@ -172,7 +155,6 @@ describe('Resultado final de apelación', () => {
   });
 
   beforeEach(() => {
-    // Login del moderador usando backend (no UI)
     cy.session('moderador-login', () => {
       cy.request('GET', 'http://localhost:8080/testing/csrf')
         .then((resp) => cy.setCookie('XSRF-TOKEN', resp.body.token));
@@ -190,7 +172,6 @@ describe('Resultado final de apelación', () => {
       });
     });
 
-    // Obtener CSRF token después de la sesión
     cy.request('GET', 'http://localhost:8080/testing/csrf')
       .then((resp) => cy.setCookie('XSRF-TOKEN', resp.body.token));
   });
@@ -198,27 +179,21 @@ describe('Resultado final de apelación', () => {
   it('UI-APE-006: La interfaz muestra de manera clara el resultado final de la apelación - aceptada', () => {
     cy.visit(`http://localhost:8080/moderation/${caseId1}`);
 
-    // Verificar que la página carga correctamente
     cy.contains('Publicación apelación aceptada', { timeout: 10000 }).should('be.visible');
 
-    // Verificar que aparece la sección de Apelaciones
     cy.contains(/Apelaciones/i, { timeout: 10000 }).should('be.visible');
     
-    // Verificar que la apelación aparece con sus notas de revisión
     cy.contains('Razón de apelación - esta publicación no viola las reglas', { timeout: 10000 })
       .should('be.visible');
     
     cy.contains('La apelación es válida, se restaura la publicación', { timeout: 10000 })
       .should('be.visible');
 
-    // Verificar el historial de acciones
     cy.contains(/Historial de Acciones/i, { timeout: 10000 }).should('be.visible');
     
-    // Verificar que aparece la acción de apelación aceptada en el historial
     cy.contains('Apelación aceptada - Publicación restaurada', { timeout: 10000 })
       .should('be.visible');
 
-    // Verificar que la publicación está restaurada (is_hidden = false)
     cy.request('GET', `http://localhost:8080/testing/publication/${publicationId1}`, { timeout: 10000 })
       .then((response) => {
         expect(response.body.is_hidden).to.be.false;
@@ -228,27 +203,21 @@ describe('Resultado final de apelación', () => {
   it('UI-APE-006: La interfaz muestra de manera clara el resultado final de la apelación - rechazada', () => {
     cy.visit(`http://localhost:8080/moderation/${caseId2}`);
 
-    // Verificar que la página carga correctamente
     cy.contains('Publicación apelación rechazada', { timeout: 10000 }).should('be.visible');
 
-    // Verificar que aparece la sección de Apelaciones
     cy.contains(/Apelaciones/i, { timeout: 10000 }).should('be.visible');
     
-    // Verificar que la apelación aparece con sus notas de revisión
     cy.contains('Razón de apelación - creo que mi publicación es válida', { timeout: 10000 })
       .should('be.visible');
     
     cy.contains('La decisión original se mantiene, la publicación debe seguir oculta', { timeout: 10000 })
       .should('be.visible');
 
-    // Verificar el historial de acciones
     cy.contains(/Historial de Acciones/i, { timeout: 10000 }).should('be.visible');
     
-    // Verificar que aparece la acción de apelación rechazada en el historial
     cy.contains('Apelación rechazada - Decisión original mantenida', { timeout: 10000 })
       .should('be.visible');
 
-    // Verificar que la publicación sigue oculta (is_hidden = true)
     cy.request('GET', `http://localhost:8080/testing/publication/${publicationId2}`, { timeout: 10000 })
       .then((response) => {
         expect(response.body.is_hidden).to.be.true;

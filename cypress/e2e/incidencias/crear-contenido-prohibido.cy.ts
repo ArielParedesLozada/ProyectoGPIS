@@ -1,6 +1,5 @@
 /// <reference types="cypress" />
 
-// SIS-007: Creación automática de incidencias
 describe('Gestión de incidencias – creación automática por contenido prohibido', () => {
   const setupGeolocationStub = (win: Window) => {
     win.navigator.geolocation.getCurrentPosition = (success: PositionCallback, error?: PositionErrorCallback, options?: PositionOptions) => {
@@ -57,16 +56,13 @@ describe('Gestión de incidencias – creación automática por contenido prohib
 
       cy.visit('http://localhost:8080/login');
       
-      // Esperar a que el formulario esté cargado
       cy.get('input[name="email"]', { timeout: 10000 }).should('be.visible');
       cy.get('input[name="email"]').type('vendedor@test.com');
       cy.get('input[name="password"]').type('Admin123@');
       cy.get('button[type="submit"]').should('be.visible').click();
       
-      // Esperar a que el login procese - aumentar tiempo
       cy.wait(3000);
       
-      // Verificar que salimos de login con timeout más largo
       cy.url({ timeout: 20000 }).should('satisfy', (url) => {
         return !url.includes('/login');
       });
@@ -89,7 +85,6 @@ describe('Gestión de incidencias – creación automática por contenido prohib
     cy.request('GET', 'http://localhost:8080/testing/categories').then((response) => {
       const category = response.body[0];
       
-      // Usar palabra prohibida "puta" que está en la lista de palabras prohibidas
       cy.get('#title').type('Producto puta calidad');
       cy.get('#description').type('Contenido con palabra prohibida para test');
       cy.get('#price').type('999.99');
@@ -121,10 +116,8 @@ describe('Gestión de incidencias – creación automática por contenido prohib
 
       cy.get('button[type="submit"]').contains('Crear Publicación').click();
 
-      // Esperar a que se procese la creación
       cy.wait(4000);
       
-      // Verificar si redirigió, si no, navegar manualmente
       cy.url().then((currentUrl) => {
         if (!currentUrl.includes('/my-publications')) {
           cy.visit('http://localhost:8080/my-publications');
@@ -132,12 +125,10 @@ describe('Gestión de incidencias – creación automática por contenido prohib
         }
       });
       
-      // Primero verificar en la base de datos que la publicación está oculta
       getUserId().then((userId) => {
         cy.request('GET', 'http://localhost:8080/testing/publications').then((response) => {
           const userPublications = response.body.filter((p: any) => p.created_by === userId);
           
-          // Buscar la publicación más reciente del usuario
           const sorted = userPublications.sort((a: any, b: any) => b.id - a.id);
           const publication = sorted.find((p: any) => 
             p.title && (p.title.includes('Producto puta calidad') || p.title === 'Producto puta calidad')
@@ -148,19 +139,14 @@ describe('Gestión de incidencias – creación automática por contenido prohib
         });
       });
       
-      // Verificar en "Mis publicaciones" que la publicación aparece con estado "Oculta"
       cy.contains('Producto puta calidad', { timeout: 15000 }).should('be.visible');
       
-      // Verificar que muestra el badge "Oculto por Moderación"
       cy.contains('Oculto por Moderación', { timeout: 10000 }).should('be.visible');
       
-      // Verificar que muestra el badge "Oculto por Moderación"
       cy.contains('Oculto por Moderación', { timeout: 10000 }).should('be.visible');
       
-      // Verificar mensaje de moderación automática - motivo de ocultación
       cy.contains('Motivo de ocultación', { timeout: 10000 }).should('be.visible');
 
-      // Verificar que NO aparece en el listado público
       cy.visit('http://localhost:8080/publication');
       cy.location('pathname', { timeout: 10000 }).should('include', '/publication');
       cy.contains('Producto puta calidad').should('not.exist');

@@ -1,9 +1,5 @@
 /// <reference types="cypress" />
 
-/**
- * SIS-021: Resolución de apelaciones
- * Restaurar publicación y confirmar decisión de ocultar desde interfaz
- */
 
 describe('Resolución de apelaciones - Interfaz completa', () => {
   let moderadorId: number;
@@ -88,7 +84,6 @@ describe('Resolución de apelaciones - Interfaz completa', () => {
   });
 
   beforeEach(() => {
-    // Login del moderador usando backend (no UI)
     cy.session('moderador-login', () => {
       cy.request('GET', 'http://localhost:8080/testing/csrf')
         .then((resp) => cy.setCookie('XSRF-TOKEN', resp.body.token));
@@ -106,39 +101,34 @@ describe('Resolución de apelaciones - Interfaz completa', () => {
       });
     });
 
-    // Obtener CSRF token después de la sesión
     cy.request('GET', 'http://localhost:8080/testing/csrf')
       .then((resp) => cy.setCookie('XSRF-TOKEN', resp.body.token));
   });
 
   it('UI-APE-004: La interfaz del moderador muestra todas las opciones para resolver una apelación - aceptar apelación', () => {
-    // Interceptar la request POST /moderation/:id/restore-publication
     cy.intercept('POST', `**/moderation/${caseId}/restore-publication**`).as('restorePublication');
     
     cy.visit(`http://localhost:8080/moderation/${caseId}`);
 
     cy.contains('Publicación para resolver apelación', { timeout: 10000 }).should('be.visible');
 
-    // Manejar window.confirm() nativo antes de hacer click
     cy.window().then((win) => {
       cy.stub(win, 'confirm').returns(true);
     });
 
-    // Buscar y hacer click en el botón "Restaurar Publicación"
     cy.contains('button', /Restaurar Publicación/i, { timeout: 10000 })
       .scrollIntoView()
       .should('be.visible')
       .click();
 
-    // Esperar la request HTTP (opcional, puede ser navegación Inertia)
-    // Si no se dispara el intercept, continuamos con validación por BD
+    
     cy.wait('@restorePublication', { timeout: 10000 }).then((interception) => {
       if (interception && interception.response) {
         expect(interception.response.statusCode).to.be.oneOf([200, 201, 204, 302]);
       }
     });
 
-    // Validar resultado por BD con polling (método más confiable)
+    
     const checkPublicationRestored = (retries = 10): Cypress.Chainable => {
       return cy.request('GET', `http://localhost:8080/testing/publication/${publicationId}`, { timeout: 10000 })
         .then((response) => {
@@ -156,7 +146,6 @@ describe('Resolución de apelaciones - Interfaz completa', () => {
     
     checkPublicationRestored();
 
-    // Validar que el caso está cerrado y tiene resolved_at
     cy.request('GET', 'http://localhost:8080/testing/moderation-cases', { timeout: 10000 })
       .then((response) => {
         const caseItem = response.body.find((c: any) => c.id === caseId);
@@ -165,7 +154,6 @@ describe('Resolución de apelaciones - Interfaz completa', () => {
         expect(caseItem.resolved_at).to.exist;
       });
 
-    // Validar mensajes en UI si aparecen (flexible, secundario)
     cy.get('body').then(($body) => {
       const bodyText = $body.text();
       if (bodyText.includes('Apelación aceptada') || bodyText.includes('Publicación restaurada') || bodyText.includes('Cerrado')) {
@@ -204,24 +192,20 @@ describe('Resolución de apelaciones - Interfaz completa', () => {
           cy.visit(`http://localhost:8080/moderation/${rechazarCaseId}`);
           cy.contains('Publicación para rechazar apelación', { timeout: 10000 }).should('be.visible');
 
-          // Buscar y hacer click en el botón "Confirmar Decisión de Ocultar"
           cy.contains('button', /Confirmar Decisión de Ocultar/i, { timeout: 10000 })
             .scrollIntoView()
             .should('be.visible')
             .click();
 
-          // Esperar a que aparezca el modal (el título del modal)
           cy.contains(/Confirmar Decisión de Ocultar/i, { timeout: 10000 })
             .should('be.visible');
 
-          // Buscar el contenedor del modal usando el título como referencia
-          // El modal tiene estructura: h2 (título) -> div (header) -> div (contenedor modal)
+        
           cy.contains('h2', /Confirmar Decisión de Ocultar/i, { timeout: 10000 })
             .should('be.visible')
             .closest('div.bg-white.rounded-2xl')
             .should('exist')
             .within(() => {
-              // Buscar el textarea visible dentro del modal (sin depender de name fijo)
               cy.get('textarea', { timeout: 10000 })
                 .filter(':visible')
                 .first()
@@ -232,24 +216,18 @@ describe('Resolución de apelaciones - Interfaz completa', () => {
                 .trigger('change')
                 .blur();
 
-              // Buscar y hacer click en el botón "Confirmar Decisión" dentro del modal
               cy.contains('button', /Confirmar Decisión/i, { timeout: 10000 })
                 .should('be.visible')
                 .should('not.be.disabled')
                 .click({ force: true });
             });
 
-          // NO esperar que el modal desaparezca como assert principal
-          // El frontend hace window.location.reload() en onSuccess, pero puede tardar
-          // Validar por efectos en BD (método más confiable)
-
-          // Polling para validar que el caso se cerró y tiene resolved_at
+         
           const checkCaseClosed = (retries = 10): Cypress.Chainable => {
             return cy.request('GET', 'http://localhost:8080/testing/moderation-cases', { timeout: 10000 })
               .then((response) => {
                 const caseItem = response.body.find((c: any) => c.id === rechazarCaseId);
                 if (caseItem && caseItem.status === 'closed' && caseItem.resolved_at) {
-                  // Caso cerrado correctamente
                   expect(caseItem.status).to.eq('closed');
                   expect(caseItem.resolved_at).to.exist;
                   expect(caseItem.resolution_notes).to.include('La decisión original se mantiene');
@@ -258,7 +236,6 @@ describe('Resolución de apelaciones - Interfaz completa', () => {
                   cy.wait(500);
                   return checkCaseClosed(retries - 1);
                 } else {
-                  // Log para debugging
                   cy.log('Estado del caso:', JSON.stringify(caseItem, null, 2));
                   throw new Error(`El caso ${rechazarCaseId} no se cerró después de 10 intentos. Estado actual: ${caseItem?.status}, resolved_at: ${caseItem?.resolved_at}`);
                 }
@@ -267,14 +244,12 @@ describe('Resolución de apelaciones - Interfaz completa', () => {
           
           checkCaseClosed();
 
-          // Validar que la publicación sigue oculta (is_hidden = true)
           cy.request('GET', `http://localhost:8080/testing/publication/${rechazarPubId}`, { timeout: 10000 })
             .then((response) => {
               expect(response.body.is_hidden).to.be.true;
             });
 
-          // Validar mensajes en UI si aparecen (flexible, secundario)
-          // Esperar un poco para que la UI se actualice después del reload
+         
           cy.wait(1000);
           cy.get('body').then(($body) => {
             const bodyText = $body.text();

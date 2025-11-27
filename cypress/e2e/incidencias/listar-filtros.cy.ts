@@ -1,6 +1,5 @@
 /// <reference types="cypress" />
 
-// SIS-015: Listado con filtros en interfaz
 describe('Gestión de incidencias – listado de incidencias con filtros por estado y rango de fechas', () => {
   let moderadorId: number;
   let vendedorId: number;
@@ -106,19 +105,15 @@ describe('Gestión de incidencias – listado de incidencias con filtros por est
 
     cy.contains('Moderación', { timeout: 10000 });
 
-    // Mostrar los filtros primero
     cy.contains('button', 'Mostrar Filtros', { timeout: 10000 }).click();
     cy.contains('label', 'Estado', { timeout: 10000 }).should('be.visible');
 
-    // Buscar el select de estado por el label y seleccionar
     cy.contains('label', 'Estado').parent().within(() => {
       cy.get('select').select('pending');
     });
     
-    // Esperar a que se aplique el filtro
     cy.contains('Publicación pendiente', { timeout: 10000 }).should('be.visible');
 
-    // Verificar que solo se muestra la publicación con estado pendiente
     cy.contains('Publicación pendiente', { timeout: 10000 }).should('be.visible');
     cy.contains('Publicación cerrada').should('not.exist');
   });
@@ -128,14 +123,12 @@ describe('Gestión de incidencias – listado de incidencias con filtros por est
 
     cy.contains('Moderación', { timeout: 10000 });
 
-    // Mostrar los filtros primero
     cy.contains('button', 'Mostrar Filtros', { timeout: 10000 }).click();
     cy.contains('label', 'Fecha desde', { timeout: 10000 }).should('be.visible');
 
     const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
-    // Interceptar la petición que se dispara al escribir "Fecha desde"
     cy.intercept('GET', '**/moderation*date_from*').as('filterFrom');
     
     // Buscar el input de fecha desde por el label y escribir
@@ -143,21 +136,16 @@ describe('Gestión de incidencias – listado de incidencias con filtros por est
       cy.get('input[type="date"]').type(yesterday);
     });
     
-    // Esperar a que se complete la petición del filtro "Fecha desde"
     cy.wait('@filterFrom');
     
-    // Interceptar la petición que se dispara al escribir "Fecha hasta"
     cy.intercept('GET', '**/moderation*date_to*').as('filterTo');
     
-    // Re-buscar el input de "Fecha hasta" (no reutilizar el nodo viejo) y verificar que no esté deshabilitado
     cy.contains('label', 'Fecha hasta').parent().within(() => {
       cy.get('input[type="date"]').should('not.be.disabled').type(today);
     });
     
-    // Esperar a que se complete la petición del filtro "Fecha hasta"
     cy.wait('@filterTo');
     
-    // Esperar a que se aplique el filtro
     cy.contains('Publicación pendiente', { timeout: 10000 }).should('be.visible');
   });
 
@@ -166,25 +154,20 @@ describe('Gestión de incidencias – listado de incidencias con filtros por est
 
     cy.contains('Moderación', { timeout: 10000 });
 
-    // Mostrar los filtros primero
     cy.contains('button', 'Mostrar Filtros', { timeout: 10000 }).click();
     cy.contains('label', 'Estado', { timeout: 10000 }).should('be.visible');
 
-    // Aplicar un filtro por estado
     cy.contains('label', 'Estado').parent().within(() => {
       cy.get('select').select('pending');
     });
     
-    // Verificar que el filtro se aplicó
     cy.contains('Publicación pendiente', { timeout: 10000 }).should('be.visible');
     cy.contains('Publicación cerrada').should('not.exist');
 
-    // Limpiar los filtros
     cy.contains('button', 'Limpiar Filtros', { timeout: 10000 })
       .should('not.be.disabled')
       .click();
     
-    // Verificar que al limpiar filtros se muestran todas las incidencias
     cy.contains('Publicación pendiente', { timeout: 10000 }).should('be.visible');
     cy.contains('Publicación cerrada', { timeout: 10000 }).should('be.visible');
   });

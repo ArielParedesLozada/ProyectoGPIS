@@ -1,9 +1,6 @@
 /// <reference types="cypress" />
 
-/**
- * SIS-020: Visualización de apelaciones asignadas
- * Visualizar apelaciones pendientes asignadas al moderador
- */
+
 
 describe('Visualización de apelaciones asignadas', () => {
   let moderadorId: number;
@@ -13,7 +10,7 @@ describe('Visualización de apelaciones asignadas', () => {
   let caseId: number;
   let appealId: number;
 
-  // Helper para crear usuario con retry y logging robusto
+  
   const createUserWithRetry = (userData: any, retries = 3): Cypress.Chainable => {
     return cy.request({
       method: 'POST',
@@ -23,16 +20,13 @@ describe('Visualización de apelaciones asignadas', () => {
       failOnStatusCode: false,
     }).then((response) => {
       if (response.status >= 200 && response.status < 300) {
-        // Éxito
         cy.log(`Usuario creado exitosamente: ${userData.email} (ID: ${response.body.id})`);
         return cy.wrap(response.body.id);
       } else if (retries > 0) {
-        // Error pero hay reintentos disponibles
         cy.log(`Error al crear usuario ${userData.email}: Status ${response.status}, Body: ${JSON.stringify(response.body)}. Reintentando...`);
-        cy.wait(2000); // Esperar 2 segundos antes de reintentar
+        cy.wait(2000); 
         return createUserWithRetry(userData, retries - 1);
       } else {
-        // Sin más reintentos
         cy.log(`Error final al crear usuario ${userData.email}: Status ${response.status}, Body: ${JSON.stringify(response.body)}`);
         throw new Error(`No se pudo crear usuario ${userData.email} después de ${retries} intentos. Status: ${response.status}`);
       }
@@ -47,10 +41,8 @@ describe('Visualización de apelaciones asignadas', () => {
       timeout: 60000,
     });
     
-    // Esperar un momento después del reset para que el servidor termine de procesar
     cy.wait(1000);
     
-    // Crear moderador con retry y timeout aumentado
     createUserWithRetry({
       email: 'moderador@test.com',
       password: 'Admin123@',
@@ -61,7 +53,6 @@ describe('Visualización de apelaciones asignadas', () => {
       moderadorId = id;
     });
 
-    // Crear vendedor con retry y timeout aumentado
     createUserWithRetry({
       email: 'vendedor@test.com',
       password: 'Admin123@',
@@ -127,7 +118,6 @@ describe('Visualización de apelaciones asignadas', () => {
   });
 
   beforeEach(() => {
-    // Login del moderador usando backend (no UI)
     cy.session('moderador-login', () => {
       cy.request('GET', 'http://localhost:8080/testing/csrf')
         .then((resp) => cy.setCookie('XSRF-TOKEN', resp.body.token));
@@ -145,7 +135,6 @@ describe('Visualización de apelaciones asignadas', () => {
       });
     });
 
-    // Obtener CSRF token después de la sesión
     cy.request('GET', 'http://localhost:8080/testing/csrf')
       .then((resp) => cy.setCookie('XSRF-TOKEN', resp.body.token));
   });
@@ -153,22 +142,15 @@ describe('Visualización de apelaciones asignadas', () => {
   it('UI-APE-003: Visualización de apelaciones pendientes en el panel del moderador/administrador', () => {
     cy.visit('http://localhost:8080/moderation');
 
-    // Verificar que la página cargó correctamente
     cy.contains(/Moderación/i, { timeout: 10000 }).should('be.visible');
     
-    // Verificar que aparece el título o heading de la página
     cy.contains(/Gestiona los reportes|Bandeja de Casos|Casos de Moderación/i, { timeout: 10000 })
       .should('be.visible');
 
-    // Estrategia robusta: buscar el caso con apelación directamente en la lista
-    // El caso tiene status 'appealed' y debe aparecer en la lista
-    // Primero intentar filtrar por estado "Apelado" si existe el filtro
     cy.get('body').then(($body) => {
       const bodyText = $body.text();
       
-      // Si existe el filtro de estado, filtrar por "Apelado"
       if (bodyText.includes('Estado') || bodyText.includes('Filtros')) {
-        // Abrir filtros si están colapsados
         cy.get('body').then(($body) => {
           const hasShowFilters = $body.text().includes('Mostrar Filtros') || $body.text().includes('mostrar filtros');
           if (hasShowFilters) {
@@ -179,7 +161,6 @@ describe('Visualización de apelaciones asignadas', () => {
           }
         });
         
-        // Buscar el select de estado y filtrar por "Apelado"
         cy.contains('label', /Estado/i, { timeout: 5000 })
           .closest('div')
           .within(() => {
@@ -189,38 +170,32 @@ describe('Visualización de apelaciones asignadas', () => {
               .select('Apelado');
           });
         
-        // Esperar a que se aplique el filtro
         cy.wait(1000);
       }
     });
 
-    // Buscar la publicación con apelación asignada en la lista
-    // Debe aparecer con estado "Apelado" o "Apelado"
+    
     cy.contains('Publicación con apelación asignada', { timeout: 10000 })
       .should('be.visible');
     
-    // Verificar que el caso tiene estado "Apelado" o similar
+    
     cy.contains('Publicación con apelación asignada', { timeout: 10000 })
       .closest('div')
       .within(() => {
-        // Buscar el badge de estado que puede decir "Apelado", "Apelado", etc.
+        
         cy.contains(/Apelado|Apelado|appealed/i, { timeout: 5000 })
           .should('be.visible');
       });
 
-    // Hacer click en el caso para ver los detalles (incluyendo la apelación)
-    // Buscar el botón "Ver Detalles" o el link del título
-    // Estrategia: buscar el contenedor y verificar si tiene botón "Ver Detalles" dentro
+    
     cy.contains('Publicación con apelación asignada', { timeout: 10000 })
       .should('be.visible')
       .closest('div')
       .then(($container) => {
-        // Verificar si el contenedor tiene un botón/link "Ver Detalles"
         const containerText = $container.text();
         const hasVerDetalles = containerText.includes('Ver Detalles');
         
         if (hasVerDetalles) {
-          // Hacer click en "Ver Detalles" dentro del contenedor
           cy.wrap($container).within(() => {
             cy.contains(/Ver Detalles/i, { timeout: 5000 })
               .first()
@@ -228,7 +203,6 @@ describe('Visualización de apelaciones asignadas', () => {
               .click({ force: true });
           });
         } else {
-          // Si no hay botón, hacer click en el título (que es un link)
           cy.contains('Publicación con apelación asignada', { timeout: 10000 })
             .should('be.visible')
             .first()
@@ -236,21 +210,15 @@ describe('Visualización de apelaciones asignadas', () => {
         }
       });
 
-    // Esperar a que cargue la página de detalles
     cy.url({ timeout: 10000 }).should('include', '/moderation/');
     
-    // Verificar que aparece la sección de apelaciones
     cy.contains(/Apelaciones/i, { timeout: 10000 }).should('be.visible');
     
-    // Verificar que aparece la razón de apelación
     cy.contains('Razón de apelación', { timeout: 10000 }).should('be.visible');
     
-    // Verificar detalles de la apelación (pueden variar según la UI)
-    // Buscar información del apelante o moderador de forma flexible
     cy.get('body').then(($body) => {
       const bodyText = $body.text();
       
-      // Verificar que aparece información del apelante o moderador
       if (bodyText.includes('Usuario apelante') || bodyText.includes('Apelante')) {
         cy.contains(/Usuario apelante|Apelante/i, { timeout: 5000 }).should('be.visible');
       }

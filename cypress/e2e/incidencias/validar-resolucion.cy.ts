@@ -1,6 +1,5 @@
 /// <reference types="cypress" />
 
-// SIS-013: Validación de formulario de resolución
 describe('Gestión de incidencias – validación de formulario de resolución de incidencias', () => {
   let moderadorId: number;
   let vendedorId: number;
@@ -74,11 +73,9 @@ describe('Gestión de incidencias – validación de formulario de resolución d
       cy.get('input[name="email"]').type('moderador@test.com');
       cy.get('input[name="password"]').type('Admin123@');
       
-      // Interceptar la petición de login
       cy.intercept('POST', '**/login').as('loginRequest');
       cy.get('button[type="submit"]').should('be.visible').click();
       
-      // Esperar a que se complete la petición de login
       cy.wait('@loginRequest', { timeout: 15000 }).then((interception) => {
         expect(interception.response?.statusCode).to.be.oneOf([200, 302]);
       });
@@ -103,10 +100,8 @@ describe('Gestión de incidencias – validación de formulario de resolución d
     cy.contains('button', 'Ocultar Publicación', { timeout: 10000 }).click();
     cy.contains('Motivo de ocultación', { timeout: 10000 }).should('be.visible');
 
-    // Intentar enviar sin motivo
     cy.get('button.bg-red-600').contains('Ocultar Publicación', { timeout: 10000 }).click({ force: true });
     
-    // Verificar mensaje de validación - Laravel devuelve mensaje de campo requerido
     cy.contains(/El campo|obligatorio|requerido|motivo/i, { timeout: 10000 }).should('be.visible');
   });
 
@@ -118,7 +113,6 @@ describe('Gestión de incidencias – validación de formulario de resolución d
     cy.contains('button', 'Ocultar Publicación', { timeout: 10000 }).click();
     cy.contains('Motivo de ocultación', { timeout: 10000 }).should('be.visible');
 
-    // Ingresar texto que excede el límite (1000 caracteres) usando invoke para saltar maxlength
     const longText = 'a'.repeat(1001);
     cy.contains('label', 'Motivo de ocultación').parent().find('textarea')
       .clear()
@@ -126,16 +120,13 @@ describe('Gestión de incidencias – validación de formulario de resolución d
       .trigger('input')
       .trigger('change');
     
-    // Intentar enviar
     cy.get('button.bg-red-600').contains('Ocultar Publicación', { timeout: 10000 }).click({ force: true });
     
-    // Verificar mensaje de validación de longitud con regex flexible
     cy.get('body').then(($body) => {
       const bodyText = $body.text();
       if (bodyText.match(/exceder|mayor a|caracteres|max/i)) {
         cy.contains(/exceder|mayor a|caracteres|max/i, { timeout: 10000 }).should('be.visible');
       } else {
-        // Si no hay error visible, validar que el modal siga abierto y que NO se haya ocultado la publicación
         cy.contains('Motivo de ocultación', { timeout: 5000 }).should('be.visible');
         cy.request('GET', `http://localhost:8080/testing/publication/${publicationId}`).then((response) => {
           expect(response.body.is_hidden).to.be.false;
@@ -167,7 +158,6 @@ describe('Gestión de incidencias – validación de formulario de resolución d
       }).then((caseResponse) => {
         const validCaseId = caseResponse.body.id;
         
-        // Interceptar petición de ocultar con patrón amplio (no depender del wait)
         cy.intercept({ method: 'POST', url: '**/hide-publication**' }).as('hidePublication');
 
         cy.visit(`http://localhost:8080/moderation/${validCaseId}`);
@@ -176,7 +166,6 @@ describe('Gestión de incidencias – validación de formulario de resolución d
         cy.contains('button', 'Ocultar Publicación', { timeout: 10000 }).click();
         cy.contains('Motivo de ocultación', { timeout: 10000 }).should('be.visible');
 
-        // Ingresar motivo válido
         const motivoValido = 'Motivo válido para ocultar';
         cy.contains('label', 'Motivo de ocultación').parent().find('textarea')
           .clear()
@@ -186,17 +175,14 @@ describe('Gestión de incidencias – validación de formulario de resolución d
 
         cy.get('button.bg-red-600').contains('Ocultar Publicación', { timeout: 10000 }).click({ force: true });
 
-        // Forzar acción con endpoint de testing (no depender del intercept)
         cy.request('POST', `http://localhost:8080/testing/moderation/${validCaseId}/hide-publication`, {
           reason: motivoValido
         });
 
-        // Verificar que se guardó en la base de datos
         cy.request('GET', `http://localhost:8080/testing/publication/${validPubId}`).then((response) => {
           expect(response.body.is_hidden).to.be.true;
         });
 
-        // Verificar que el estado del caso se actualizó
         cy.request('GET', 'http://localhost:8080/testing/moderation-cases').then((casesResponse) => {
           const case_ = casesResponse.body.find((c: any) => c.id === validCaseId);
           expect(case_).to.exist;

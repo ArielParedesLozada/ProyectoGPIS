@@ -1,6 +1,5 @@
 /// <reference types="cypress" />
 
-// SIS-009: Reportes de usuario (mensajes de error)
 describe('Gestión de incidencias – validación de mensajes de error en reportes de usuario', () => {
   let compradorId: number;
   let vendedorId: number;
@@ -111,7 +110,6 @@ describe('Gestión de incidencias – validación de mensajes de error en report
       cy.visit(`http://localhost:8080/publication/${myPubId}`);
       cy.contains('Mi propia publicación', { timeout: 10000 });
 
-      // Verificar que NO existe el control de reporte (es mi propia publicación)
       cy.get('button[title="Reportar publicación"]').should('not.exist');
     });
   });
@@ -120,27 +118,21 @@ describe('Gestión de incidencias – validación de mensajes de error en report
     cy.visit(`http://localhost:8080/publication/${publicationId}`);
     cy.contains('Publicación para validar reportes', { timeout: 10000 });
 
-    // Interceptar peticiones de reporte
     cy.intercept('POST', `**/publication/${publicationId}/report`).as('reportPublication');
 
-    // Primer reporte: hacer click en el icono de reportar
     cy.get('button[title="Reportar publicación"]', { timeout: 10000 }).click();
     cy.contains('¿Por qué quieres reportar esta publicación?', { timeout: 10000 }).should('be.visible');
 
-    // Seleccionar una razón y enviar el reporte
     cy.contains('Estafa', { timeout: 10000 }).click();
     cy.contains('Vas a enviar un reporte', { timeout: 10000 }).should('be.visible');
     cy.contains('button', 'Enviar', { timeout: 10000 }).click();
 
-    // Esperar a que se complete el primer reporte
     cy.wait('@reportPublication', { timeout: 15000 }).then((interception) => {
       expect(interception.response?.statusCode).to.be.oneOf([200, 302]);
     });
 
-    // Esperar a que el modal se cierre
     cy.wait(3000);
 
-    // Verificar que se creó el caso de moderación en la BD (verificación principal)
     cy.request('GET', 'http://localhost:8080/testing/moderation-cases').then((response) => {
       const case_ = response.body.find((c: any) => 
         c.publication_id === publicationId && c.source === 'user'
@@ -148,25 +140,19 @@ describe('Gestión de incidencias – validación de mensajes de error en report
       expect(case_, 'Debe existir un caso de moderación creado por el primer reporte').to.exist;
     });
 
-    // Recargar la página para simular un nuevo intento
     cy.reload();
     cy.contains('Publicación para validar reportes', { timeout: 10000 });
 
-    // Intentar reportar de nuevo inmediatamente (dentro de la ventana de 60 minutos)
     cy.get('button[title="Reportar publicación"]', { timeout: 10000 }).click();
     cy.contains('¿Por qué quieres reportar esta publicación?', { timeout: 10000 }).should('be.visible');
 
-    // Seleccionar una razón y enviar el reporte de nuevo
     cy.contains('Estafa', { timeout: 10000 }).click();
     cy.contains('button', 'Enviar', { timeout: 10000 }).click();
 
-    // Esperar respuesta del segundo intento
     cy.wait('@reportPublication').then((interception) => {
-      // Puede ser 200 con error o 302 con error
       expect(interception.response?.statusCode).to.be.oneOf([200, 302, 422]);
     });
 
-    // Verificar mensaje de error por doble reporte
     cy.contains('Ya has reportado esta publicación recientemente', { timeout: 10000 }).should('be.visible');
   });
 
@@ -193,23 +179,18 @@ describe('Gestión de incidencias – validación de mensajes de error en report
       cy.visit(`http://localhost:8080/publication/${descartadaId}`);
       cy.contains('Publicación descartada', { timeout: 10000 });
 
-      // Interceptar petición de reporte
       cy.intercept('POST', `**/publication/${descartadaId}/report`).as('reportDismissed');
 
-      // Hacer click en el icono de reportar
       cy.get('button[title="Reportar publicación"]', { timeout: 10000 }).click();
       cy.contains('¿Por qué quieres reportar esta publicación?', { timeout: 10000 }).should('be.visible');
 
-      // Seleccionar una razón y enviar el reporte
       cy.contains('Estafa', { timeout: 10000 }).click();
       cy.contains('button', 'Enviar', { timeout: 10000 }).click();
 
-      // Esperar respuesta
       cy.wait('@reportDismissed').then((interception) => {
         expect(interception.response?.statusCode).to.be.oneOf([200, 302, 422]);
       });
 
-      // Verificar mensaje de error específico para caso descartado
       cy.contains('Esta publicación fue revisada y descartada', { timeout: 10000 }).should('be.visible');
     });
   });

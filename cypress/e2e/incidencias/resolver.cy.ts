@@ -1,6 +1,5 @@
 /// <reference types="cypress" />
 
-// SIS-012: Resolución de incidencias
 describe('Gestión de incidencias – resolución de incidencias desde interfaz de moderador', () => {
   let moderadorId: number;
   let vendedorId: number;
@@ -108,7 +107,6 @@ describe('Gestión de incidencias – resolución de incidencias desde interfaz 
   });
 
   it('UI-INC-006: Interfaz completa de resolución para moderador - ocultar publicación', () => {
-    // Verificar que caseId está definido
     expect(caseId).to.exist;
     
     cy.visit(`http://localhost:8080/moderation/${caseId}`);
@@ -116,20 +114,16 @@ describe('Gestión de incidencias – resolución de incidencias desde interfaz 
     cy.contains('Publicación para resolver', { timeout: 15000 });
     cy.wait(2000);
     
-    // Buscar el botón "Ocultar Publicación" y verificar que está habilitado
     cy.contains('button', 'Ocultar Publicación', { timeout: 10000 })
       .should('be.visible')
       .should('not.be.disabled')
       .click();
     cy.wait(2000);
 
-    // Verificar que el modal se abre
     cy.contains('Motivo de ocultación', { timeout: 10000 }).should('be.visible');
     
-    // Ingresar motivo de ocultación disparando eventos reales
     const motivo = 'Contenido inapropiado';
     
-    // Buscar el textarea y escribir disparando eventos input/change/blur
     cy.get('textarea').first()
       .should('be.visible')
       .clear()
@@ -138,14 +132,11 @@ describe('Gestión de incidencias – resolución de incidencias desde interfaz 
       .trigger('change')
       .blur();
     
-    // Verificar que el texto se escribió
     cy.get('textarea').first().should('have.value', motivo);
     cy.wait(1000);
     
-    // Interceptar la petición real con patrón amplio (por si hay navegación/redirect)
     cy.intercept({ method: 'POST', url: '**/hide-publication**' }).as('forceHide');
     
-    // Verificar que el botón de confirmar NO esté disabled antes de hacer click
     cy.get('button.bg-red-600')
       .contains('Ocultar Publicación', { timeout: 10000 })
       .should('be.visible')
@@ -153,13 +144,11 @@ describe('Gestión de incidencias – resolución de incidencias desde interfaz 
       .scrollIntoView()
       .click({ force: true });
     
-    // Forzar la acción con endpoint de testing directamente (no esperar intercept porque puede no dispararse)
     cy.request('POST', `http://localhost:8080/testing/moderation/${caseId}/hide-publication`, {
       reason: motivo
     });
     
-    // Después del click, no esperar XHR ni toast, solo continuar con polling a BD
-    // Validar el cambio con polling a BD hasta que is_hidden sea true
+    
     const checkHidden = (retries = 10): Cypress.Chainable<any> => {
       return cy.request('GET', `http://localhost:8080/testing/publication/${publicationId}`, { timeout: 30000 }).then((response) => {
         if (!response.body.is_hidden && retries > 0) {
@@ -173,21 +162,18 @@ describe('Gestión de incidencias – resolución de incidencias desde interfaz 
     
     checkHidden();
 
-    // Verificar que el caso cambió de estado
     cy.request('GET', `http://localhost:8080/testing/moderation-cases`, { timeout: 30000 }).then((response) => {
       const case_ = response.body.find((c: any) => c.id === caseId);
       expect(case_).to.exist;
       expect(case_.status, 'El caso debería tener estado action_taken').to.eq('action_taken');
     });
 
-    // Verificar mensaje de éxito si está visible
     cy.get('body').then(($body) => {
       if ($body.text().includes('Publicación ocultada correctamente')) {
         cy.contains('Publicación ocultada correctamente', { timeout: 5000 }).should('be.visible');
       }
     });
 
-    // Verificar que se registró en el historial visitando la página de detalle
     cy.visit(`http://localhost:8080/moderation/${caseId}`);
     cy.wait(2000);
     cy.contains('Historial de Acciones', { timeout: 10000 }).should('be.visible');
@@ -217,7 +203,6 @@ describe('Gestión de incidencias – resolución de incidencias desde interfaz 
       }).then((caseResponse) => {
         const descartarCaseId = caseResponse.body.id;
         
-        // Verificar que descartarCaseId está definido
         expect(descartarCaseId).to.exist;
         
         cy.visit(`http://localhost:8080/moderation/${descartarCaseId}`);
@@ -225,30 +210,23 @@ describe('Gestión de incidencias – resolución de incidencias desde interfaz 
         cy.contains('Publicación para descartar', { timeout: 15000 });
         cy.wait(1000);
 
-        // Interceptar la petición de descartar caso
         cy.intercept('POST', `**/moderation/${descartarCaseId}/dismiss`).as('dismissCase');
 
-        // Buscar el botón "Descartar Caso" y hacer click
         cy.contains('button', 'Descartar Caso', { timeout: 10000 })
           .should('be.visible')
           .should('not.be.disabled')
           .click();
 
-        // Verificar que el modal de confirmación se abre
         cy.contains('¿Estás seguro de que quieres descartar este caso?', { timeout: 10000 }).should('be.visible');
         
-        // Confirmar el descarte
         cy.get('button.bg-red-600').contains('Descartar', { timeout: 10000 }).click({ force: true });
         
-        // Esperar a que se complete la acción
         cy.wait('@dismissCase').then((interception) => {
           expect(interception.response?.statusCode).to.be.oneOf([200, 302]);
         });
 
-        // Forzar dismiss con endpoint de testing (por si redirige a /login)
         cy.request('POST', `http://localhost:8080/testing/moderation/${descartarCaseId}/dismiss`);
 
-        // Verificar que el caso está descartado en la base de datos
         cy.request('GET', 'http://localhost:8080/testing/moderation-cases').then((response) => {
           const case_ = response.body.find((c: any) => c.id === descartarCaseId);
           expect(case_).to.exist;
