@@ -1,18 +1,18 @@
 services:
-  postgis:
-    container_name: postgis
-    image: postgis/postgis:17-master
-    restart: unless-stopped
-    shm_size: 128mb
-    ports:
-      - "5433:5432"
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: clave_piola
-    volumes:
-      - postgis_data:/var/lib/postgresql
-    networks: [app_net]
-
+postgis:
+  container_name: postgis
+  image: postgis/postgis:17-master
+  restart: unless-stopped
+  shm_size: 128mb
+  ports:
+    - "5433:5432"
+  environment:
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: clave_piola
+    POSTGRES_DB: proyecto_gpis      # 👈 NUEVO
+  volumes:
+    - postgis_data:/var/lib/postgresql
+  networks: [app_net]
 
   pgadmin:
     image: dpage/pgadmin4:latest
