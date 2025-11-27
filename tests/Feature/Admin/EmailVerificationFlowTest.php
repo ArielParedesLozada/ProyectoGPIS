@@ -75,7 +75,7 @@ class EmailVerificationFlowTest extends TestCase
         Mail::fake();
 
         // Crear un administrador
-        $response = $this->actingAs($this->superAdmin)->post(route('admin.admins.store'), [
+        $response = $this->actingAs($this->superAdmin)->post(route('admin.admin.store'), [
             'cedula' => '1234567890',
             'name' => 'María',
             'surname' => 'García',
@@ -87,7 +87,7 @@ class EmailVerificationFlowTest extends TestCase
             'gender' => 'mujer',
         ]);
 
-        $response->assertRedirect(route('admin.admins.index'));
+        $response->assertRedirect(route('admin.admin.index'));
         $response->assertSessionHas('success');
 
         // Verificar que se creó el administrador
