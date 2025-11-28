@@ -1,5 +1,5 @@
-import { Link } from "@inertiajs/react";
-import { Paginated, Publication, Category } from "@/types";
+import { Link, usePage } from "@inertiajs/react";
+import { Paginated, Publication, Category, SharedData } from "@/types";
 import PublicationCard from "./publication-card";
 import EmptyState from "@/components/ui/empty-state";
 import StickyToolbar from "./sticky-toolbar";
@@ -39,6 +39,7 @@ export default function PublicationList({
     selectedSortBy
 }: PublicationListProps) {
     const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+    const { auth } = usePage<SharedData>().props;
 
     return (
         <div className="bg-background min-h-screen">
@@ -132,14 +133,19 @@ export default function PublicationList({
                                 );
                             } else {
                                 // No hay filtros aplicados - no hay productos en general
+                                // Solo mostrar el botón "Crear Publicación" si el usuario es vendedor
+                                const isVendedor = auth?.user?.role === 'vendedor';
+                                
                                 return (
                                     <EmptyState
                                         icon={Plus}
                                         title="No hay publicaciones disponibles"
-                                        description="Aún no hay publicaciones en el marketplace. Sé el primero en publicar algo"
-                                        buttonText="Crear Publicación"
-                                        buttonHref="/my-publications/create"
-                                        buttonIcon={Plus}
+                                        description={isVendedor 
+                                            ? "Aún no hay publicaciones en el marketplace. Sé el primero en publicar algo"
+                                            : "Aún no hay publicaciones en el marketplace."}
+                                        buttonText={isVendedor ? "Crear Publicación" : undefined}
+                                        buttonHref={isVendedor ? "/my-publications/create" : undefined}
+                                        buttonIcon={isVendedor ? Plus : undefined}
                                         buttonVariant="default"
                                         buttonClassName="bg-gray-800 hover:bg-gray-900 text-white"
                                     />

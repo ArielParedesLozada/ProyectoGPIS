@@ -6,8 +6,8 @@ interface EmptyStateProps {
     icon: LucideIcon;
     title: string;
     description: string;
-    buttonText: string;
-    buttonHref: string;
+    buttonText?: string;
+    buttonHref?: string;
     buttonIcon?: LucideIcon;
     buttonVariant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
     buttonClassName?: string;
@@ -34,15 +34,17 @@ export default function EmptyState({
             <p className="text-gray-500 mb-6">
                 {description}
             </p>
-            <Link href={buttonHref}>
-                <Button 
-                    variant={buttonVariant}
-                    className={buttonClassName}
-                >
-                    {ButtonIcon && <ButtonIcon className="w-4 h-4 mr-2" />}
-                    {buttonText}
-                </Button>
-            </Link>
+            {buttonText && buttonHref && (
+                <Link href={buttonHref}>
+                    <Button 
+                        variant={buttonVariant}
+                        className={buttonClassName}
+                    >
+                        {ButtonIcon && <ButtonIcon className="w-4 h-4 mr-2" />}
+                        {buttonText}
+                    </Button>
+                </Link>
+            )}
         </div>
     );
 }
