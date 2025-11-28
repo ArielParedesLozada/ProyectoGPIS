@@ -19,7 +19,23 @@ class SimpleProfanityService
         'jodido', 'jodida', 'jodete', 'jódete', 'cagado', 'cagada',
         'cagar', 'cagarse', 'cagón', 'cagona', 'mierdoso', 'mierdosa',
         'mierdón', 'mierdona', 'basura', 'escoria', 'desperdicio', 'inútil',
-        'hijo de puta', 'hijoputa', 'coño', 'carajo', 'verga'
+        'hijo de puta', 'hijoputa', 'coño', 'carajo', 'verga',
+        // Drogas
+        'drogas', 'droga', 'marihuana', 'cannabis', 'cocaína', 'cocaina', 'heroína', 'heroina',
+        'anfetamina', 'anfetaminas', 'metanfetamina', 'lsd', 'éxtasis', 'extasis',
+        'morfina', 'opio', 'crack', 'cristal', 'speed', 'pasta', 'base',
+        'fumando', 'inyectar', 'inyección', 'inyeccion', 'dosis', 'adicto', 'adicta',
+        'narcotráfico', 'narcotrafico', 'traficante', 'dealer', 'tráfico', 'trafico',
+        // Alcohol
+        'alcohol', 'borracho', 'borracha', 'embriagado', 'embriagada', 'ebrio', 'ebria',
+        'cerveza', 'whisky', 'whiskey', 'vodka', 'ron', 'tequila', 'licor',
+        'emborrachar', 'borrachera', 'resaca', 'cruda', 'alcohólico', 'alcoholico',
+        // Armas
+        'pistola', 'pistolas', 'arma', 'armas', 'revólver', 'revolver', 'rifle',
+        'escopeta', 'fusil', 'metralleta', 'ametralladora', 'cuchillo', 'cuchillos',
+        'navaja', 'navajas', 'machete', 'machetes', 'bomba', 'bombas', 'explosivo',
+        'explosivos', 'granada', 'granadas', 'disparar', 'disparo', 'tiro', 'tiros',
+        'asesinar', 'asesinato', 'matar', 'muerte', 'homicidio'
     ];
     
     /**

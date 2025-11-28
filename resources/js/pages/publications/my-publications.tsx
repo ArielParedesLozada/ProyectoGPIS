@@ -116,6 +116,34 @@ function MyPublicationsContent() {
     const [showAppealModal, setShowAppealModal] = useState(false);
     const [selectedPublication, setSelectedPublication] = useState<Publication | null>(null);
     const [appealReason, setAppealReason] = useState('');
+    const [appealReasonError, setAppealReasonError] = useState<string | null>(null);
+
+    // Constantes de validación para appeal_reason
+    const APPEAL_REASON_MIN_LENGTH = 1; // El backend no tiene min, pero el frontend puede validar
+    const APPEAL_REASON_MAX_LENGTH = 100;
+
+    // Validar appeal_reason
+    const validateAppealReason = (value: string): string | null => {
+        if (!value.trim()) {
+            return 'El campo motivo es requerido';
+        }
+        if (value.length > APPEAL_REASON_MAX_LENGTH) {
+            return `El motivo no puede exceder ${APPEAL_REASON_MAX_LENGTH} caracteres`;
+        }
+        return null;
+    };
+
+    // Manejar cambio en appeal_reason con validación en tiempo real
+    const handleAppealReasonChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const value = e.target.value;
+        setAppealReason(value);
+        
+        // Validar solo si hay contenido o si ya hay un error
+        if (value.length > 0 || appealReasonError) {
+            const error = validateAppealReason(value);
+            setAppealReasonError(error);
+        }
+    };
 
     // Los toasts se manejan automáticamente por FlashToastHandler
 
@@ -156,24 +184,45 @@ function MyPublicationsContent() {
     const handleAppeal = (publication: Publication) => {
         setSelectedPublication(publication);
         setShowAppealModal(true);
+        setAppealReason('');
+        setAppealReasonError(null);
+    };
+
+    const handleCloseAppealModal = () => {
+        setShowAppealModal(false);
+        setAppealReason('');
+        setAppealReasonError(null);
+        setSelectedPublication(null);
     };
 
     const handleSubmitAppeal = () => {
-        if (!appealReason.trim()) {
-            alert('Debes proporcionar un motivo para la apelación.');
+        if (!selectedPublication) return;
+
+        const error = validateAppealReason(appealReason);
+        if (error) {
+            setAppealReasonError(error);
             return;
         }
-
-        if (!selectedPublication) return;
 
         router.post(`/my-publications/${selectedPublication.id}/appeal`, {
             reason: appealReason
         }, {
             onSuccess: () => {
-                setShowAppealModal(false);
-                setAppealReason('');
-                setSelectedPublication(null);
-                // Los toasts se manejan automáticamente por FlashToastHandler
+                // Cerrar el modal primero
+                handleCloseAppealModal();
+                // Recargar la página usando Inertia para mantener el estado
+                router.reload({ only: ['publications', 'flash'] });
+            },
+            onError: (errors) => {
+                console.error('Error al enviar apelación:', errors);
+                // Manejar errores de validación del backend
+                if (errors?.reason) {
+                    setAppealReasonError(Array.isArray(errors.reason) ? errors.reason[0] : errors.reason);
+                } else if (errors?.error) {
+                    setAppealReasonError(Array.isArray(errors.error) ? errors.error[0] : errors.error);
+                } else {
+                    setAppealReasonError('Error al enviar la apelación');
+                }
             }
         });
     };
@@ -300,7 +349,7 @@ function MyPublicationsContent() {
                     {/* Publications Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {publications.data.map((publication) => (
-                            <div key={publication.id} className="group relative bg-white dark:bg-slate-800 rounded-2xl shadow-sm hover:shadow-xl dark:hover:shadow-2xl transition-all duration-300 border border-gray-100 dark:border-slate-700 overflow-hidden h-full flex flex-col">
+                            <div key={publication.id} data-testid="publication-card" className="group relative bg-white dark:bg-slate-800 rounded-2xl shadow-sm hover:shadow-xl dark:hover:shadow-2xl transition-all duration-300 border border-gray-100 dark:border-slate-700 overflow-hidden h-full flex flex-col">
                                 {/* Header con título y menú */}
                                 <div className="p-5 pb-3">
                                     <div className="flex justify-between items-start mb-3">
@@ -320,7 +369,7 @@ function MyPublicationsContent() {
                                         </div>
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100">
+                                                <Button variant="ghost" size="sm" data-testid="publication-menu" className="h-8 w-8 p-0 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100">
                                                     <MoreHorizontal className="h-4 w-4" />
                                                 </Button>
                                             </DropdownMenuTrigger>
@@ -523,11 +572,7 @@ function MyPublicationsContent() {
             />
             <GeneralModal
                 isOpen={showAppealModal}
-                onClose={() => {
-                    setShowAppealModal(false);
-                    setAppealReason('');
-                    setSelectedPublication(null);
-                }}
+                onClose={handleCloseAppealModal}
                 title="Apelar Moderación"
             >
                 <div className="space-y-4">
@@ -545,31 +590,51 @@ function MyPublicationsContent() {
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Motivo de la apelación
+                            Motivo de la apelación <span className="text-red-500">*</span>
                         </label>
                         <textarea
                             value={appealReason}
-                            onChange={(e) => setAppealReason(e.target.value)}
+                            onChange={handleAppealReasonChange}
+                            onBlur={() => {
+                                const error = validateAppealReason(appealReason);
+                                setAppealReasonError(error);
+                            }}
                             rows={4}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                            maxLength={APPEAL_REASON_MAX_LENGTH}
+                            className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                                appealReasonError ? 'border-red-500' : 'border-gray-300'
+                            }`}
                             placeholder="Explica por qué crees que tu publicación debería ser restaurada..."
                             required
                         />
+                        <div className="flex items-center justify-between mt-1">
+                            <div>
+                                {appealReasonError && (
+                                    <p className="text-sm text-red-600 mt-1">{appealReasonError}</p>
+                                )}
+                            </div>
+                            <p className="text-xs text-gray-500">
+                                {appealReason.length} / {APPEAL_REASON_MAX_LENGTH} caracteres
+                            </p>
+                        </div>
                     </div>
 
                     <div className="flex gap-3 pt-4">
                         <button
+                            type="button"
                             onClick={handleSubmitAppeal}
-                            className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 px-4 rounded-lg transition"
+                            disabled={!!appealReasonError || !appealReason.trim()}
+                            className={`flex-1 font-semibold py-2 px-4 rounded-lg transition ${
+                                appealReasonError || !appealReason.trim()
+                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                    : 'bg-orange-600 hover:bg-orange-700 text-white'
+                            }`}
                         >
                             Enviar Apelación
                         </button>
                         <button
-                            onClick={() => {
-                                setShowAppealModal(false);
-                                setAppealReason('');
-                                setSelectedPublication(null);
-                            }}
+                            type="button"
+                            onClick={handleCloseAppealModal}
                             className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 font-semibold py-2 px-4 rounded-lg transition"
                         >
                             Cancelar

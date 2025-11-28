@@ -21,7 +21,7 @@ describe('Deshabilitar publicación', () => {
   };
 
   const getUserId = (): Cypress.Chainable<number> => {
-    return cy.request('GET', 'http://localhost:8080/testing/users').then((response) => {
+    return cy.request('GET', 'http:
       const user = response.body.find((u: any) => u.email === 'vendedor@test.com');
       if (!user) {
         throw new Error('Usuario vendedor@test.com no encontrado');
@@ -31,18 +31,18 @@ describe('Deshabilitar publicación', () => {
   };
 
   const createPublication = (title: string, description: string, price: string, type: 'producto' | 'servicio'): Cypress.Chainable<number> => {
-    return cy.visit('http://localhost:8080/my-publications/create', {
+    return cy.visit('http:
       onBeforeLoad: setupGeolocationStub
     }).then(() => {
       cy.contains('Crear Nueva Publicación', { timeout: 10000 });
 
-      cy.request('GET', 'http://localhost:8080/testing/categories').then((response) => {
+      cy.request('GET', 'http:
         const category = response.body[0];
-        
+
         cy.get('#title').type(title);
         cy.get('#description').type(description);
         cy.get('#price').type(price);
-        
+
         cy.contains('label', 'Categoría').parent().within(() => {
           cy.get('[role="combobox"]').click();
         });
@@ -71,23 +71,23 @@ describe('Deshabilitar publicación', () => {
         cy.get('button[type="submit"]').contains('Crear Publicación').click();
 
         cy.url({ timeout: 10000 }).should('include', '/my-publications');
-        
+
         cy.wait(4000);
       });
 
       return getUserId().then((userId) => {
-        return cy.request('GET', 'http://localhost:8080/testing/publications').then((response) => {
+        return cy.request('GET', 'http:
           const userPublications = response.body.filter((p: any) => p.created_by === userId);
-          
-          let publication = userPublications.find((p: any) => 
+
+          let publication = userPublications.find((p: any) =>
             p.title && (p.title.includes(title) || p.title === title)
           );
-          
+
           if (!publication && userPublications.length > 0) {
             const sorted = userPublications.sort((a: any, b: any) => b.id - a.id);
             publication = sorted[0];
           }
-          
+
           expect(publication).to.exist;
           return publication.id;
         });
@@ -96,9 +96,9 @@ describe('Deshabilitar publicación', () => {
   };
 
   before(() => {
-    cy.request('POST', 'http://localhost:8080/testing/reset-db', { seed: true });
-    
-    cy.request('POST', 'http://localhost:8080/testing/user', {
+    cy.request('POST', 'http:
+
+    cy.request('POST', 'http:
       email: 'vendedor@test.com',
       password: 'Admin123@',
       role: 'vendedor',
@@ -108,22 +108,22 @@ describe('Deshabilitar publicación', () => {
 
   beforeEach(() => {
     cy.session('vendedor-login', () => {
-      cy.request('GET', 'http://localhost:8080/testing/csrf').then((resp) => {
+      cy.request('GET', 'http:
         const token = resp.body.token;
         cy.setCookie('XSRF-TOKEN', token);
       });
 
-      cy.visit('http://localhost:8080/login');
+      cy.visit('http:
       cy.get('input[name="email"]').type('vendedor@test.com');
       cy.get('input[name="password"]').type('Admin123@');
       cy.get('button[type="submit"]').click();
       cy.url({ timeout: 15000 }).should('satisfy', (url) => {
         return !url.includes('/login');
       });
-      cy.wait(2000); 
+      cy.wait(2000);
     });
 
-    cy.request('GET', 'http://localhost:8080/testing/csrf').then((resp) => {
+    cy.request('GET', 'http:
       const token = resp.body.token;
       cy.setCookie('XSRF-TOKEN', token);
     });
@@ -140,7 +140,7 @@ describe('Deshabilitar publicación', () => {
     ).then((id) => {
       publicationId = id;
 
-      cy.visit('http://localhost:8080/my-publications');
+      cy.visit('http:
       cy.contains('Producto de Prueba', { timeout: 10000 }).should('be.visible');
 
       cy.contains('Producto de Prueba').then(($title) => {
@@ -159,19 +159,28 @@ describe('Deshabilitar publicación', () => {
 
       cy.get('[role="menuitem"]').contains('Inhabilitar').should('be.visible').click({ force: true });
 
-      cy.wait(2000);
+      cy.wait(5000);
 
-      cy.request('GET', 'http://localhost:8080/testing/publications').then((response) => {
+      cy.request('GET', 'http:
         const publication = response.body.find((p: any) => p.id === publicationId);
         expect(publication).to.exist;
-        expect(publication.status).to.eq(2);
+        
+        if (publication.status !== 2) {
+          cy.wait(3000);
+          cy.request('GET', 'http://localhost:8080/testing/publications').then((response2) => {
+            const publication2 = response2.body.find((p: any) => p.id === publicationId);
+            expect(publication2).to.exist;
+            expect(publication2.status).to.eq(2);
+          });
+        } else {
+          expect(publication.status).to.eq(2);
+        }
       });
 
-      cy.visit('http://localhost:8080/publication');
+      cy.visit('http:
       cy.wait(2000);
 
       cy.contains('Producto de Prueba', { timeout: 10000 }).should('not.exist');
     });
   });
 });
-

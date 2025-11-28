@@ -82,9 +82,11 @@ interface ButtonStates {
     canRestorePublication: boolean;
     canConfirmHideDecision: boolean;
     canDismissCase: boolean;
+    canReviewAppeal: boolean;
     isAssignedToMe: boolean;
     isCompleted: boolean;
     isAppealed: boolean;
+    isActionTaken: boolean;
 }
 
 interface ModerationShowProps {
@@ -112,9 +114,17 @@ export default function ModerationShow({ case: caseItem, buttonStates }: Moderat
     const [showDismissModal, setShowDismissModal] = useState(false);
     const [showHideModal, setShowHideModal] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [showReviewAppealModal, setShowReviewAppealModal] = useState(false);
+    const [selectedAppealId, setSelectedAppealId] = useState<number | null>(null);
+    const [reviewNotes, setReviewNotes] = useState('');
+    const [reviewNotesError, setReviewNotesError] = useState<string | null>(null);
     const [notes, setNotes] = useState(caseItem.resolution_notes || '');
     const [hideReason, setHideReason] = useState('');
     const [confirmNotes, setConfirmNotes] = useState('');
+    
+    // Constantes de validación para review_notes
+    const REVIEW_NOTES_MIN_LENGTH = 10;
+    const REVIEW_NOTES_MAX_LENGTH = 100;
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -198,6 +208,118 @@ export default function ModerationShow({ case: caseItem, buttonStates }: Moderat
                 // Mostrar error más específico
                 const errorMessage = errors?.notes?.[0] || errors?.error || 'Error al confirmar la decisión';
                 alert(errorMessage);
+            }
+        });
+    };
+
+    // Validar review_notes
+    const validateReviewNotes = (value: string): string | null => {
+        if (!value.trim()) {
+            return 'El campo notas es requerido';
+        }
+        if (value.trim().length < REVIEW_NOTES_MIN_LENGTH) {
+            return `Las notas deben tener al menos ${REVIEW_NOTES_MIN_LENGTH} caracteres`;
+        }
+        if (value.length > REVIEW_NOTES_MAX_LENGTH) {
+            return `Las notas no pueden exceder ${REVIEW_NOTES_MAX_LENGTH} caracteres`;
+        }
+        return null;
+    };
+
+    // Manejar cambio en review_notes con validación en tiempo real
+    const handleReviewNotesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const value = e.target.value;
+        setReviewNotes(value);
+        
+        // Validar solo si el usuario ha empezado a escribir o ha intentado enviar
+        if (value.length > 0 || reviewNotesError) {
+            const error = validateReviewNotes(value);
+            setReviewNotesError(error);
+        }
+    };
+
+    // Abrir modal de revisión de apelación
+    const handleOpenReviewAppeal = (appealId: number) => {
+        setSelectedAppealId(appealId);
+        setReviewNotes('');
+        setReviewNotesError(null);
+        setShowReviewAppealModal(true);
+    };
+
+    // Cerrar modal de revisión
+    const handleCloseReviewAppeal = () => {
+        setShowReviewAppealModal(false);
+        setSelectedAppealId(null);
+        setReviewNotes('');
+        setReviewNotesError(null);
+    };
+
+    // Manejar revisión de apelación (aceptar)
+    const handleReviewAppealAccept = () => {
+        if (!selectedAppealId) return;
+        
+        const error = validateReviewNotes(reviewNotes);
+        if (error) {
+            setReviewNotesError(error);
+            return;
+        }
+
+        router.post(`/moderation/${caseItem.id}/review-appeal`, {
+            appeal_id: selectedAppealId,
+            review_notes: reviewNotes,
+            final_decision: 'overturn', // Aceptar = restaurar publicación
+        }, {
+            onSuccess: () => {
+                // Cerrar el modal primero
+                handleCloseReviewAppeal();
+                // Recargar la página usando Inertia para mantener el estado
+                router.reload({ only: ['case', 'buttonStates'] });
+            },
+            onError: (errors) => {
+                console.error('Error al revisar apelación:', errors);
+                // Manejar errores de validación del backend
+                if (errors?.review_notes) {
+                    setReviewNotesError(Array.isArray(errors.review_notes) ? errors.review_notes[0] : errors.review_notes);
+                } else if (errors?.error) {
+                    setReviewNotesError(Array.isArray(errors.error) ? errors.error[0] : errors.error);
+                } else {
+                    setReviewNotesError('Error al revisar la apelación');
+                }
+            }
+        });
+    };
+
+    // Manejar revisión de apelación (rechazar)
+    const handleReviewAppealReject = () => {
+        if (!selectedAppealId) return;
+        
+        const error = validateReviewNotes(reviewNotes);
+        if (error) {
+            setReviewNotesError(error);
+            return;
+        }
+
+        router.post(`/moderation/${caseItem.id}/review-appeal`, {
+            appeal_id: selectedAppealId,
+            review_notes: reviewNotes,
+            final_decision: 'uphold', // Rechazar = mantener decisión original
+        }, {
+            onSuccess: () => {
+                // Cerrar el modal primero
+                handleCloseReviewAppeal();
+                // Recargar la página usando Inertia para mantener el estado
+                router.reload({ only: ['case', 'buttonStates'] });
+            },
+            onError: (errors) => {
+                console.error('Error al revisar apelación:', errors);
+                // Manejar errores de validación del backend
+                if (errors?.review_notes) {
+                    setReviewNotesError(Array.isArray(errors.review_notes) ? errors.review_notes[0] : errors.review_notes);
+                } else if (errors?.error) {
+                    setReviewNotesError(Array.isArray(errors.error) ? errors.error[0] : errors.error);
+                } else {
+                    setReviewNotesError('Error al revisar la apelación');
+                }
             }
         });
     };
@@ -356,9 +478,19 @@ export default function ModerationShow({ case: caseItem, buttonStates }: Moderat
                                     <div className="space-y-4">
                                         {caseItem.appeals.map((appeal) => (
                                             <div key={appeal.id} className="border border-gray-200 rounded-lg p-4">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <MessageSquare className="w-4 h-4 text-gray-500" />
-                                                    <span className="font-medium text-gray-900">{appeal.appealer.name}</span>
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <MessageSquare className="w-4 h-4 text-gray-500" />
+                                                        <span className="font-medium text-gray-900">{appeal.appealer.name}</span>
+                                                    </div>
+                                                    {!appeal.reviewed_at && buttonStates.canReviewAppeal && (
+                                                        <button
+                                                            onClick={() => handleOpenReviewAppeal(appeal.id)}
+                                                            className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg transition"
+                                                        >
+                                                            Revisar Apelación
+                                                        </button>
+                                                    )}
                                                 </div>
                                                 <p className="text-gray-700 text-sm mb-2">{appeal.appeal_reason}</p>
                                                 {appeal.review_notes && (
@@ -600,6 +732,91 @@ export default function ModerationShow({ case: caseItem, buttonStates }: Moderat
                         </button>
                         <button
                             onClick={() => setShowConfirmModal(false)}
+                            className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 font-semibold py-2 px-4 rounded-lg transition"
+                        >
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            </GeneralModal>
+
+            {/* Modal para revisar apelación */}
+            <GeneralModal
+                isOpen={showReviewAppealModal}
+                onClose={handleCloseReviewAppeal}
+                title="Revisar Apelación"
+            >
+                <div className="space-y-4">
+                    <p className="text-gray-600">
+                        Proporciona tus notas de revisión para esta apelación. 
+                        Puedes aceptar la apelación (restaurar la publicación) o rechazarla (mantener la decisión original).
+                    </p>
+                    
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Notas de revisión <span className="text-red-500">*</span>
+                        </label>
+                        <textarea
+                            name="review_notes"
+                            value={reviewNotes}
+                            onChange={handleReviewNotesChange}
+                            onBlur={() => {
+                                const error = validateReviewNotes(reviewNotes);
+                                setReviewNotesError(error);
+                            }}
+                            rows={6}
+                            maxLength={REVIEW_NOTES_MAX_LENGTH}
+                            className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                                reviewNotesError ? 'border-red-500' : 'border-gray-300'
+                            }`}
+                            placeholder="Escribe tus notas de revisión detalladas..."
+                            required
+                        />
+                        <div className="flex items-center justify-between mt-1">
+                            <div>
+                                {reviewNotesError && (
+                                    <p className="text-sm text-red-600 mt-1">{reviewNotesError}</p>
+                                )}
+                            </div>
+                            <p className="text-xs text-gray-500">
+                                {reviewNotes.length} / {REVIEW_NOTES_MAX_LENGTH} caracteres
+                            </p>
+                        </div>
+                        {reviewNotes.length > 0 && reviewNotes.length < REVIEW_NOTES_MIN_LENGTH && !reviewNotesError && (
+                            <p className="text-xs text-yellow-600 mt-1">
+                                Mínimo {REVIEW_NOTES_MIN_LENGTH} caracteres requeridos
+                            </p>
+                        )}
+                    </div>
+
+                    <div className="flex gap-3 pt-4">
+                        <button
+                            type="button"
+                            onClick={handleReviewAppealAccept}
+                            disabled={!!reviewNotesError || !reviewNotes.trim() || reviewNotes.trim().length < REVIEW_NOTES_MIN_LENGTH}
+                            className={`flex-1 font-semibold py-2 px-4 rounded-lg transition ${
+                                reviewNotesError || !reviewNotes.trim() || reviewNotes.trim().length < REVIEW_NOTES_MIN_LENGTH
+                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                    : 'bg-green-600 hover:bg-green-700 text-white'
+                            }`}
+                        >
+                            Aceptar Apelación
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleReviewAppealReject}
+                            disabled={!!reviewNotesError || !reviewNotes.trim() || reviewNotes.trim().length < REVIEW_NOTES_MIN_LENGTH}
+                            className={`flex-1 font-semibold py-2 px-4 rounded-lg transition ${
+                                reviewNotesError || !reviewNotes.trim() || reviewNotes.trim().length < REVIEW_NOTES_MIN_LENGTH
+                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                    : 'bg-red-600 hover:bg-red-700 text-white'
+                            }`}
+                        >
+                            Rechazar Apelación
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleCloseReviewAppeal}
                             className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 font-semibold py-2 px-4 rounded-lg transition"
                         >
                             Cancelar

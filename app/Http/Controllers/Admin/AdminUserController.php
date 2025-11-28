@@ -105,7 +105,7 @@ class AdminUserController extends Controller
             // No disparar evento Registered para evitar envío inmediato de correo de verificación
             // El correo de verificación se enviará cuando el usuario inicie sesión por primera vez
 
-            return redirect()->route('admin.admins.index')
+            return redirect()->route('admin.admin.index')
                 ->with('success', 'Administrador creado exitosamente.');
 
         } catch (\Exception $e) {
@@ -235,7 +235,7 @@ class AdminUserController extends Controller
 
         $admin->update($data);
 
-        return redirect()->route('admin.admins.index')->with('success', 'Administrador actualizado exitosamente.');
+        return redirect()->route('admin.admin.index')->with('success', 'Administrador actualizado exitosamente.');
     }
 
     /**
@@ -257,7 +257,7 @@ class AdminUserController extends Controller
 
         $admin->delete();
 
-        return redirect()->route('admin.admins.index')->with('success', 'Administrador eliminado exitosamente.');
+        return redirect()->route('admin.admin.index')->with('success', 'Administrador eliminado exitosamente.');
     }
 
     /**
@@ -290,7 +290,7 @@ class AdminUserController extends Controller
 
         $admin->restore();
 
-        return redirect()->route('admin.admins.deleted')->with('success', 'Administrador restaurado exitosamente.');
+        return redirect()->route('admin.admin.deleted')->with('success', 'Administrador restaurado exitosamente.');
     }
 
     /**
@@ -307,6 +307,6 @@ class AdminUserController extends Controller
 
         $admin->forceDelete();
 
-        return redirect()->route('admin.admins.deleted')->with('success', 'Administrador eliminado permanentemente.');
+        return redirect()->route('admin.admin.deleted')->with('success', 'Administrador eliminado permanentemente.');
     }
 }

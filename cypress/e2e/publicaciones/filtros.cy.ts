@@ -21,7 +21,7 @@ describe('Filtros de publicaciones', () => {
   };
 
   const getUserId = (): Cypress.Chainable<number> => {
-    return cy.request('GET', 'http://localhost:8080/testing/users').then((response) => {
+    return cy.request('GET', 'http:
       const user = response.body.find((u: any) => u.email === 'vendedor@test.com');
       if (!user) {
         throw new Error('Usuario vendedor@test.com no encontrado');
@@ -31,29 +31,29 @@ describe('Filtros de publicaciones', () => {
   };
 
   const createPublication = (
-    title: string, 
-    description: string, 
-    price: string, 
+    title: string,
+    description: string,
+    price: string,
     type: 'producto' | 'servicio',
     categoryName: string,
     lat: number,
     lng: number
   ): Cypress.Chainable<number> => {
-    return cy.visit('http://localhost:8080/my-publications/create', {
+    return cy.visit('http:
       onBeforeLoad: (win) => setupGeolocationStub(win, lat, lng)
     }).then(() => {
       cy.contains('Crear Nueva Publicación', { timeout: 10000 });
 
-      return cy.request('GET', 'http://localhost:8080/testing/categories').then((response) => {
+      return cy.request('GET', 'http:
         const category = response.body.find((c: any) => c.name === categoryName);
         if (!category) {
           throw new Error(`Categoría ${categoryName} no encontrada`);
         }
-        
+
         cy.get('#title').type(title);
         cy.get('#description').type(description);
         cy.get('#price').type(price);
-        
+
         cy.contains('label', 'Categoría').parent().within(() => {
           cy.get('[role="combobox"]').click();
         });
@@ -82,22 +82,22 @@ describe('Filtros de publicaciones', () => {
         cy.get('button[type="submit"]').contains('Crear Publicación').click();
 
         cy.url({ timeout: 10000 }).should('include', '/my-publications');
-        
+
         cy.wait(4000);
       }).then(() => {
         return getUserId().then((userId) => {
-          return cy.request('GET', 'http://localhost:8080/testing/publications').then((response) => {
+          return cy.request('GET', 'http:
             const userPublications = response.body.filter((p: any) => p.created_by === userId);
-            
-            let publication = userPublications.find((p: any) => 
+
+            let publication = userPublications.find((p: any) =>
               p.title && (p.title.includes(title) || p.title === title)
             );
-            
+
             if (!publication && userPublications.length > 0) {
               const sorted = userPublications.sort((a: any, b: any) => b.id - a.id);
               publication = sorted[0];
             }
-            
+
             expect(publication).to.exist;
             return publication.id;
           });
@@ -107,9 +107,9 @@ describe('Filtros de publicaciones', () => {
   };
 
   before(() => {
-    cy.request('POST', 'http://localhost:8080/testing/reset-db', { seed: true });
-    
-    cy.request('POST', 'http://localhost:8080/testing/user', {
+    cy.request('POST', 'http:
+
+    cy.request('POST', 'http:
       email: 'vendedor@test.com',
       password: 'Admin123@',
       role: 'vendedor',
@@ -119,22 +119,22 @@ describe('Filtros de publicaciones', () => {
 
   beforeEach(() => {
     cy.session('vendedor-login', () => {
-      cy.request('GET', 'http://localhost:8080/testing/csrf').then((resp) => {
+      cy.request('GET', 'http:
         const token = resp.body.token;
         cy.setCookie('XSRF-TOKEN', token);
       });
 
-      cy.visit('http://localhost:8080/login');
+      cy.visit('http:
       cy.get('input[name="email"]').type('vendedor@test.com');
       cy.get('input[name="password"]').type('Admin123@');
       cy.get('button[type="submit"]').click();
       cy.url({ timeout: 15000 }).should('satisfy', (url) => {
         return !url.includes('/login');
       });
-      cy.wait(2000); 
+      cy.wait(2000);
     });
 
-    cy.request('GET', 'http://localhost:8080/testing/csrf').then((resp) => {
+    cy.request('GET', 'http:
       const token = resp.body.token;
       cy.setCookie('XSRF-TOKEN', token);
     });
@@ -151,53 +151,53 @@ describe('Filtros de publicaciones', () => {
       '50.00',
       'producto',
       'Electrónicos',
-      -0.2299, 
+      -0.2299,
       -78.5249
     ).then((id) => {
       publicacion1Id = id;
-      
+
       return createPublication(
         'Servicio de Diseño de Moda',
         'Servicio profesional de diseño y confección de ropa a medida.',
         '200.00',
         'servicio',
         'Ropa y Accesorios',
-        -2.1709, 
+        -2.1709,
         -79.9224
       );
     }).then((id) => {
       publicacion2Id = id;
-      
+
       return createPublication(
         'Mesa de Comedor Moderna',
         'Mesa de comedor de madera maciza con capacidad para 6 personas.',
         '500.00',
         'producto',
         'Hogar y Jardín',
-        -2.9001, 
+        -2.9001,
         -79.0059
       );
     }).then((id) => {
       publicacion3Id = id;
 
-      cy.request('GET', 'http://localhost:8080/testing/publications').then((response) => {
+      cy.request('GET', 'http:
         const pub1 = response.body.find((p: any) => p.id === publicacion1Id);
         const pub2 = response.body.find((p: any) => p.id === publicacion2Id);
         const pub3 = response.body.find((p: any) => p.id === publicacion3Id);
-        
+
         expect(pub1).to.exist;
         expect(pub2).to.exist;
         expect(pub3).to.exist;
       });
 
-      cy.visit('http://localhost:8080/publication');
+      cy.visit('http:
       cy.wait(2000);
 
       cy.contains('Smartphone Samsung Galaxy', { timeout: 10000 }).should('be.visible');
       cy.contains('Servicio de Diseño de Moda', { timeout: 10000 }).should('be.visible');
       cy.contains('Mesa de Comedor Moderna', { timeout: 10000 }).should('be.visible');
 
-      cy.request('GET', 'http://localhost:8080/testing/categories').then((categoriesResponse) => {
+      cy.request('GET', 'http:
         const categoriaElectronicos = categoriesResponse.body.find((c: any) => c.name === 'Electrónicos');
         const categoriaRopa = categoriesResponse.body.find((c: any) => c.name === 'Ropa y Accesorios');
         const categoriaHogar = categoriesResponse.body.find((c: any) => c.name === 'Hogar y Jardín');
@@ -240,11 +240,14 @@ describe('Filtros de publicaciones', () => {
         cy.get('#min-price').clear({ force: true }).type('100', { force: true });
         cy.get('#max-price').clear({ force: true }).type('300', { force: true });
         cy.get('button').contains('Aplicar Filtro de Precio').click({ force: true });
-        cy.wait(2000);
+        
+        cy.url({ timeout: 10000 }).should('include', 'min_price=100');
+        cy.url({ timeout: 10000 }).should('include', 'max_price=300');
+        cy.wait(3000);
 
         cy.contains('Servicio de Diseño de Moda', { timeout: 10000 }).should('be.visible');
-        cy.contains('Smartphone Samsung Galaxy').should('not.exist');
-        cy.contains('Mesa de Comedor Moderna').should('not.exist');
+        cy.contains('Smartphone Samsung Galaxy', { timeout: 10000 }).should('not.exist');
+        cy.contains('Mesa de Comedor Moderna', { timeout: 10000 }).should('not.exist');
 
         cy.get('#min-price').clear({ force: true });
         cy.get('#max-price').clear({ force: true });
@@ -285,11 +288,11 @@ describe('Filtros de publicaciones', () => {
 
         cy.get('h3.font-bold.text-lg').should('have.length.at.least', 3).then(($titles) => {
           const titles = Array.from($titles).map(el => el.textContent?.trim());
-          
+
           expect(titles[0]).to.include('Mesa de Comedor Moderna');
-          
+
           expect(titles[1]).to.include('Servicio de Diseño de Moda');
-          
+
           expect(titles[2]).to.include('Smartphone Samsung Galaxy');
         });
 
@@ -320,7 +323,7 @@ describe('Filtros de publicaciones', () => {
         cy.contains('Mesa de Comedor Moderna', { timeout: 10000 }).should('be.visible');
       });
 
-      cy.visit('http://localhost:8080/publication');
+      cy.visit('http:
       cy.wait(2000);
 
       cy.contains('Smartphone Samsung Galaxy', { timeout: 10000 }).should('be.visible');
@@ -329,4 +332,3 @@ describe('Filtros de publicaciones', () => {
     });
   });
 });
-

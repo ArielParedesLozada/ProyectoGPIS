@@ -21,7 +21,7 @@ describe('Crear publicación', () => {
   };
 
   const getUserId = (): Cypress.Chainable<number> => {
-    return cy.request('GET', 'http://localhost:8080/testing/users').then((response) => {
+    return cy.request('GET', 'http:
       const user = response.body.find((u: any) => u.email === 'vendedor@test.com');
       if (!user) {
         throw new Error('Usuario vendedor@test.com no encontrado');
@@ -31,9 +31,9 @@ describe('Crear publicación', () => {
   };
 
   before(() => {
-    cy.request('POST', 'http://localhost:8080/testing/reset-db', { seed: true });
-    
-    cy.request('POST', 'http://localhost:8080/testing/user', {
+    cy.request('POST', 'http:
+
+    cy.request('POST', 'http:
       email: 'vendedor@test.com',
       password: 'Admin123@',
       role: 'vendedor',
@@ -43,41 +43,41 @@ describe('Crear publicación', () => {
 
   beforeEach(() => {
     cy.session('vendedor-login', () => {
-      cy.request('GET', 'http://localhost:8080/testing/csrf').then((resp) => {
+      cy.request('GET', 'http:
         const token = resp.body.token;
         cy.setCookie('XSRF-TOKEN', token);
       });
 
-      cy.visit('http://localhost:8080/login');
+      cy.visit('http:
       cy.get('input[name="email"]').type('vendedor@test.com');
       cy.get('input[name="password"]').type('Admin123@');
       cy.get('button[type="submit"]').click();
       cy.url({ timeout: 15000 }).should('satisfy', (url) => {
         return !url.includes('/login');
       });
-      cy.wait(2000); 
+      cy.wait(2000);
     });
 
-    cy.request('GET', 'http://localhost:8080/testing/csrf').then((resp) => {
+    cy.request('GET', 'http:
       const token = resp.body.token;
       cy.setCookie('XSRF-TOKEN', token);
     });
   });
 
   it('PUB-CREAR-001: Crear publicación exitosamente', () => {
-    cy.visit('http://localhost:8080/my-publications/create', {
+    cy.visit('http:
       onBeforeLoad: setupGeolocationStub
     });
 
     cy.contains('Crear Nueva Publicación', { timeout: 10000 });
 
-    cy.request('GET', 'http://localhost:8080/testing/categories').then((response) => {
+    cy.request('GET', 'http:
       const category = response.body[0];
-      
+
       cy.get('#title').type('Laptop Gamer');
       cy.get('#description').type('Equipo de alto rendimiento ideal para videojuegos.');
       cy.get('#price').type('1499.99');
-      
+
       cy.contains('label', 'Categoría').parent().within(() => {
         cy.get('[role="combobox"]').click();
       });
@@ -106,22 +106,22 @@ describe('Crear publicación', () => {
       cy.get('button[type="submit"]').contains('Crear Publicación').click();
 
       cy.url({ timeout: 10000 }).should('include', '/my-publications');
-      
-      cy.wait(4000); 
-      
+
+      cy.wait(4000);
+
       getUserId().then((userId) => {
-        cy.request('GET', 'http://localhost:8080/testing/publications').then((response) => {
+        cy.request('GET', 'http:
           const userPublications = response.body.filter((p: any) => p.created_by === userId);
-          
-          let publication = userPublications.find((p: any) => 
+
+          let publication = userPublications.find((p: any) =>
             p.title && (p.title.includes('Laptop Gamer') || p.title === 'Laptop Gamer')
           );
-          
+
           if (!publication && userPublications.length > 0) {
             const sorted = userPublications.sort((a: any, b: any) => b.id - a.id);
             publication = sorted[0];
           }
-          
+
           expect(publication).to.exist;
           if (publication) {
             expect(parseFloat(publication.price)).to.be.closeTo(1499.99, 0.01);
@@ -130,26 +130,26 @@ describe('Crear publicación', () => {
       });
 
       cy.contains('a', 'Mis Publicaciones', { timeout: 10000 }).click();
-      cy.wait(2000); 
-      
+      cy.wait(2000);
+
       cy.contains('Laptop Gamer', { timeout: 10000 }).should('be.visible');
     });
   });
 
   it('PUB-CREAR-002: Crear servicio con horario obligatorio', () => {
-    cy.visit('http://localhost:8080/my-publications/create', {
+    cy.visit('http:
       onBeforeLoad: setupGeolocationStub
     });
 
     cy.contains('Crear Nueva Publicación', { timeout: 10000 });
 
-    cy.request('GET', 'http://localhost:8080/testing/categories').then((response) => {
+    cy.request('GET', 'http:
       const category = response.body[0];
-      
+
       cy.get('#title').type('Servicio de mantenimiento');
       cy.get('#description').type('Mantenimiento preventivo y correctivo.');
       cy.get('#price').type('299.99');
-      
+
       cy.contains('label', 'Categoría').parent().within(() => {
         cy.get('[role="combobox"]').click();
       });
@@ -189,12 +189,12 @@ describe('Crear publicación', () => {
         }
       });
       cy.contains('a', 'Mis Publicaciones', { timeout: 10000 }).click();
-      cy.wait(2000); 
+      cy.wait(2000);
     });
   });
 
   it('PUB-CREAR-003: Validar errores de campos vacíos al crear publicación', () => {
-    cy.visit('http://localhost:8080/my-publications/create', {
+    cy.visit('http:
       onBeforeLoad: setupGeolocationStub
     });
 
@@ -213,8 +213,8 @@ describe('Crear publicación', () => {
     cy.get('#price').type('100');
     cy.wait(300);
     cy.get('button[type="submit"]').contains('Crear Publicación').should('be.disabled');
-    
-    cy.request('GET', 'http://localhost:8080/testing/categories').then((response) => {
+
+    cy.request('GET', 'http:
       cy.contains('label', 'Categoría').parent().within(() => {
         cy.get('[role="combobox"]').click();
       });
@@ -241,7 +241,7 @@ describe('Crear publicación', () => {
       cy.get('button[type="submit"]').contains('Crear Publicación').should('be.disabled');
 
       cy.contains('Ubicación en el mapa *').should('be.visible');
-      
+
       cy.contains('button', 'Usar mi ubicación').should('be.visible');
 
       cy.contains('button', 'Usar mi ubicación').click();
@@ -252,7 +252,7 @@ describe('Crear publicación', () => {
   });
 
   it('PUB-CREAR-004: Validar error al subir más de 5 imágenes', () => {
-    cy.visit('http://localhost:8080/my-publications/create', {
+    cy.visit('http:
       onBeforeLoad: setupGeolocationStub
     });
 
@@ -272,7 +272,7 @@ describe('Crear publicación', () => {
     cy.wait(2000);
 
     cy.contains('Imágenes seleccionadas (5/5)', { timeout: 5000 }).should('be.visible');
-    
+
     cy.contains('Límite alcanzado', { timeout: 3000 }).should('be.visible');
 
     cy.get('input[type="file"]').selectFile({
@@ -288,4 +288,3 @@ describe('Crear publicación', () => {
     cy.contains('Imágenes seleccionadas (5/5)', { timeout: 3000 }).should('be.visible');
   });
 });
-

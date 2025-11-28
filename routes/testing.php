@@ -68,6 +68,288 @@ Route::prefix('testing')->group(function () {
         ]);
         return response()->json($image);
     });
+    Route::get('/publication/{id}', function ($id) {
+        $publication = Publication::findOrFail($id);
+        return response()->json($publication);
+    });
+    Route::patch('/publication/{id}', function ($id) {
+        $publication = Publication::findOrFail($id);
+        $publication->update(request()->all());
+        return response()->json($publication);
+    });
+    Route::patch('/user/{id}', function ($id) {
+        $user = User::findOrFail($id);
+        $user->update(request()->all());
+        return response()->json($user);
+    });
+    Route::patch('/moderation-case/{id}', function ($id) {
+        $case = \App\Models\ModerationCase::findOrFail($id);
+        $data = request()->all();
+        
+        // Validar source si se proporciona
+        if (isset($data['source'])) {
+            $validSources = ['user', 'system'];
+            if ($data['source'] === 'auto') {
+                $data['source'] = 'system';
+            }
+            if (!in_array($data['source'], $validSources)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => "Invalid source: '{$data['source']}'. Valid values are: " . implode(', ', $validSources)
+                ], 400);
+            }
+        }
+        
+        // Validar status si se proporciona
+        if (isset($data['status'])) {
+            $validStatuses = ['pending', 'triage', 'in_review', 'action_taken', 'dismissed', 'appealed', 'closed'];
+            if (!in_array($data['status'], $validStatuses)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => "Invalid status: '{$data['status']}'. Valid values are: " . implode(', ', $validStatuses)
+                ], 400);
+            }
+        }
+        
+        $case->update($data);
+        return response()->json($case);
+    });
+    Route::post('/moderation-case', function () {
+        $data = request()->all();
+        
+        try {
+            // Validar y normalizar el source: solo permite 'user' o 'system' según el enum de la BD
+            $validSources = ['user', 'system'];
+            $source = $data['source'] ?? 'system';
+            
+            // Si se proporciona 'auto', convertirlo a 'system' para testing
+            if ($source === 'auto') {
+                $source = 'system';
+            }
+            
+            // Validar que el source sea válido
+            if (!in_array($source, $validSources)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => "Invalid source: '{$source}'. Valid values are: " . implode(', ', $validSources)
+                ], 400);
+            }
+            
+            // Validar que el status sea válido según el enum de la migración
+            $validStatuses = ['pending', 'triage', 'in_review', 'action_taken', 'dismissed', 'appealed', 'closed'];
+            $status = $data['status'] ?? 'pending';
+            
+            if (!in_array($status, $validStatuses)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => "Invalid status: '{$status}'. Valid values are: " . implode(', ', $validStatuses)
+                ], 400);
+            }
+            
+            // Crear el caso SIN eventos para evitar observers/events que puedan causar hang
+            $case = \App\Models\ModerationCase::withoutEvents(function () use ($data, $source, $status) {
+                return \App\Models\ModerationCase::create([
+                    'publication_id' => $data['publication_id'],
+                    'source' => $source,
+                    'status' => $status,
+                    'assigned_moderator_id' => $data['assigned_moderator_id'] ?? null,
+                    'assigned_at' => $data['assigned_at'] ?? now(),
+                    'resolution_notes' => $data['resolution_notes'] ?? null,
+                    'resolved_at' => $data['resolved_at'] ?? null,
+                ]);
+            });
+            
+            return response()->json($case);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'trace' => app()->environment('local') ? $e->getTraceAsString() : null
+            ], 500);
+        }
+    });
+    Route::get('/moderation-cases', function () {
+        $cases = \App\Models\ModerationCase::all();
+        return response()->json($cases);
+    });
+    Route::post('/moderation/{id}/dismiss', function ($id) {
+        $case = \App\Models\ModerationCase::with('publication')->findOrFail($id);
+        $notes = request('notes', 'Caso descartado por testing');
+        
+        \Illuminate\Support\Facades\DB::beginTransaction();
+        
+        try {
+            // Verificar si la publicación está oculta antes de restaurarla
+            $wasHidden = $case->publication->is_hidden;
+            
+            // Si la publicación está oculta, restaurarla al descartar el caso
+            if ($wasHidden) {
+                $publication = $case->publication;
+                $publication->is_hidden = false;
+                $publication->save();
+            }
+            
+            // Actualizar el caso
+            $case->update([
+                'status' => 'dismissed',
+                'resolution_notes' => $notes,
+                'resolved_at' => now(),
+            ]);
+            
+            // Registrar la acción en el historial
+            \App\Models\ModerationAction::create([
+                'moderation_case_id' => $case->id,
+                'moderator_id' => $case->assigned_moderator_id ?? 1, // Usar el moderador asignado o un valor por defecto
+                'action_type' => 'dismiss_case',
+                'action_description' => $wasHidden ? 'Caso descartado - Publicación restaurada' : 'Caso descartado',
+                'metadata' => [
+                    'notes' => $notes,
+                    'publication_restored' => $wasHidden,
+                ]
+            ]);
+            
+            \Illuminate\Support\Facades\DB::commit();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Caso descartado correctamente',
+                'case' => $case->fresh(),
+            ]);
+            
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'error' => 'Error al descartar el caso: ' . $e->getMessage()
+            ], 500);
+        }
+    });
+    Route::post('/moderation/{id}/hide-publication', function ($id) {
+        $case = \App\Models\ModerationCase::with('publication')->findOrFail($id);
+        $reason = request('reason', 'Ocultada por testing');
+        
+        \Illuminate\Support\Facades\DB::beginTransaction();
+        
+        try {
+            // Ocultar la publicación
+            $publication = $case->publication;
+            $publication->is_hidden = true;
+            $publication->save();
+            
+            // Actualizar el caso
+            $case->update([
+                'status' => 'action_taken',
+                'resolution_notes' => $reason,
+                'resolved_at' => now(),
+            ]);
+            
+            // Registrar la acción en el historial
+            \App\Models\ModerationAction::create([
+                'moderation_case_id' => $case->id,
+                'moderator_id' => $case->assigned_moderator_id ?? 1, // Usar el moderador asignado o un valor por defecto
+                'action_type' => 'hide_publication',
+                'action_description' => 'Publicación ocultada por moderación',
+                'metadata' => [
+                    'publication_id' => $publication->id,
+                    'publication_title' => $publication->title,
+                    'reason' => $reason,
+                ]
+            ]);
+            
+            \Illuminate\Support\Facades\DB::commit();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Publicación ocultada correctamente',
+                'publication' => $publication->fresh(),
+                'case' => $case->fresh(),
+            ]);
+            
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'error' => 'Error al ocultar la publicación: ' . $e->getMessage()
+            ], 500);
+        }
+    });
+    Route::post('/moderation-appeal', function () {
+        $data = request()->all();
+        // Mapear user_id a appealer_id si es necesario
+        if (isset($data['user_id']) && !isset($data['appealer_id'])) {
+            $data['appealer_id'] = $data['user_id'];
+            unset($data['user_id']);
+        }
+        // Remover campos que no existen en la tabla
+        unset($data['status'], $data['final_decision']);
+        $appeal = \App\Models\ModerationAppeal::create($data);
+        return response()->json($appeal);
+    });
+    Route::get('/moderation-appeals', function () {
+        $appeals = \App\Models\ModerationAppeal::all();
+        return response()->json($appeals);
+    });
+    Route::post('/moderation-action', function () {
+        $data = request()->all();
+        $action = \App\Models\ModerationAction::create($data);
+        return response()->json($action);
+    });
+    Route::post('/reassign-cases', function () {
+        $fromModeratorId = (int) request('from_moderator_id');
+        $toModeratorId = (int) request('to_moderator_id');
+        
+        // Buscar casos (sin incluir eliminados por defecto)
+        // Asegurar que assigned_moderator_id no sea null y coincida exactamente
+        $cases = \App\Models\ModerationCase::where('assigned_moderator_id', $fromModeratorId)
+            ->whereIn('status', ['pending', 'in_review', 'appealed'])
+            ->get();
+        
+        $reassigned = 0;
+        foreach ($cases as $case) {
+            $case->update([
+                'assigned_moderator_id' => $toModeratorId,
+                'assigned_at' => now(),
+            ]);
+            $reassigned++;
+        }
+        
+        return response()->json([
+            'message' => "Reasignados {$reassigned} casos",
+            'reassigned_count' => $reassigned,
+            'found_cases' => $cases->count(),
+            'from_moderator_id' => $fromModeratorId,
+            'to_moderator_id' => $toModeratorId,
+            'debug' => [
+                'query_conditions' => [
+                    'assigned_moderator_id' => $fromModeratorId,
+                    'status_in' => ['pending', 'in_review', 'appealed'],
+                ],
+                'total_cases_found' => $cases->count(),
+            ],
+        ]);
+    });
+    Route::post('/login', function () {
+        $email = request('email');
+        $password = request('password');
+        
+        $user = \App\Models\User::where('email', $email)->first();
+        
+        if (!$user || !\Illuminate\Support\Facades\Hash::check($password, $user->password)) {
+            return response()->json(['error' => 'Invalid credentials'], 401);
+        }
+        
+        if (!$user->is_active) {
+            return response()->json(['error' => 'User is inactive'], 403);
+        }
+        
+        \Illuminate\Support\Facades\Auth::login($user);
+        request()->session()->regenerate();
+        
+        return response()->json([
+            'message' => 'Login successful',
+            'user' => $user,
+        ]);
+    });
     Route::post('/reset-db', function () {
         \Illuminate\Support\Facades\Artisan::call('migrate:fresh', [
             '--seed' => request()->has('seed'),

@@ -23,7 +23,7 @@ describe('Editar publicación', () => {
   };
 
   const getUserId = (): Cypress.Chainable<number> => {
-    return cy.request('GET', 'http://localhost:8080/testing/users').then((response) => {
+    return cy.request('GET', 'http:
       const user = response.body.find((u: any) => u.email === 'vendedor@test.com');
       if (!user) {
         throw new Error('Usuario vendedor@test.com no encontrado');
@@ -33,18 +33,18 @@ describe('Editar publicación', () => {
   };
 
   const createPublication = (title: string, description: string, price: string, type: 'producto' | 'servicio'): Cypress.Chainable<number> => {
-    return cy.visit('http://localhost:8080/my-publications/create', {
+    return cy.visit('http:
       onBeforeLoad: setupGeolocationStub
     }).then(() => {
       cy.contains('Crear Nueva Publicación', { timeout: 10000 });
 
-      return cy.request('GET', 'http://localhost:8080/testing/categories').then((response) => {
+      return cy.request('GET', 'http:
         const category = response.body[0];
-        
+
         cy.get('#title').type(title);
         cy.get('#description').type(description);
         cy.get('#price').type(price);
-        
+
         cy.contains('label', 'Categoría').parent().within(() => {
           cy.get('[role="combobox"]').click();
         });
@@ -55,7 +55,7 @@ describe('Editar publicación', () => {
           cy.get('[role="combobox"]').click();
         });
         cy.get('[role="option"]').contains(type === 'producto' ? 'Producto' : 'Servicio').click();
-        cy.wait(1000); 
+        cy.wait(1000);
 
         cy.contains('button', 'Usar mi ubicación').click();
         cy.wait(2000);
@@ -73,16 +73,16 @@ describe('Editar publicación', () => {
         cy.get('button[type="submit"]').contains('Crear Publicación').click();
 
         cy.url({ timeout: 10000 }).should('include', '/my-publications');
-        
+
         cy.wait(4000);
-        
+
         return getUserId().then((userId) => {
-          return cy.request('GET', 'http://localhost:8080/testing/publications').then((response) => {
+          return cy.request('GET', 'http:
             const userPublications = response.body.filter((p: any) => p.created_by === userId);
-            const publication = userPublications.find((p: any) => 
+            const publication = userPublications.find((p: any) =>
               p.title && (p.title.includes(title) || p.title === title)
             );
-            
+
             if (!publication && userPublications.length > 0) {
               const sorted = userPublications.sort((a: any, b: any) => b.id - a.id);
               return sorted[0].id;
@@ -97,9 +97,9 @@ describe('Editar publicación', () => {
   };
 
   before(() => {
-    cy.request('POST', 'http://localhost:8080/testing/reset-db', { seed: true });
-    
-    cy.request('POST', 'http://localhost:8080/testing/user', {
+    cy.request('POST', 'http:
+
+    cy.request('POST', 'http:
       email: 'vendedor@test.com',
       password: 'Admin123@',
       role: 'vendedor',
@@ -109,41 +109,41 @@ describe('Editar publicación', () => {
 
   beforeEach(() => {
     cy.session('vendedor-login', () => {
-      cy.request('GET', 'http://localhost:8080/testing/csrf').then((resp) => {
+      cy.request('GET', 'http:
         const token = resp.body.token;
         cy.setCookie('XSRF-TOKEN', token);
       });
 
-      cy.visit('http://localhost:8080/login');
+      cy.visit('http:
       cy.get('input[name="email"]').type('vendedor@test.com');
       cy.get('input[name="password"]').type('Admin123@');
       cy.get('button[type="submit"]').click();
       cy.url({ timeout: 15000 }).should('satisfy', (url) => {
         return !url.includes('/login');
       });
-      cy.wait(2000); 
+      cy.wait(2000);
     });
 
-    cy.request('GET', 'http://localhost:8080/testing/csrf').then((resp) => {
+    cy.request('GET', 'http:
       const token = resp.body.token;
       cy.setCookie('XSRF-TOKEN', token);
     });
   });
 
   it('PUB-EDITAR-001: Editar publicación exitosamente', () => {
-    cy.visit('http://localhost:8080/my-publications/create', {
+    cy.visit('http:
       onBeforeLoad: setupGeolocationStub
     });
 
     cy.contains('Crear Nueva Publicación', { timeout: 10000 });
 
-    cy.request('GET', 'http://localhost:8080/testing/categories').then((response) => {
+    cy.request('GET', 'http:
       const category = response.body[0];
-      
+
       cy.get('#title').type('Servicio de Mantenimiento');
       cy.get('#description').type('Servicio profesional de mantenimiento preventivo y correctivo.');
       cy.get('#price').type('299.99');
-      
+
       cy.contains('label', 'Categoría').parent().within(() => {
         cy.get('[role="combobox"]').click();
       });
@@ -154,7 +154,7 @@ describe('Editar publicación', () => {
         cy.get('[role="combobox"]').click();
       });
       cy.get('[role="option"]').contains('Servicio').click();
-      cy.wait(1000); 
+      cy.wait(1000);
 
       cy.contains('button', 'Usar mi ubicación').click();
       cy.wait(2000);
@@ -172,26 +172,26 @@ describe('Editar publicación', () => {
       cy.get('button[type="submit"]').contains('Crear Publicación').click();
 
       cy.url({ timeout: 10000 }).should('include', '/my-publications');
-      
+
       cy.wait(4000);
-      
+
       getUserId().then((userId) => {
-        cy.request('GET', 'http://localhost:8080/testing/publications').then((response) => {
+        cy.request('GET', 'http:
           const userPublications = response.body.filter((p: any) => p.created_by === userId);
-          const publication = userPublications.find((p: any) => 
+          const publication = userPublications.find((p: any) =>
             p.title && (p.title.includes('Servicio de Mantenimiento') || p.title === 'Servicio de Mantenimiento')
           );
-          
+
           if (!publication && userPublications.length > 0) {
             const sorted = userPublications.sort((a: any, b: any) => b.id - a.id);
             publicationId = sorted[0].id;
           } else if (publication) {
             publicationId = publication.id;
           }
-          
+
           expect(publicationId).to.exist;
-          
-          cy.visit(`http://localhost:8080/my-publications/${publicationId}/edit`, {
+
+          cy.visit(`http:
             onBeforeLoad: setupGeolocationStub
           });
 
@@ -201,12 +201,12 @@ describe('Editar publicación', () => {
           cy.wait(200);
           cy.get('#title').type('Servicio de Mantenimiento Actualizado');
           cy.wait(1500);
-          
+
           cy.get('#description').clear();
           cy.wait(200);
           cy.get('#description').type('Servicio actualizado con nuevas características.');
           cy.wait(1000);
-          
+
           cy.get('#price').clear();
           cy.wait(200);
           cy.get('#price').type('399.99');
@@ -218,20 +218,20 @@ describe('Editar publicación', () => {
 
           cy.get('button[type="submit"]').contains('Guardar Cambios', { timeout: 15000 }).should('be.enabled');
           cy.wait(1000);
-          
+
           cy.get('#title').should('have.value', 'Servicio de Mantenimiento Actualizado');
           cy.get('#description').should('have.value', 'Servicio actualizado con nuevas características.');
           cy.get('#price').should('have.value', '399.99');
-          
+
           cy.get('button[type="submit"]').contains('Guardar Cambios').click({ force: true });
 
           cy.wait(2000);
 
           cy.url({ timeout: 20000 }).should('include', `/my-publications/${publicationId}`);
-          
+
           cy.wait(3000);
-          
-          cy.request('GET', 'http://localhost:8080/testing/publications').then((response) => {
+
+          cy.request('GET', 'http:
             const updatedPublication = response.body.find((p: any) => p.id === publicationId);
             expect(updatedPublication).to.exist;
             expect(updatedPublication.title).to.eq('Servicio de Mantenimiento Actualizado');
@@ -255,7 +255,7 @@ describe('Editar publicación', () => {
     ).then((id) => {
       testPublicationId = id;
 
-      cy.visit(`http://localhost:8080/my-publications/${testPublicationId}/edit`, {
+      cy.visit(`http:
         onBeforeLoad: setupGeolocationStub
       });
 
@@ -266,9 +266,9 @@ describe('Editar publicación', () => {
       cy.wait(200);
       cy.get('#title').type('Producto de Prueba Edición Modificado');
       cy.wait(500);
-      
+
       cy.get('button[type="submit"]').contains('Guardar Cambios', { timeout: 3000 }).should('be.enabled');
-      
+
       cy.get('#title').clear();
       cy.wait(300);
       cy.get('button[type="submit"]').contains('Guardar Cambios').should('be.disabled');
@@ -289,14 +289,14 @@ describe('Editar publicación', () => {
       cy.wait(300);
 
       cy.contains('Ubicación en el mapa *').should('be.visible');
-      
+
       cy.contains('button', 'Usar mi ubicación').should('be.visible');
 
       cy.get('#title').clear();
       cy.wait(200);
       cy.get('#title').type('Producto de Prueba Edición Final');
       cy.wait(1000);
-      
+
       cy.get('button[type="submit"]').contains('Guardar Cambios', { timeout: 5000 }).should('be.enabled');
     });
   });
@@ -312,7 +312,7 @@ describe('Editar publicación', () => {
     ).then((id) => {
       testPublicationId = id;
 
-      cy.visit(`http://localhost:8080/my-publications/${testPublicationId}/edit`, {
+      cy.visit(`http:
         onBeforeLoad: setupGeolocationStub
       });
 
@@ -355,4 +355,3 @@ describe('Editar publicación', () => {
   });
 
 });
-

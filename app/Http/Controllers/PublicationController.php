@@ -412,34 +412,36 @@ class PublicationController extends Controller
             ];
 
             // Agregar coordenadas geográficas
-            try {
-                // Validar coordenadas
-                $lat = floatval($request->lat);
-                $lng = floatval($request->lng);
+            if ($this->supportsGeography()) {
+                try {
+                    // Validar coordenadas
+                    $lat = floatval($request->lat);
+                    $lng = floatval($request->lng);
 
-                // Verificar que las coordenadas estén en rangos válidos
-                if ($lat < -90 || $lat > 90 || $lng < -180 || $lng > 180) {
-                    throw new \InvalidArgumentException('Coordenadas fuera de rango válido');
+                    // Verificar que las coordenadas estén en rangos válidos
+                    if ($lat < -90 || $lat > 90 || $lng < -180 || $lng > 180) {
+                        throw new \InvalidArgumentException('Coordenadas fuera de rango válido');
+                    }
+
+                    // Redondear coordenadas para mayor precisión
+                    $roundedLat = round($lat, 6);
+                    $roundedLng = round($lng, 6);
+
+                    Log::info('Creating Point for publication', [
+                        'original' => ['lat' => $lat, 'lng' => $lng],
+                        'rounded' => ['lat' => $roundedLat, 'lng' => $roundedLng]
+                    ]);
+
+                    // Crear Point sin dimensión Z (lng, lat) - PostGIS usa longitud primero
+                    $publicationData['location_point'] = Point::make($roundedLng, $roundedLat);
+                } catch (\Exception $e) {
+                    // Error creating Point - continue without location
+                    Log::error('Error creating Point for publication', [
+                        'lat' => $request->lat,
+                        'lng' => $request->lng,
+                        'error' => $e->getMessage()
+                    ]);
                 }
-
-                // Redondear coordenadas para mayor precisión
-                $roundedLat = round($lat, 6);
-                $roundedLng = round($lng, 6);
-
-                Log::info('Creating Point for publication', [
-                    'original' => ['lat' => $lat, 'lng' => $lng],
-                    'rounded' => ['lat' => $roundedLat, 'lng' => $roundedLng]
-                ]);
-
-                // Crear Point sin dimensión Z (lng, lat) - PostGIS usa longitud primero
-                $publicationData['location_point'] = Point::make($roundedLng, $roundedLat);
-            } catch (\Exception $e) {
-                // Error creating Point - continue without location
-                Log::error('Error creating Point for publication', [
-                    'lat' => $request->lat,
-                    'lng' => $request->lng,
-                    'error' => $e->getMessage()
-                ]);
             }
 
             $publication = Publication::create($publicationData);
@@ -638,34 +640,36 @@ class PublicationController extends Controller
             // El horario se manejará por separado con serviceHours
 
             // Actualizar coordenadas geográficas
-            try {
-                // Validar coordenadas
-                $lat = floatval($request->lat);
-                $lng = floatval($request->lng);
+            if ($this->supportsGeography()) {
+                try {
+                    // Validar coordenadas
+                    $lat = floatval($request->lat);
+                    $lng = floatval($request->lng);
 
-                // Verificar que las coordenadas estén en rangos válidos
-                if ($lat < -90 || $lat > 90 || $lng < -180 || $lng > 180) {
-                    throw new \InvalidArgumentException('Coordenadas fuera de rango válido');
+                    // Verificar que las coordenadas estén en rangos válidos
+                    if ($lat < -90 || $lat > 90 || $lng < -180 || $lng > 180) {
+                        throw new \InvalidArgumentException('Coordenadas fuera de rango válido');
+                    }
+
+                    // Redondear coordenadas para mayor precisión
+                    $roundedLat = round($lat, 6);
+                    $roundedLng = round($lng, 6);
+
+                    Log::info('Updating Point for publication', [
+                        'original' => ['lat' => $lat, 'lng' => $lng],
+                        'rounded' => ['lat' => $roundedLat, 'lng' => $roundedLng]
+                    ]);
+
+                    // Crear Point sin dimensión Z (lng, lat) - PostGIS usa longitud primero
+                    $updateData['location_point'] = Point::make($roundedLng, $roundedLat);
+                } catch (\Exception $e) {
+                    // Error creating Point - continue without location
+                    Log::error('Error creating Point for publication update', [
+                        'lat' => $request->lat,
+                        'lng' => $request->lng,
+                        'error' => $e->getMessage()
+                    ]);
                 }
-
-                // Redondear coordenadas para mayor precisión
-                $roundedLat = round($lat, 6);
-                $roundedLng = round($lng, 6);
-
-                Log::info('Updating Point for publication', [
-                    'original' => ['lat' => $lat, 'lng' => $lng],
-                    'rounded' => ['lat' => $roundedLat, 'lng' => $roundedLng]
-                ]);
-
-                // Crear Point sin dimensión Z (lng, lat) - PostGIS usa longitud primero
-                $updateData['location_point'] = Point::make($roundedLng, $roundedLat);
-            } catch (\Exception $e) {
-                // Error creating Point - continue without location
-                Log::error('Error creating Point for publication update', [
-                    'lat' => $request->lat,
-                    'lng' => $request->lng,
-                    'error' => $e->getMessage()
-                ]);
             }
 
             if (!empty($updateData)) {
@@ -960,6 +964,15 @@ class PublicationController extends Controller
                 return back()->withErrors(['error' => 'Ya has reportado esta publicación recientemente. Espera 60 minutos antes de reportar nuevamente.']);
             }
 
+            // Verificar si el último caso fue descartado
+            $latestCase = ModerationCase::where('publication_id', $id)
+                ->latest()
+                ->first();
+
+            if ($latestCase && $latestCase->status === 'dismissed') {
+                return back()->withErrors(['error' => 'Esta publicación fue revisada y descartada. No puedes enviar nuevos reportes en este momento.']);
+            }
+
             DB::beginTransaction();
 
             // Buscar si ya existe un caso abierto para esta publicación
@@ -1158,7 +1171,7 @@ class PublicationController extends Controller
         ]);
 
         $request->validate([
-            'reason' => 'required|string|max:1000',
+            'reason' => 'required|string|max:100',
         ]);
 
         try {
@@ -1212,6 +1225,18 @@ class PublicationController extends Controller
                     'is_hidden' => $publication->is_hidden
                 ]);
                 return redirect()->back()->withErrors(['error' => 'Solo puedes apelar publicaciones que han sido ocultadas por moderación.']);
+            }
+
+            // Verificar que no exista una apelación pendiente sin revisar
+            $pendingAppealExists = $moderationCase->appeals()
+                ->whereNull('reviewed_at')
+                ->exists();
+
+            if ($pendingAppealExists) {
+                Log::warning('Ya existe una apelación pendiente para este caso', [
+                    'case_id' => $moderationCase->id,
+                ]);
+                return redirect()->back()->withErrors(['error' => 'Ya existe una apelación pendiente para esta publicación. Espera la revisión antes de enviar otra.']);
             }
 
             Log::info('Iniciando transacción de apelación');
@@ -1544,5 +1569,10 @@ class PublicationController extends Controller
             ]);
             return back()->withErrors(['error' => 'Error al procesar la compra. Inténtalo nuevamente. Detalles: ' . $e->getMessage()]);
         }
+    }
+
+    private function supportsGeography(): bool
+    {
+        return DB::connection()->getDriverName() === 'pgsql';
     }
 }

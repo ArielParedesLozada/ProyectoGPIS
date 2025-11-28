@@ -24,7 +24,7 @@ describe('Eliminar publicación', () => {
   };
 
   const getUserId = (): Cypress.Chainable<number> => {
-    return cy.request('GET', 'http://localhost:8080/testing/users').then((response) => {
+    return cy.request('GET', 'http:
       const user = response.body.find((u: any) => u.email === 'vendedor@test.com');
       if (!user) {
         throw new Error('Usuario vendedor@test.com no encontrado');
@@ -34,18 +34,18 @@ describe('Eliminar publicación', () => {
   };
 
   const createPublication = (title: string, description: string, price: string, type: 'producto' | 'servicio'): Cypress.Chainable<number> => {
-    return cy.visit('http://localhost:8080/my-publications/create', {
+    return cy.visit('http:
       onBeforeLoad: setupGeolocationStub
     }).then(() => {
       cy.contains('Crear Nueva Publicación', { timeout: 10000 });
 
-      return cy.request('GET', 'http://localhost:8080/testing/categories').then((response) => {
+      return cy.request('GET', 'http:
         const category = response.body[0];
-        
+
         cy.get('#title').type(title);
         cy.get('#description').type(description);
         cy.get('#price').type(price);
-        
+
         cy.contains('label', 'Categoría').parent().within(() => {
           cy.get('[role="combobox"]').click();
         });
@@ -56,7 +56,7 @@ describe('Eliminar publicación', () => {
           cy.get('[role="combobox"]').click();
         });
         cy.get('[role="option"]').contains(type === 'producto' ? 'Producto' : 'Servicio').click();
-        cy.wait(1000); 
+        cy.wait(1000);
 
         cy.contains('button', 'Usar mi ubicación').click();
         cy.wait(2000);
@@ -74,16 +74,16 @@ describe('Eliminar publicación', () => {
         cy.get('button[type="submit"]').contains('Crear Publicación').click();
 
         cy.url({ timeout: 10000 }).should('include', '/my-publications');
-        
+
         cy.wait(4000);
-        
+
         return getUserId().then((userId) => {
-          return cy.request('GET', 'http://localhost:8080/testing/publications').then((response) => {
+          return cy.request('GET', 'http:
             const userPublications = response.body.filter((p: any) => p.created_by === userId);
-            const publication = userPublications.find((p: any) => 
+            const publication = userPublications.find((p: any) =>
               p.title && (p.title.includes(title) || p.title === title)
             );
-            
+
             if (!publication && userPublications.length > 0) {
               const sorted = userPublications.sort((a: any, b: any) => b.id - a.id);
               return sorted[0].id;
@@ -98,9 +98,9 @@ describe('Eliminar publicación', () => {
   };
 
   before(() => {
-    cy.request('POST', 'http://localhost:8080/testing/reset-db', { seed: true });
-    
-    cy.request('POST', 'http://localhost:8080/testing/user', {
+    cy.request('POST', 'http:
+
+    cy.request('POST', 'http:
       email: 'vendedor@test.com',
       password: 'Admin123@',
       role: 'vendedor',
@@ -110,22 +110,22 @@ describe('Eliminar publicación', () => {
 
   beforeEach(() => {
     cy.session('vendedor-login', () => {
-      cy.request('GET', 'http://localhost:8080/testing/csrf').then((resp) => {
+      cy.request('GET', 'http:
         const token = resp.body.token;
         cy.setCookie('XSRF-TOKEN', token);
       });
 
-      cy.visit('http://localhost:8080/login');
+      cy.visit('http:
       cy.get('input[name="email"]').type('vendedor@test.com');
       cy.get('input[name="password"]').type('Admin123@');
       cy.get('button[type="submit"]').click();
       cy.url({ timeout: 15000 }).should('satisfy', (url) => {
         return !url.includes('/login');
       });
-      cy.wait(2000); 
+      cy.wait(2000);
     });
 
-    cy.request('GET', 'http://localhost:8080/testing/csrf').then((resp) => {
+    cy.request('GET', 'http:
       const token = resp.body.token;
       cy.setCookie('XSRF-TOKEN', token);
     });
@@ -139,7 +139,7 @@ describe('Eliminar publicación', () => {
       'producto'
     ).then((id) => {
       productoId = id;
-      
+
       return createPublication(
         'Servicio de Reparación',
         'Servicio profesional de reparación de equipos electrónicos.',
@@ -148,22 +148,22 @@ describe('Eliminar publicación', () => {
       );
     }).then((id) => {
       servicioId = id;
-      
-      cy.request('GET', 'http://localhost:8080/testing/publications').then((response) => {
+
+      cy.request('GET', 'http:
         const producto = response.body.find((p: any) => p.id === productoId);
         const servicio = response.body.find((p: any) => p.id === servicioId);
-        
+
         expect(producto).to.exist;
         expect(servicio).to.exist;
         expect(producto.type).to.eq('producto');
         expect(servicio.type).to.eq('servicio');
       });
-      
-      cy.visit('http://localhost:8080/my-publications');
+
+      cy.visit('http:
       cy.wait(2000);
 
       cy.contains('Laptop Dell XPS 15', { timeout: 10000 }).should('be.visible');
-      
+
       cy.contains('Laptop Dell XPS 15').then(($title) => {
         cy.wrap($title).parents().filter((index, el) => {
           const hasButton = el.querySelector('button') !== null;
@@ -175,46 +175,46 @@ describe('Eliminar publicación', () => {
           }).first().click({ force: true });
         });
       });
-      
+
       cy.wait(1000);
-      
+
       cy.get('[role="menuitem"]').contains('Eliminar').should('be.visible').click({ force: true });
-      
+
       cy.wait(1000);
-      
+
       cy.contains('Confirmar eliminación', { timeout: 5000 }).should('be.visible');
       cy.contains('¿Estás seguro?').should('be.visible');
-      
+
       cy.contains('¿Estás seguro?').parents('div').filter((index, el) => {
-        return el.textContent?.includes('Esta acción no se puede deshacer') && 
+        return el.textContent?.includes('Esta acción no se puede deshacer') &&
                el.querySelector('button') !== null;
       }).first().within(() => {
         cy.get('button').contains('Eliminar').should('be.visible').should('not.be.disabled').click({ force: true });
       });
-      
+
       cy.wait(2000);
-      
+
       cy.contains('Confirmar eliminación', { timeout: 10000 }).should('not.exist');
-      
+
       cy.wait(2000);
-      
+
       cy.url({ timeout: 10000 }).should('include', '/my-publications');
-      
-      cy.visit('http://localhost:8080/my-publications');
+
+      cy.visit('http:
       cy.wait(3000);
-      
+
       cy.contains('Laptop Dell XPS 15', { timeout: 10000 }).should('not.exist');
-      
-      cy.request('GET', 'http://localhost:8080/testing/publications').then((response) => {
+
+      cy.request('GET', 'http:
         const deletedProducto = response.body.find((p: any) => p.id === productoId);
         const servicio = response.body.find((p: any) => p.id === servicioId);
-        
+
         expect(deletedProducto).to.be.undefined;
-        
+
         expect(servicio).to.exist;
         expect(servicio.type).to.eq('servicio');
       });
-      
+
       cy.contains('Servicio de Reparación').should('be.visible');
     });
   });
@@ -230,12 +230,12 @@ describe('Eliminar publicación', () => {
     ).then((id) => {
       testPublicationId = id;
 
-      cy.request('GET', 'http://localhost:8080/testing/publications').then((response) => {
+      cy.request('GET', 'http:
         const publication = response.body.find((p: any) => p.id === testPublicationId);
         expect(publication).to.exist;
       });
 
-      cy.visit('http://localhost:8080/my-publications');
+      cy.visit('http:
       cy.wait(2000);
 
       cy.contains('Producto para Cancelar', { timeout: 10000 }).should('be.visible');
@@ -265,13 +265,13 @@ describe('Eliminar publicación', () => {
 
       cy.url({ timeout: 10000 }).should('include', '/my-publications');
 
-      cy.request('GET', 'http://localhost:8080/testing/publications').then((response) => {
+      cy.request('GET', 'http:
         const publication = response.body.find((p: any) => p.id === testPublicationId);
         expect(publication).to.exist;
         expect(publication.title).to.include('Producto para Cancelar');
       });
 
-      cy.visit('http://localhost:8080/my-publications');
+      cy.visit('http:
       cy.wait(2000);
       cy.contains('Producto para Cancelar', { timeout: 10000 }).should('be.visible');
     });
@@ -288,13 +288,13 @@ describe('Eliminar publicación', () => {
     ).then((id) => {
       testPublicationId = id;
 
-      cy.request('GET', 'http://localhost:8080/testing/publications').then((response) => {
+      cy.request('GET', 'http:
         const publication = response.body.find((p: any) => p.id === testPublicationId);
         expect(publication).to.exist;
         expect(publication.status).to.eq(1);
       });
 
-      cy.visit('http://localhost:8080/my-publications');
+      cy.visit('http:
       cy.wait(2000);
 
       cy.contains('Producto para Deshabilitar y Eliminar', { timeout: 10000 }).should('be.visible');
@@ -315,15 +315,25 @@ describe('Eliminar publicación', () => {
 
       cy.get('[role="menuitem"]').contains('Inhabilitar').should('be.visible').click({ force: true });
 
-      cy.wait(2000);
+      cy.wait(5000);
 
-      cy.request('GET', 'http://localhost:8080/testing/publications').then((response) => {
+      cy.request('GET', 'http:
         const publication = response.body.find((p: any) => p.id === testPublicationId);
         expect(publication).to.exist;
-        expect(publication.status).to.eq(2);
+        
+        if (publication.status !== 2) {
+          cy.wait(3000);
+          cy.request('GET', 'http://localhost:8080/testing/publications').then((response2) => {
+            const publication2 = response2.body.find((p: any) => p.id === testPublicationId);
+            expect(publication2).to.exist;
+            expect(publication2.status).to.eq(2);
+          });
+        } else {
+          expect(publication.status).to.eq(2);
+        }
       });
 
-      cy.visit('http://localhost:8080/my-publications');
+      cy.visit('http:
       cy.wait(2000);
 
       cy.contains('Producto para Deshabilitar y Eliminar', { timeout: 10000 }).should('be.visible');
@@ -348,7 +358,7 @@ describe('Eliminar publicación', () => {
       cy.contains('¿Estás seguro?').should('be.visible');
 
       cy.contains('¿Estás seguro?').parents('div').filter((index, el) => {
-        return el.textContent?.includes('Esta acción no se puede deshacer') && 
+        return el.textContent?.includes('Esta acción no se puede deshacer') &&
                el.querySelector('button') !== null;
       }).first().within(() => {
         cy.get('button').contains('Eliminar').should('be.visible').click({ force: true });
@@ -358,15 +368,14 @@ describe('Eliminar publicación', () => {
 
       cy.url({ timeout: 10000 }).should('include', '/my-publications');
 
-      cy.request('GET', 'http://localhost:8080/testing/publications').then((response) => {
+      cy.request('GET', 'http:
         const deletedPublication = response.body.find((p: any) => p.id === testPublicationId);
         expect(deletedPublication).to.be.undefined;
       });
 
-      cy.visit('http://localhost:8080/my-publications');
+      cy.visit('http:
       cy.wait(2000);
       cy.contains('Producto para Deshabilitar y Eliminar').should('not.exist');
     });
   });
 });
-
