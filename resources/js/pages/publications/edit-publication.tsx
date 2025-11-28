@@ -449,7 +449,7 @@ export default function EditPublication({ publication, categories }: EditPublica
                                                 <div key={image.id} className="relative group">
                                                     <div className="aspect-square rounded-lg overflow-hidden border-2 border-gray-200 hover:border-blue-300 transition-colors duration-200 shadow-sm hover:shadow-md">
                                                     <img
-                                                        src={`/storage/${image.image_url}`}
+                                                        src={`${image.image_url}`}
                                                         alt={`Imagen ${index + 1}`}
                                                             className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
                                                     />

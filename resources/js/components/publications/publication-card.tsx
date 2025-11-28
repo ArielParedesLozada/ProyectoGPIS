@@ -75,7 +75,7 @@ export default function PublicationCard({ publication }: PublicationCardProps) {
             <div className="relative overflow-hidden h-48">
                 <SmartThumbnail
                     src={publication.images && publication.images.length > 0
-                        ? `/storage/${publication.images[0].image_url}`
+                        ? `${publication.images[0].image_url}`
                         : "https://picsum.photos/300/200"}
                     alt={publication.title}
                     className="group-hover:scale-105 transition-transform duration-300"

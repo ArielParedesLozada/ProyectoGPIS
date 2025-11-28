@@ -20,23 +20,24 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
-
+        
         $middleware->web(append: [
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
-
+        
         $middleware->validateCsrfTokens(except: [
             'testing/*'
         ]);
-
+        
         $middleware->alias([
             'can-manage-moderators' => EnsureCanManageModerators::class,
             'is-admin' => EnsureAdmin::class,
             'is-superadmin' => EnsureSuperAdmin::class,
             'is-administrative' => EnsureIsAdministrative::class,
         ]);
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

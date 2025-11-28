@@ -31,7 +31,7 @@ export default function MyPublicationView({ publication }: MyPublicationViewProp
   // Array de imágenes - solo las imágenes reales de la publicación
   const images =
     publication.images && publication.images.length > 0
-      ? publication.images.map((img) => `/storage/${img.image_url}`)
+      ? publication.images.map((img) => `${img.image_url}`)
       : [];
 
   const handleDelete = () => {

@@ -395,7 +395,7 @@ export default function ModerationShow({ case: caseItem, buttonStates }: Moderat
                                             {caseItem.publication.images.map((image, index) => (
                                                 <img
                                                     key={index}
-                                                    src={`/storage/${image.image_url}`}
+                                                    src={`${image.image_url}`}
                                                     alt={`Imagen ${index + 1}`}
                                                     className="w-full h-32 object-cover rounded-lg"
                                                 />

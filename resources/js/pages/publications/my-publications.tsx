@@ -439,7 +439,7 @@ function MyPublicationsContent() {
                                 {/* Imagen */}
                                 <div className="relative mx-5 mb-4 h-40">
                                     <SmartThumbnail
-                                                src={publication.images?.[0]?.image_url ? `/storage/${publication.images[0].image_url}` : "https://picsum.photos/300/200"}
+                                                src={publication.images?.[0]?.image_url ? `${publication.images[0].image_url}` : "https://picsum.photos/300/200"}
                                                 alt={publication.title}
                                         className="rounded-xl group-hover:scale-105 transition-transform duration-300"
                                             />

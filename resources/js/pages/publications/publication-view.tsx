@@ -139,7 +139,7 @@ export default function PublicationView({ publication }: PublicationViewProps) {
     
     // Array de imágenes reales de la base de datos
     const images = publication.images && publication.images.length > 0 
-        ? publication.images.map(img => `/storage/${img.image_url}`)
+        ? publication.images.map(img => `${img.image_url}`)
         : [];
     return (
         <AppLayout breadcrumbs={breadcrumbs}>

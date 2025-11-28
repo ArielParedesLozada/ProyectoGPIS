@@ -35,34 +35,34 @@ class PublicationController extends Controller
         if ($request->filled('min_price') && $request->filled('max_price')) {
             $minPrice = (float) $request->min_price;
             $maxPrice = (float) $request->max_price;
-            
+
             if ($minPrice > $maxPrice) {
                 return redirect()->back()->with('error', 'El precio mínimo no puede ser mayor que el precio máximo.');
             }
         }
-        
+
         // Mostrar mensaje informativo cuando solo se selecciona precio mínimo
         if ($request->filled('min_price') && !$request->filled('max_price')) {
             return redirect()->back()->with('info', 'Para filtrar por precio, selecciona también el precio máximo.');
         }
-        
+
         // Mostrar mensaje informativo cuando solo se selecciona precio máximo
         if (!$request->filled('min_price') && $request->filled('max_price')) {
             return redirect()->back()->with('info', 'Para filtrar por precio, selecciona también el precio mínimo.');
         }
-        
+
         // Mostrar todas las publicaciones (disponibles y no disponibles)
         $query = Publication::query()->with(['category', 'images']);
-        
+
         // Filtro por búsqueda
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->whereRaw('LOWER(title) LIKE LOWER(?)', ['%' . $search . '%'])
-                  ->orWhereRaw('LOWER(description) LIKE LOWER(?)', ['%' . $search . '%']);
+                    ->orWhereRaw('LOWER(description) LIKE LOWER(?)', ['%' . $search . '%']);
             });
         }
-        
+
         // Filtro por categorías múltiples
         if ($request->filled('categories')) {
             $categoryIds = explode(',', $request->categories);
@@ -212,11 +212,11 @@ class PublicationController extends Controller
                     $hideAction = $latestCase->actions()
                         ->where('action_type', 'hide_publication')
                         ->first();
-                    
+
                     // Si no hay acción de ocultación, buscar cualquier acción
                     if (!$hideAction) {
                         $hideAction = $latestCase->actions->first();
-                    }                    
+                    }
                     Log::info('Caso encontrado', [
                         'publication_id' => $publication->id,
                         'case_id' => $latestCase->id,
@@ -224,17 +224,17 @@ class PublicationController extends Controller
                         'case_source' => $latestCase->source,
                         'has_action' => $hideAction ? true : false
                     ]);
-                    
+
                     // Verificar si es un caso de auto-moderación
                     $isAutoModeration = $latestCase->source === 'system';
-                    
+
                     if ($latestCase->status === 'closed') {
                         // Buscar la decisión final del moderador
                         $finalDecision = $latestCase->actions()
                             ->where('action_type', 'close_case')
                             ->whereJsonContains('metadata->action_subtype', 'confirm_hide_decision')
                             ->first();
-                        
+
                         if ($finalDecision && isset($finalDecision->metadata['notes'])) {
                             // Mostrar el comentario de la decisión final
                             $publication->moderation_reason = $finalDecision->metadata['notes'];
@@ -271,7 +271,7 @@ class PublicationController extends Controller
                         ]);
                     } else {
                         // Para casos normales, usar la lógica estándar
-                        
+
                         $publication->can_appeal = !in_array($latestCase->status, ['closed', 'dismissed']);
                         Log::info('Caso normal - aplicando lógica estándar', [
                             'publication_id' => $publication->id,
@@ -480,10 +480,11 @@ class PublicationController extends Controller
             // Guardar imágenes si las hay
             if ($request->hasFile('images')) {
                 foreach ($request->file('images') as $image) {
-                    $path = $image->store('publications', 'public');
+                    $path = $image->store('publications', 'azure');
+                    $url = Storage::disk('azure')->path($path);
                     PublicationImage::create([
                         'publication_id' => $publication->id,
-                        'image_url' => $path,
+                        'image_url' => $url,
                     ]);
                 }
             }
@@ -707,14 +708,14 @@ class PublicationController extends Controller
                 $imagesToDelete = $publication->images()->whereNotIn('id', $keepImageIds)->get();
                 foreach ($imagesToDelete as $image) {
                     // Eliminar del storage
-                    Storage::disk('public')->delete($image->image_url);
+                    Storage::disk('azure')->delete($image->image_url);
                     // Eliminar de la base de datos
                     $image->delete();
                 }
             } else {
                 // Si no se envían existing_images, eliminar todas las imágenes existentes
                 foreach ($publication->images as $image) {
-                    Storage::disk('public')->delete($image->image_url);
+                    Storage::disk('azure')->delete($image->image_url);
                     $image->delete();
                 }
             }
@@ -722,10 +723,11 @@ class PublicationController extends Controller
             // Guardar nuevas imágenes si las hay
             if ($request->hasFile('images')) {
                 foreach ($request->file('images') as $image) {
-                    $path = $image->store('publications', 'public');
+                    $path = $image->store('publications', 'azure');
+                    $url = Storage::disk('azure')->path($path);
                     PublicationImage::create([
                         'publication_id' => $publication->id,
-                        'image_url' => $path,
+                        'image_url' => $url,
                     ]);
                 }
             }
@@ -742,7 +744,7 @@ class PublicationController extends Controller
 
         // Eliminar imágenes del storage
         foreach ($publication->images as $image) {
-            Storage::disk('public')->delete($image->image_url);
+            Storage::disk('azure')->delete($image->image_url);
         }
 
         $publication->delete();
@@ -821,7 +823,7 @@ class PublicationController extends Controller
             // Verificar estado de moderación
             $moderationCase = ModerationCase::where('publication_id', $id)->first();
             $hasFinalDecision = false;
-            
+
             if ($moderationCase && $moderationCase->status === 'closed' && $publication->is_hidden) {
                 // Si el caso está cerrado y la publicación está oculta, es una decisión final
                 $hasFinalDecision = true;
@@ -846,11 +848,11 @@ class PublicationController extends Controller
         try {
             /** @var \App\Models\User|null $user */
             $user = Auth::user();
-            
+
             if (!$user) {
                 return redirect()->route('login');
             }
-            
+
             $favorites = $user->favorites()
                 ->with(['publication.category', 'publication.images', 'publication.serviceHours'])
                 ->paginate(9);
@@ -877,7 +879,7 @@ class PublicationController extends Controller
     {
         try {
             $publication = Publication::findOrFail($id);
-            
+
             // Verificar si ya está en favoritos
             $existingFavorite = Favorite::where('user_id', Auth::id())
                 ->where('publication_id', $id)
@@ -1046,8 +1048,8 @@ class PublicationController extends Controller
                                 'previous_status' => $previousStatus,
                                 'reopened_at' => now()->toISOString(),
                                 'reason' => 'new_report_on_closed_case',
-                                'days_since_closed' => $resolvedAt 
-                                    ? now()->diffInDays($resolvedAt) 
+                                'days_since_closed' => $resolvedAt
+                                    ? now()->diffInDays($resolvedAt)
                                     : null,
                             ]
                         ]);
@@ -1280,14 +1282,14 @@ class PublicationController extends Controller
                     'assigned_moderator_id' => null,
                     'assigned_at' => null,
                 ]);
-                
+
                 // Asignar a un moderador diferente para revisar la apelación
                 Log::info('Asignando apelación a moderador diferente');
                 $this->assignAppealToDifferentModerator($moderationCase, $originalModeratorId);
-                
+
                 DB::commit();
                 Log::info('Apelación procesada exitosamente');
-                
+
                 return redirect()->back()->with('success', 'Apelación enviada correctamente. Un moderador diferente revisará tu caso.');
             } else {
                 // Si ya está en "appealed", verificar si ya tiene un moderador asignado
@@ -1298,10 +1300,10 @@ class PublicationController extends Controller
                         'assigned_moderator_id' => $moderationCase->assigned_moderator_id,
                         'case_id' => $moderationCase->id
                     ]);
-                    
+
                     DB::commit();
                     Log::info('Apelación adicional procesada - manteniendo moderador actual');
-                    
+
                     return redirect()->back()->with('success', 'Apelación enviada correctamente. El moderador asignado revisará tu caso.');
                 } else {
                     // No hay moderador asignado, desasignar y buscar uno nuevo
@@ -1309,14 +1311,14 @@ class PublicationController extends Controller
                         'assigned_moderator_id' => null,
                         'assigned_at' => null,
                     ]);
-                    
+
                     // Asignar a un moderador diferente
                     Log::info('Asignando apelación a moderador diferente');
                     $this->assignAppealToDifferentModerator($moderationCase, $originalModeratorId);
-                    
+
                     DB::commit();
                     Log::info('Apelación procesada exitosamente');
-                    
+
                     return redirect()->back()->with('success', 'Apelación enviada correctamente. Un moderador diferente revisará tu caso.');
                 }
             }
@@ -1493,9 +1495,9 @@ class PublicationController extends Controller
     {
         try {
             Log::info('Iniciando proceso de compra', ['publication_id' => $id]);
-            
+
             $user = Auth::user();
-            
+
             // Validar autenticación
             if (!$user) {
                 Log::warning('Usuario no autenticado intentando comprar', ['publication_id' => $id]);
@@ -1556,7 +1558,6 @@ class PublicationController extends Controller
             ]);
 
             return back()->with('success', '¡Compra realizada exitosamente! El producto ya no está disponible.');
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al procesar la compra', [
