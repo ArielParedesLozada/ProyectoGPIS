@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\StatusType;
 use App\Enums\PublicationType;
+use App\Enums\RoleType;
 use App\Models\Category;
 use App\Models\Favorite;
 use App\Models\Publication;
@@ -305,6 +306,11 @@ class PublicationController extends Controller
 
     public function create()
     {
+        // Solo vendedores pueden crear publicaciones
+        if (Auth::user()->role !== RoleType::VENDEDOR->value) {
+            abort(403, 'Solo los vendedores pueden crear publicaciones');
+        }
+
         $categories = Category::select('id', 'name')->get();
 
         return Inertia::render('publications/create-publication', [
@@ -314,6 +320,11 @@ class PublicationController extends Controller
 
     public function store(Request $request)
     {
+        // Solo vendedores pueden crear publicaciones
+        if (Auth::user()->role !== RoleType::VENDEDOR->value) {
+            abort(403, 'Solo los vendedores pueden crear publicaciones');
+        }
+
         try {
             // Validación actualizada - lat y lng son obligatorios
             $request->validate([

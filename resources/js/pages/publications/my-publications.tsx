@@ -276,7 +276,7 @@ function MyPublicationsContent() {
                             <h1 className="text-3xl font-bold mb-2">Mis Publicaciones</h1>
                             <p className="text-blue-100 text-lg">Gestiona tus productos y servicios</p>
                             </div>
-                        {auth.user.role !== 'comprador' && (
+                        {auth.user.role === 'vendedor' && (
                         <Link href="/my-publications/create">
                             <Button variant="secondary" className="bg-white/20 text-white border-white/30 hover:bg-white/30">
                                         <Plus className="w-4 h-4 mr-2" />
