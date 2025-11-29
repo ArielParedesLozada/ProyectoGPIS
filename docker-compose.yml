@@ -44,9 +44,9 @@ services:
       - app_build:/var/www/html/public/build
     working_dir: /var/www/html
     # Variables de entorno para configuración de correo
-    # Lee de .env.local si existe (este archivo NO se sube a Git)
-    env_file:
-      - .env.local
+    # Lee de variable de entorno (puede venir de .env.local o de Jenkins)
+    environment:
+      - MAIL_PASSWORD=${MAIL_PASSWORD:-}
     # Copiar assets, ejecutar migraciones, crear superadmin y luego iniciar PHP-FPM
     command: sh -c "/usr/local/bin/init-assets.sh && /usr/local/bin/update-mail-password.sh && php artisan migrate --force --no-interaction || true && php artisan db:seed --class=UserSeeder --force --no-interaction || true && docker-php-entrypoint php-fpm"
     depends_on:

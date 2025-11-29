@@ -10,9 +10,6 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout scm
-                // Crear .env.local si no existe (para MAIL_PASSWORD)
-                // NOTA: Este archivo debe crearse manualmente en el servidor Jenkins
-                // con: echo "MAIL_PASSWORD=SG.tu_clave" > .env.local
             }
         }
 
