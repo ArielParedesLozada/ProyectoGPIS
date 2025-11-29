@@ -14,24 +14,21 @@ pipeline {
         }
 
         stage('Construir imágenes Docker') {
-            steps {
-                sh """
-                    docker compose -f ${COMPOSE_FILE} build postgis pgadmin app web
-                """
-            }
-        }
+    steps {
+        sh """
+            docker-compose -f ${COMPOSE_FILE} build postgis pgadmin app web
+        """
+    }
+}
 
         stage('Desplegar contenedores') {
-            steps {
-                sh """
-                    # Apagar lo que esté corriendo (si falla, no rompe el pipeline)
-                    docker compose -f ${COMPOSE_FILE} down || true
-
-                    # Levantar todo el stack: BD, pgadmin, backend (app) y nginx (web)
-                    docker compose -f ${COMPOSE_FILE} up -d postgis pgadmin app web
-                """
-            }
-        }
+    steps {
+        sh """
+            docker-compose -f ${COMPOSE_FILE} down || true
+            docker-compose -f ${COMPOSE_FILE} up -d postgis pgadmin app web
+        """
+    }
+}
     }
 
     post {
