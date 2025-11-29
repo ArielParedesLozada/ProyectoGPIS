@@ -31,10 +31,11 @@ services:
       context: .
       dockerfile: docker/php/Dockerfile
     container_name: php83_app
-    # 👇 OJO: ya NO montamos el código del host, solo el php.ini
     volumes:
+      # 👇 MONTAMOS TODO EL PROYECTO DEL HOST
+      - ./:/var/www/html
+      # 👇 php.ini personalizado
       - ./docker/php/php.ini:/usr/local/etc/php/php.ini:ro
-      # - ./docker/php/xdebug.ini:/usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini:ro
     working_dir: /var/www/html
     depends_on:
       - postgis
@@ -47,10 +48,10 @@ services:
     container_name: nginx_app
     ports:
       - "8080:80"
-    #SIN volumen .:/var/www/html
     depends_on:
       - app
     networks: [app_net]
 
 networks:
   app_net:
+    driver: bridge
