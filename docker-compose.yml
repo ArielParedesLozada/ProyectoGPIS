@@ -43,6 +43,8 @@ services:
       # Compartir los assets compilados con Nginx
       - app_build:/var/www/html/public/build
     working_dir: /var/www/html
+    # Copiar assets al volumen compartido al iniciar y luego ejecutar PHP-FPM
+    command: sh -c "/usr/local/bin/init-assets.sh && docker-php-entrypoint php-fpm"
     depends_on:
       postgis:
         condition: service_healthy
