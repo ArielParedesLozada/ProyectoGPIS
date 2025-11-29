@@ -1,18 +1,24 @@
 FROM php:8.3-fpm
 
-# Dependencias de PHP y extensiones
+# Dependencias de PHP y extensiones + Node.js para compilar assets
 RUN apt-get update && apt-get install -y \
-    git zip unzip libpq-dev libzip-dev \
+    git zip unzip libpq-dev libzip-dev curl \
     $PHPIZE_DEPS \
  && docker-php-ext-install pdo pdo_pgsql zip \
  && docker-php-ext-configure pcntl --enable-pcntl \
  && docker-php-ext-install pcntl
 
+# Instalar Node.js para compilar assets de Vite
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+ && apt-get install -y nodejs
+
 # Xdebug (si lo necesitas para desarrollo)
 RUN pecl install xdebug \
  && docker-php-ext-enable xdebug \
  && apt-get purge -y $PHPIZE_DEPS \
- && apt-get autoremove -y
+ && apt-get autoremove -y \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
 
 # Composer dentro de la imagen
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -56,13 +62,25 @@ RUN if [ ! -f .env ]; then \
     fi
 
 # Configurar permisos para storage y bootstrap/cache ANTES de generar la clave
-RUN mkdir -p /var/www/html/storage/framework/{sessions,views,cache} && \
+RUN mkdir -p /var/www/html/storage/framework/sessions && \
+    mkdir -p /var/www/html/storage/framework/views && \
+    mkdir -p /var/www/html/storage/framework/cache && \
     mkdir -p /var/www/html/storage/logs && \
     mkdir -p /var/www/html/bootstrap/cache && \
-    chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache && \
+    mkdir -p /var/www/html/public/build && \
+    chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public/build && \
     chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
 # Generar APP_KEY si no existe o está vacío
 RUN if ! grep -q "APP_KEY=base64:" .env 2>/dev/null; then \
     php artisan key:generate --force --no-interaction || echo "APP_KEY generation skipped"; \
+    fi
+
+# Compilar assets de Vite (si existe package.json)
+RUN if [ -f package.json ]; then \
+    npm install && \
+    npm run build; \
+    else \
+    mkdir -p /var/www/html/public/build && \
+    echo '{}' > /var/www/html/public/build/manifest.json; \
     fi

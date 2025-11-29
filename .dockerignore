@@ -9,3 +9,5 @@ storage/framework/sessions
 npm-debug.log
 yarn.lock
 public/storage
+# Mantener public/build para que se compile dentro del contenedor
+!public/build
