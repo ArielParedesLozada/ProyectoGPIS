@@ -34,6 +34,7 @@ sonar-project.properties
 /docker/sonarqube/sonarqube
 /owasp-zap
 /.scannerwork
+*.zip
 
 # Code coverage
 /coverage
