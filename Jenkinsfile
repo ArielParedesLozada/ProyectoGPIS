@@ -3,7 +3,8 @@ pipeline {
 
     environment {
         COMPOSE_FILE = "docker-compose.yml"
-        // MAIL_PASSWORD se configura como secreto en Jenkins (no aquí)
+        // Usar la credencial de SendGrid configurada en Jenkins
+        MAIL_PASSWORD = credentials('sendgrid-api-key')
     }
 
     stages {
