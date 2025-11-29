@@ -101,11 +101,19 @@ RUN if [ -d /var/www/html/public/build ]; then \
     cp -r /var/www/html/public/build /var/www/html/public/build.bak || true; \
     fi
 
-# Crear script de inicio para copiar assets al volumen compartido
+# Crear script de inicio para copiar assets al volumen compartido y actualizar .env si es necesario
 RUN echo '#!/bin/sh' > /usr/local/bin/init-assets.sh && \
     echo 'if [ -d /var/www/html/public/build.bak ] && [ -z "$(ls -A /var/www/html/public/build 2>/dev/null)" ]; then' >> /usr/local/bin/init-assets.sh && \
     echo '  echo "Copiando assets compilados al volumen compartido..."' >> /usr/local/bin/init-assets.sh && \
     echo '  cp -r /var/www/html/public/build.bak/* /var/www/html/public/build/ 2>/dev/null || true' >> /usr/local/bin/init-assets.sh && \
     echo '  chown -R www-data:www-data /var/www/html/public/build || true' >> /usr/local/bin/init-assets.sh && \
+    echo 'fi' >> /usr/local/bin/init-assets.sh && \
+    echo '# Actualizar MAIL_PASSWORD en .env si está definida como variable de entorno' >> /usr/local/bin/init-assets.sh && \
+    echo 'if [ -n "$$MAIL_PASSWORD" ] && [ -f /var/www/html/.env ]; then' >> /usr/local/bin/init-assets.sh && \
+    echo '  if grep -q "^MAIL_PASSWORD=" /var/www/html/.env; then' >> /usr/local/bin/init-assets.sh && \
+    echo '    sed -i "s|^MAIL_PASSWORD=.*|MAIL_PASSWORD=$$MAIL_PASSWORD|" /var/www/html/.env' >> /usr/local/bin/init-assets.sh && \
+    echo '  else' >> /usr/local/bin/init-assets.sh && \
+    echo '    echo "MAIL_PASSWORD=$$MAIL_PASSWORD" >> /var/www/html/.env' >> /usr/local/bin/init-assets.sh && \
+    echo '  fi' >> /usr/local/bin/init-assets.sh && \
     echo 'fi' >> /usr/local/bin/init-assets.sh && \
     chmod +x /usr/local/bin/init-assets.sh

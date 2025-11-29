@@ -52,6 +52,9 @@ services:
     # Exponer el puerto de PHP-FPM para debugging (opcional)
     expose:
       - "9000"
+    # Variables de entorno opcionales para configuración de correo (si no hay .env)
+    environment:
+      - MAIL_PASSWORD=${MAIL_PASSWORD:-}
 
   web:
     build:
