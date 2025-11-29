@@ -9,9 +9,15 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: clave_piola
+      POSTGRES_DB: postgres
     volumes:
       - ~/.docker/postgis:/var/lib/postgresql
     networks: [app_net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -36,8 +42,12 @@ services:
       - ./docker/php/php.ini:/usr/local/etc/php/php.ini:ro
     working_dir: /var/www/html
     depends_on:
-      - postgis
+      postgis:
+        condition: service_healthy
     networks: [app_net]
+    # Exponer el puerto de PHP-FPM para debugging (opcional)
+    expose:
+      - "9000"
 
   web:
     build:
@@ -53,6 +63,7 @@ services:
     # (Nginx leerá /var/www/html/public desde la imagen)
     # volumes:
     #   - ./:/var/www/html:ro
+    restart: unless-stopped
 
 networks:
   app_net:
