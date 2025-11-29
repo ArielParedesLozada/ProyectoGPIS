@@ -40,6 +40,8 @@ services:
     # ❌ QUITAMOS el volumen del código
     volumes:
       - ./docker/php/php.ini:/usr/local/etc/php/php.ini:ro
+      # Compartir los assets compilados con Nginx
+      - app_build:/var/www/html/public/build
     working_dir: /var/www/html
     depends_on:
       postgis:
@@ -59,12 +61,15 @@ services:
     depends_on:
       - app
     networks: [app_net]
-    # ❌ TAMBIÉN quitamos el volumen aquí
-    # (Nginx leerá /var/www/html/public desde la imagen)
-    # volumes:
-    #   - ./:/var/www/html:ro
+    # Compartir los assets compilados desde PHP
+    volumes:
+      - app_build:/var/www/html/public/build:ro
     restart: unless-stopped
 
 networks:
   app_net:
     driver: bridge
+
+volumes:
+  app_build:
+    driver: local

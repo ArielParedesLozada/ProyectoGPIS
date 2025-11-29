@@ -84,3 +84,23 @@ RUN if [ -f package.json ]; then \
     mkdir -p /var/www/html/public/build && \
     echo '{}' > /var/www/html/public/build/manifest.json; \
     fi
+
+# Guardar una copia de los assets compilados antes de que el volumen los sobrescriba
+RUN if [ -d /var/www/html/public/build ]; then \
+    cp -r /var/www/html/public/build /var/www/html/public/build.bak || true; \
+    fi
+
+# Crear script de inicio para copiar assets al volumen compartido
+RUN echo '#!/bin/sh' > /usr/local/bin/docker-entrypoint.sh && \
+    echo 'set -e' >> /usr/local/bin/docker-entrypoint.sh && \
+    echo '# Copiar assets al volumen compartido si está vacío' >> /usr/local/bin/docker-entrypoint.sh && \
+    echo 'if [ -d /var/www/html/public/build.bak ] && [ -z "$$(ls -A /var/www/html/public/build 2>/dev/null)" ]; then' >> /usr/local/bin/docker-entrypoint.sh && \
+    echo '  echo "Copiando assets compilados al volumen compartido..."' >> /usr/local/bin/docker-entrypoint.sh && \
+    echo '  cp -r /var/www/html/public/build.bak/* /var/www/html/public/build/ 2>/dev/null || true;' >> /usr/local/bin/docker-entrypoint.sh && \
+    echo '  chown -R www-data:www-data /var/www/html/public/build || true;' >> /usr/local/bin/docker-entrypoint.sh && \
+    echo 'fi' >> /usr/local/bin/docker-entrypoint.sh && \
+    echo 'exec docker-php-entrypoint "$$@"' >> /usr/local/bin/docker-entrypoint.sh && \
+    chmod +x /usr/local/bin/docker-entrypoint.sh
+
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["php-fpm"]
