@@ -34,14 +34,13 @@ COPY . /var/www/html
 # En Jenkins es importante porque ahí NO existe la carpeta vendor/
 RUN composer install --no-interaction --no-dev --prefer-dist --optimize-autoloader
 
-# Crear archivo .env solo si no existe (el .env del proyecto se copia con COPY .)
-# Si no existe, crear uno con valores por defecto para Jenkins/CI
+# Crear archivo .env si no existe
 RUN if [ ! -f .env ]; then \
     echo "APP_NAME=Laravel" > .env && \
     echo "APP_ENV=production" >> .env && \
     echo "APP_KEY=" >> .env && \
     echo "APP_DEBUG=false" >> .env && \
-    echo "APP_URL=http://localhost:8080" >> .env && \
+    echo "APP_URL=http://localhost" >> .env && \
     echo "" >> .env && \
     echo "LOG_CHANNEL=stack" >> .env && \
     echo "LOG_DEPRECATIONS_CHANNEL=null" >> .env && \
@@ -50,7 +49,7 @@ RUN if [ ! -f .env ]; then \
     echo "DB_CONNECTION=pgsql" >> .env && \
     echo "DB_HOST=postgis" >> .env && \
     echo "DB_PORT=5432" >> .env && \
-    echo "DB_DATABASE=proyecto_gpis" >> .env && \
+    echo "DB_DATABASE=postgres" >> .env && \
     echo "DB_USERNAME=postgres" >> .env && \
     echo "DB_PASSWORD=clave_piola" >> .env && \
     echo "" >> .env && \
@@ -62,13 +61,13 @@ RUN if [ ! -f .env ]; then \
     echo "SESSION_LIFETIME=120" >> .env && \
     echo "" >> .env && \
     echo "MAIL_MAILER=smtp" >> .env && \
-    echo "MAIL_HOST=smtp.sendgrid.net" >> .env && \
+    echo "MAIL_HOST=127.0.0.1" >> .env && \
     echo "MAIL_PORT=2525" >> .env && \
     echo "MAIL_USERNAME=apikey" >> .env && \
     echo "MAIL_PASSWORD=\${MAIL_PASSWORD}" >> .env && \
     echo "MAIL_ENCRYPTION=tls" >> .env && \
-    echo "MAIL_FROM_ADDRESS=elkinjoao2005@gmail.com" >> .env && \
-    echo "MAIL_FROM_NAME=\"Proyecto GPIS\"" >> .env; \
+    echo "MAIL_FROM_ADDRESS=hello@example.com" >> .env && \
+    echo "MAIL_FROM_NAME=\"\${APP_NAME}\"" >> .env; \
     fi
 
 
@@ -101,19 +100,11 @@ RUN if [ -d /var/www/html/public/build ]; then \
     cp -r /var/www/html/public/build /var/www/html/public/build.bak || true; \
     fi
 
-# Crear script de inicio para copiar assets al volumen compartido y actualizar .env si es necesario
+# Crear script de inicio para copiar assets al volumen compartido
 RUN echo '#!/bin/sh' > /usr/local/bin/init-assets.sh && \
     echo 'if [ -d /var/www/html/public/build.bak ] && [ -z "$(ls -A /var/www/html/public/build 2>/dev/null)" ]; then' >> /usr/local/bin/init-assets.sh && \
     echo '  echo "Copiando assets compilados al volumen compartido..."' >> /usr/local/bin/init-assets.sh && \
     echo '  cp -r /var/www/html/public/build.bak/* /var/www/html/public/build/ 2>/dev/null || true' >> /usr/local/bin/init-assets.sh && \
     echo '  chown -R www-data:www-data /var/www/html/public/build || true' >> /usr/local/bin/init-assets.sh && \
-    echo 'fi' >> /usr/local/bin/init-assets.sh && \
-    echo '# Actualizar MAIL_PASSWORD en .env si está definida como variable de entorno' >> /usr/local/bin/init-assets.sh && \
-    echo 'if [ -n "$$MAIL_PASSWORD" ] && [ -f /var/www/html/.env ]; then' >> /usr/local/bin/init-assets.sh && \
-    echo '  if grep -q "^MAIL_PASSWORD=" /var/www/html/.env; then' >> /usr/local/bin/init-assets.sh && \
-    echo '    sed -i "s|^MAIL_PASSWORD=.*|MAIL_PASSWORD=$$MAIL_PASSWORD|" /var/www/html/.env' >> /usr/local/bin/init-assets.sh && \
-    echo '  else' >> /usr/local/bin/init-assets.sh && \
-    echo '    echo "MAIL_PASSWORD=$$MAIL_PASSWORD" >> /var/www/html/.env' >> /usr/local/bin/init-assets.sh && \
-    echo '  fi' >> /usr/local/bin/init-assets.sh && \
     echo 'fi' >> /usr/local/bin/init-assets.sh && \
     chmod +x /usr/local/bin/init-assets.sh
