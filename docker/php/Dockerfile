@@ -34,13 +34,14 @@ COPY . /var/www/html
 # En Jenkins es importante porque ahí NO existe la carpeta vendor/
 RUN composer install --no-interaction --no-dev --prefer-dist --optimize-autoloader
 
-# Crear archivo .env si no existe
+# Crear archivo .env solo si no existe (el .env del proyecto se copia con COPY .)
+# Si no existe, crear uno con valores por defecto para Jenkins/CI
 RUN if [ ! -f .env ]; then \
     echo "APP_NAME=Laravel" > .env && \
     echo "APP_ENV=production" >> .env && \
     echo "APP_KEY=" >> .env && \
     echo "APP_DEBUG=false" >> .env && \
-    echo "APP_URL=http://localhost" >> .env && \
+    echo "APP_URL=http://localhost:8080" >> .env && \
     echo "" >> .env && \
     echo "LOG_CHANNEL=stack" >> .env && \
     echo "LOG_DEPRECATIONS_CHANNEL=null" >> .env && \
@@ -49,7 +50,7 @@ RUN if [ ! -f .env ]; then \
     echo "DB_CONNECTION=pgsql" >> .env && \
     echo "DB_HOST=postgis" >> .env && \
     echo "DB_PORT=5432" >> .env && \
-    echo "DB_DATABASE=postgres" >> .env && \
+    echo "DB_DATABASE=proyecto_gpis" >> .env && \
     echo "DB_USERNAME=postgres" >> .env && \
     echo "DB_PASSWORD=clave_piola" >> .env && \
     echo "" >> .env && \
@@ -58,8 +59,18 @@ RUN if [ ! -f .env ]; then \
     echo "FILESYSTEM_DISK=local" >> .env && \
     echo "QUEUE_CONNECTION=sync" >> .env && \
     echo "SESSION_DRIVER=file" >> .env && \
-    echo "SESSION_LIFETIME=120" >> .env; \
+    echo "SESSION_LIFETIME=120" >> .env && \
+    echo "" >> .env && \
+    echo "MAIL_MAILER=smtp" >> .env && \
+    echo "MAIL_HOST=smtp.sendgrid.net" >> .env && \
+    echo "MAIL_PORT=2525" >> .env && \
+    echo "MAIL_USERNAME=apikey" >> .env && \
+    echo "MAIL_PASSWORD=\${MAIL_PASSWORD}" >> .env && \
+    echo "MAIL_ENCRYPTION=tls" >> .env && \
+    echo "MAIL_FROM_ADDRESS=elkinjoao2005@gmail.com" >> .env && \
+    echo "MAIL_FROM_NAME=\"Proyecto GPIS\"" >> .env; \
     fi
+
 
 # Configurar permisos para storage y bootstrap/cache ANTES de generar la clave
 RUN mkdir -p /var/www/html/storage/framework/sessions && \
