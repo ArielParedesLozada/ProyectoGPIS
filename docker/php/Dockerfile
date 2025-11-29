@@ -54,22 +54,21 @@ RUN if [ ! -f .env ]; then \
     echo "DB_PASSWORD=clave_piola" >> .env && \
     echo "" >> .env && \
     echo "BROADCAST_DRIVER=log" >> .env && \
-    echo "CACHE_DRIVER=file" >> .env && \
+    echo "CACHE_DRIVER=database" >> .env && \
     echo "FILESYSTEM_DISK=local" >> .env && \
     echo "QUEUE_CONNECTION=sync" >> .env && \
     echo "SESSION_DRIVER=file" >> .env && \
     echo "SESSION_LIFETIME=120" >> .env && \
     echo "" >> .env && \
     echo "MAIL_MAILER=smtp" >> .env && \
-    echo "MAIL_HOST=127.0.0.1" >> .env && \
+    echo "MAIL_HOST=smtp.sendgrid.net" >> .env && \
     echo "MAIL_PORT=2525" >> .env && \
     echo "MAIL_USERNAME=apikey" >> .env && \
     echo "MAIL_PASSWORD=\${MAIL_PASSWORD}" >> .env && \
     echo "MAIL_ENCRYPTION=tls" >> .env && \
-    echo "MAIL_FROM_ADDRESS=hello@example.com" >> .env && \
-    echo "MAIL_FROM_NAME=\"\${APP_NAME}\"" >> .env; \
+    echo "MAIL_FROM_ADDRESS=elkinjoao2005@gmail.com" >> .env && \
+    echo "MAIL_FROM_NAME=\"Proyecto GPIS\"" >> .env; \
     fi
-
 
 # Configurar permisos para storage y bootstrap/cache ANTES de generar la clave
 RUN mkdir -p /var/www/html/storage/framework/sessions && \
