@@ -61,11 +61,11 @@ return [
         ],
         'azure' => [
             'driver'    => 'azure',
-            'endpoint'  => env('AZURE_STORAGE_ENDPOINT'),
-            'container' => env('AZURE_STORAGE_CONTAINER'),
-            'account'   => env('AZURE_STORAGE_ACCOUNT'),
-            'key'       => env('AZURE_STORAGE_KEY'),
-            'prefix'    => null,
+            'name'      => env('AZ_BLOB_STORAGE_ACCOUNT_NAME'),
+            'key'       => env('AZ_BLOB_STORAGE_ACCOUNT_KEY'),
+            'container' => env('AZ_BLOB_STORAGE_CONTAINER_NAME'),
+            'url'       => env('AZ_BLOB_STORAGE_ACCOUNT_ENDPOINT'),
+            'throw'     => true,
         ],
 
     ],

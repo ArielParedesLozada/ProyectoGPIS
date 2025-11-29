@@ -481,7 +481,10 @@ class PublicationController extends Controller
             if ($request->hasFile('images')) {
                 foreach ($request->file('images') as $image) {
                     $path = $image->store('publications', 'azure');
-                    $url = Storage::disk('azure')->path($path);
+                    $url = Storage::disk('azure')->url($path);
+                    Log::info('URL creada', [
+                        'url' => $url
+                    ]);
                     PublicationImage::create([
                         'publication_id' => $publication->id,
                         'image_url' => $url,
@@ -724,7 +727,7 @@ class PublicationController extends Controller
             if ($request->hasFile('images')) {
                 foreach ($request->file('images') as $image) {
                     $path = $image->store('publications', 'azure');
-                    $url = Storage::disk('azure')->path($path);
+                    $url = Storage::disk('azure')->url($path);
                     PublicationImage::create([
                         'publication_id' => $publication->id,
                         'image_url' => $url,
