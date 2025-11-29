@@ -3,13 +3,16 @@ pipeline {
 
     environment {
         COMPOSE_FILE = "docker-compose.yml"
+        // MAIL_PASSWORD se configura como secreto en Jenkins (no aquí)
     }
 
     stages {
         stage('Checkout') {
             steps {
-                
                 checkout scm
+                // Crear .env.local si no existe (para MAIL_PASSWORD)
+                // NOTA: Este archivo debe crearse manualmente en el servidor Jenkins
+                // con: echo "MAIL_PASSWORD=SG.tu_clave" > .env.local
             }
         }
 

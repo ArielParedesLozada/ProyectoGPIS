@@ -58,7 +58,18 @@ class RegisteredUserController extends Controller
                 'password' => Hash::make($request->password),
             ]);
 
-            event(new Registered($user));
+            // Intentar enviar correo de verificación, pero no fallar si no se puede
+            try {
+                event(new Registered($user));
+            } catch (\Throwable $emailError) {
+                // Log el error pero no interrumpir el registro
+                \Illuminate\Support\Facades\Log::error('Error al enviar correo de verificación', [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'error' => $emailError->getMessage(),
+                ]);
+            }
+
             Auth::login($user);
             return redirect()->intended(route('verification.notice', absolute: false));
         } catch (\Illuminate\Validation\ValidationException $e) {

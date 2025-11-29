@@ -64,7 +64,7 @@ RUN if [ ! -f .env ]; then \
     echo "MAIL_HOST=smtp.sendgrid.net" >> .env && \
     echo "MAIL_PORT=2525" >> .env && \
     echo "MAIL_USERNAME=apikey" >> .env && \
-    echo "MAIL_PASSWORD=\${MAIL_PASSWORD}" >> .env && \
+    echo "MAIL_PASSWORD=" >> .env && \
     echo "MAIL_ENCRYPTION=tls" >> .env && \
     echo "MAIL_FROM_ADDRESS=elkinjoao2005@gmail.com" >> .env && \
     echo "MAIL_FROM_NAME=\"Proyecto GPIS\"" >> .env; \
@@ -107,3 +107,16 @@ RUN echo '#!/bin/sh' > /usr/local/bin/init-assets.sh && \
     echo '  chown -R www-data:www-data /var/www/html/public/build || true' >> /usr/local/bin/init-assets.sh && \
     echo 'fi' >> /usr/local/bin/init-assets.sh && \
     chmod +x /usr/local/bin/init-assets.sh
+
+# Crear script para actualizar MAIL_PASSWORD en .env desde variable de entorno
+RUN echo '#!/bin/sh' > /usr/local/bin/update-mail-password.sh && \
+    echo 'if [ -n "$$MAIL_PASSWORD" ] && [ -f /var/www/html/.env ]; then' >> /usr/local/bin/update-mail-password.sh && \
+    echo '  echo "Actualizando MAIL_PASSWORD en .env..."' >> /usr/local/bin/update-mail-password.sh && \
+    echo '  if grep -q "^MAIL_PASSWORD=" /var/www/html/.env; then' >> /usr/local/bin/update-mail-password.sh && \
+    echo '    sed -i "s|^MAIL_PASSWORD=.*|MAIL_PASSWORD=$$MAIL_PASSWORD|" /var/www/html/.env' >> /usr/local/bin/update-mail-password.sh && \
+    echo '  else' >> /usr/local/bin/update-mail-password.sh && \
+    echo '    echo "MAIL_PASSWORD=$$MAIL_PASSWORD" >> /var/www/html/.env' >> /usr/local/bin/update-mail-password.sh && \
+    echo '  fi' >> /usr/local/bin/update-mail-password.sh && \
+    echo '  php artisan config:clear || true' >> /usr/local/bin/update-mail-password.sh && \
+    echo 'fi' >> /usr/local/bin/update-mail-password.sh && \
+    chmod +x /usr/local/bin/update-mail-password.sh
