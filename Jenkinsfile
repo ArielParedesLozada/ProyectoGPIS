@@ -21,10 +21,16 @@ pipeline {
     }
 }
 
-        stage('Desplegar contenedores') {
+       stage('Desplegar contenedores') {
     steps {
         sh """
+            # Intentar bajar cualquier stack previo
             docker-compose -f ${COMPOSE_FILE} down || true
+
+            # Forzar eliminación de contenedores con los mismos nombres (si existen)
+            docker rm -f postgis pgadmin_postgis php83_app nginx_app || true
+
+            # Levantar de nuevo todo el entorno
             docker-compose -f ${COMPOSE_FILE} up -d postgis pgadmin app web
         """
     }
