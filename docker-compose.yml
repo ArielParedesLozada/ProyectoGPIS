@@ -31,10 +31,8 @@ services:
       context: .
       dockerfile: docker/php/Dockerfile
     container_name: php83_app
+    # ❌ QUITAMOS el volumen del código
     volumes:
-      # Montamos TODO el proyecto Laravel
-      - ./:/var/www/html
-      # php.ini personalizado
       - ./docker/php/php.ini:/usr/local/etc/php/php.ini:ro
     working_dir: /var/www/html
     depends_on:
@@ -51,9 +49,10 @@ services:
     depends_on:
       - app
     networks: [app_net]
-    volumes:
-      # Nginx también necesita ver /var/www/html/public
-      - ./:/var/www/html:ro
+    # ❌ TAMBIÉN quitamos el volumen aquí
+    # (Nginx leerá /var/www/html/public desde la imagen)
+    # volumes:
+    #   - ./:/var/www/html:ro
 
 networks:
   app_net:
