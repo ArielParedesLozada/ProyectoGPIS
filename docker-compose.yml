@@ -37,23 +37,21 @@ services:
       context: .
       dockerfile: docker/php/Dockerfile
     container_name: php83_app
-    # ❌ QUITAMOS el volumen del código
+    
     volumes:
       - ./docker/php/php.ini:/usr/local/etc/php/php.ini:ro
-      # Compartir los assets compilados con Nginx
       - app_build:/var/www/html/public/build
     working_dir: /var/www/html
-    # Variables de entorno para configuración de correo
-    # Lee de variable de entorno (puede venir de .env.local o de Jenkins)
+    
     environment:
       - MAIL_PASSWORD=${MAIL_PASSWORD:-}
-    # Copiar assets, ejecutar migraciones, crear superadmin y luego iniciar PHP-FPM
+    
     command: sh -c "/usr/local/bin/init-assets.sh && /usr/local/bin/update-mail-password.sh && php artisan migrate --force --no-interaction || true && php artisan db:seed --class=UserSeeder --force --no-interaction || true && docker-php-entrypoint php-fpm"
     depends_on:
       postgis:
         condition: service_healthy
     networks: [app_net]
-    # Exponer el puerto de PHP-FPM para debugging (opcional)
+    
     expose:
       - "9000"
 
@@ -67,7 +65,7 @@ services:
     depends_on:
       - app
     networks: [app_net]
-    # Compartir los assets compilados desde PHP
+    
     volumes:
       - app_build:/var/www/html/public/build:ro
     restart: unless-stopped
