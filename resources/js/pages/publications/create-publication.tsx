@@ -35,14 +35,6 @@ export default function CreatePublication({ categories }: CreatePublicationProps
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { showToast } = useToast();
 
-    // Debug: Verificar que las categorías se están cargando
-    useEffect(() => {
-        console.log('Categorías recibidas:', categories);
-        if (!categories || categories.length === 0) {
-            console.warn('No se recibieron categorías');
-        }
-    }, [categories]);
-
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'Mis Publicaciones',
@@ -268,17 +260,11 @@ export default function CreatePublication({ categories }: CreatePublicationProps
                                                     <SelectValue placeholder="Selecciona una categoría" />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    {categories && categories.length > 0 ? (
-                                                        categories.map((category) => (
-                                                            <SelectItem key={category.id} value={category.id.toString()}>
-                                                                {category.name}
-                                                            </SelectItem>
-                                                        ))
-                                                    ) : (
-                                                        <SelectItem value="" disabled>
-                                                            No hay categorías disponibles
+                                                    {categories.map((category) => (
+                                                        <SelectItem key={category.id} value={category.id.toString()}>
+                                                            {category.name}
                                                         </SelectItem>
-                                                    )}
+                                                    ))}
                                                 </SelectContent>
                                             </Select>
                                             <CustomError 
