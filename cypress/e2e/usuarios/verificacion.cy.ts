@@ -9,7 +9,7 @@ describe('Verificacion', () => {
     cy.visit('http://localhost:8000/');
   });
 
-  it('SIS-006: Envío de correo de verificación durante el registro', () => {
+  it('SIS-USU-006: Envío de correo de verificación durante el registro', () => {
     cy.visit('http://localhost:8000/register');
 
     // Completar formulario de registro
@@ -38,7 +38,7 @@ describe('Verificacion', () => {
     cy.contains('Verificar email');
   });
 
-  it('SIS-007: Verificacion de enlace valido', () => {
+  it('SIS-USU-007: Verificacion de enlace valido', () => {
     cy.request('POST', '/testing/user', {
       email: 'johanatreidesi66@gmail.com',
       password: 'Admin123@',

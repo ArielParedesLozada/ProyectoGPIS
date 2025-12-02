@@ -1,3 +1,5 @@
+/// <reference types="cypress" />
+
 describe('Registro de usuarios', () => {
   beforeEach(() => {
     // Limpia la BD antes de cada prueba (modo testing)
@@ -9,7 +11,7 @@ describe('Registro de usuarios', () => {
     cy.visit('http://localhost:8000/register');
   });
 
-  it('SIS-004: Registro exitoso', () => {
+  it('SIS-USU-004: Registro exitoso', () => {
     cy.get('h2').contains('Crear Cuenta');
     cy.get('input[name="cedula"]').type('1890773041');
     cy.get('input[name="name"]').type('Juan');
@@ -42,7 +44,7 @@ describe('Registro de usuarios', () => {
     // Verifica que se haya creado en la BD
   });
 
-  it('SIS-005: Registro inválido', () => {
+  it('SIS-USU-005: Registro inválido', () => {
     // Primero creamos un usuario existente
     cy.request('POST', '/testing/user', {
       email: 'johanatreidesi66@gmail.com',

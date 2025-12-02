@@ -1,3 +1,5 @@
+/// <reference types="cypress" />
+
 describe('Login de usuarios', () => {
 
   beforeEach(() => {
@@ -6,7 +8,7 @@ describe('Login de usuarios', () => {
     cy.exec('php artisan migrate:fresh --env=testing');
   });
 
-  it('SIS-001', () => {
+  it('SIS-USU-001', () => {
     cy.get('h2').contains('Iniciar Sesión');       // Verifica el título del formulario
     cy.get('input[name="email"]').should('exist'); // Campo email
     cy.get('input[name="password"]').should('exist'); // Campo password
@@ -30,7 +32,7 @@ describe('Login de usuarios', () => {
     cy.contains('Publicaciones'); // Ajusta según el título de la página
   });
 
-  it('SIS-002', () => {
+  it('SIS-USU-002', () => {
     cy.get('button[type="submit"]').contains('Iniciar Sesión');
     cy.request('POST', '/testing/user', {
       email: 'superadmin@proyectogpis.com',
@@ -51,7 +53,7 @@ describe('Login de usuarios', () => {
     cy.contains('Iniciar Sesión'); // Ajusta según el título de la página
   });
 
-  it('SIS-003', () => {
+  it('SIS-USU-003', () => {
     cy.get('button[type="submit"]').contains('Iniciar Sesión');
     cy.request('POST', '/testing/user', {
       email: 'superadmin@proyectogpis.com',
