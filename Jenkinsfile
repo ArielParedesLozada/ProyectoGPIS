@@ -3,24 +3,42 @@ pipeline {
 
     environment {
         COMPOSE_FILE = "docker-compose.yml"
-        // MAIL_PASSWORD = credentials('sendgrid-api-key')
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
+        stage('Copiar .env desde credencial') {
+            steps {
+                // Usa el archivo de credenciales ape7-env-file
+                withCredentials([file(credentialsId: 'ape7-env-file', variable: 'ENV_FILE')]) {
+                    sh '''
+                        cp "$ENV_FILE" .env
+                        echo "Archivo .env copiado al workspace"
+                    '''
+                }
+            }
+        }
+
         stage('Validar ENV del Pipeline') {
             steps {
                 sh '''
-                    echo "MAIL_MAILER=$(grep MAIL_MAILER .env)"
-                    echo "MAIL_HOST=$(grep MAIL_HOST .env)"
-                    echo "MAIL_PORT=$(grep MAIL_PORT .env)"
-                    echo "MAIL_USERNAME=$(grep MAIL_USERNAME .env)"
+                    echo "========== VALORES DEL .env =========="
+
+                    echo "MAIL_MAILER=$(grep ^MAIL_MAILER= .env | cut -d '=' -f2-)"
+                    echo "MAIL_HOST=$(grep ^MAIL_HOST= .env | cut -d '=' -f2-)"
+                    echo "MAIL_PORT=$(grep ^MAIL_PORT= .env | cut -d '=' -f2-)"
+                    echo "MAIL_USERNAME=$(grep ^MAIL_USERNAME= .env | cut -d '=' -f2-)"
+                    echo "MAIL_FROM_ADDRESS=$(grep ^MAIL_FROM_ADDRESS= .env | cut -d '=' -f2-)"
+                    echo "MAIL_FROM_NAME=$(grep ^MAIL_FROM_NAME= .env | cut -d '=' -f2-)"
+
                     echo "MAIL_PASSWORD=***OCULTO***"
+                    echo "======================================"
                 '''
             }
         }
@@ -41,6 +59,7 @@ pipeline {
                 """
             }
         }
+
     }
 
     post {
