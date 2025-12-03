@@ -28,7 +28,6 @@ services:
     volumes:
       - ./docker/php/php.ini:/usr/local/etc/php/php.ini:ro
       - app_build:/var/www/html/public/build
-      - ./.env:/var/www/html/.env
       - app_storage:/var/www/html/storage
     working_dir: /var/www/html
     
