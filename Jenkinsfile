@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         COMPOSE_FILE = "docker-compose.yml"
-        MAIL_PASSWORD = credentials('sendgrid-api-key')
+        // MAIL_PASSWORD = credentials('sendgrid-api-key')
     }
 
     stages {
