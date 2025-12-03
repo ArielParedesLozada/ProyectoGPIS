@@ -9,7 +9,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: clave_piola
-      POSTGRES_DB: postgres
+      POSTGRES_DB: proyecto_gpis
     volumes:
       - ~/Documentos/Academico/Sexto_Semestre/Pruebas/volumes/postgis:/var/lib/postgresql
     networks: [app_net]
