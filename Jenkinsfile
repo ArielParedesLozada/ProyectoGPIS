@@ -15,13 +15,13 @@ pipeline {
 
         stage('Validar ENV del Pipeline') {
             steps {
-                sh """
-                    echo 'MAIL_MAILER='\\$(grep MAIL_MAILER .env)
-                    echo 'MAIL_HOST='\\$(grep MAIL_HOST .env)
-                    echo 'MAIL_PORT='\\$(grep MAIL_PORT .env)
-                    echo 'MAIL_USERNAME='\\$(grep MAIL_USERNAME .env)
-                    echo 'MAIL_PASSWORD=***OCULTO***'
-                """
+                sh '''
+                    echo "MAIL_MAILER=$(grep MAIL_MAILER .env)"
+                    echo "MAIL_HOST=$(grep MAIL_HOST .env)"
+                    echo "MAIL_PORT=$(grep MAIL_PORT .env)"
+                    echo "MAIL_USERNAME=$(grep MAIL_USERNAME .env)"
+                    echo "MAIL_PASSWORD=***OCULTO***"
+                '''
             }
         }
 
