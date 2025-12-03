@@ -28,6 +28,15 @@ pipeline {
         stage('Validar ENV del Pipeline') {
             steps {
                 sh '''
+                    echo "========== INFO DEL WORKSPACE =========="
+                    echo "WORKSPACE: $PWD"
+
+                    echo "========== EXISTENCIA DEL .env =========="
+                    ls -l .env || echo "⚠ No se encontró el archivo .env"
+
+                    echo "Ruta absoluta del .env:"
+                    readlink -f .env || echo "⚠ No se pudo resolver la ruta"
+
                     echo "========== VALORES DEL .env =========="
 
                     echo "MAIL_MAILER=$(grep ^MAIL_MAILER= .env | cut -d '=' -f2-)"
