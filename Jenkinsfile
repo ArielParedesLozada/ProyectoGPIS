@@ -12,6 +12,7 @@ pipeline {
                 checkout scm
             }
         }
+        
         stage('Validar ENV del Pipeline') {
             steps {
                 sh """
