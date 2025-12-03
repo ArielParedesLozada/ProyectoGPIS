@@ -9,4 +9,5 @@ storage/framework/sessions
 npm-debug.log
 yarn.lock
 public/storage
+.env*
 !public/build

@@ -3,19 +3,19 @@ FROM php:8.3-fpm
 RUN apt-get update && apt-get install -y \
     git zip unzip libpq-dev libzip-dev curl \
     $PHPIZE_DEPS \
- && docker-php-ext-install pdo pdo_pgsql zip \
- && docker-php-ext-configure pcntl --enable-pcntl \
- && docker-php-ext-install pcntl
+    && docker-php-ext-install pdo pdo_pgsql zip \
+    && docker-php-ext-configure pcntl --enable-pcntl \
+    && docker-php-ext-install pcntl
 
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
- && apt-get install -y nodejs
+    && apt-get install -y nodejs
 
 RUN pecl install xdebug \
- && docker-php-ext-enable xdebug \
- && apt-get purge -y $PHPIZE_DEPS \
- && apt-get autoremove -y \
- && apt-get clean \
- && rm -rf /var/lib/apt/lists/*
+    && docker-php-ext-enable xdebug \
+    && apt-get purge -y $PHPIZE_DEPS \
+    && apt-get autoremove -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
