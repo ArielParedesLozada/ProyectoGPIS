@@ -29,11 +29,10 @@ services:
       - ./docker/php/php.ini:/usr/local/etc/php/php.ini:ro
       - app_build:/var/www/html/public/build
       - app_storage:/var/www/html/storage
+      - ./deploy/.env:/var/www/html/.env
     working_dir: /var/www/html
-    
-    environment:
-      - MAIL_PASSWORD=${MAIL_PASSWORD:-}
-    
+    env_file:
+      - ./deploy/.env    
     command: >
       sh -c "
         /usr/local/bin/init-assets.sh &&

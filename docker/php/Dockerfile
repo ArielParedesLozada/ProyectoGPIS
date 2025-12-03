@@ -25,41 +25,6 @@ COPY . /var/www/html
 
 RUN composer install --no-interaction --no-dev --prefer-dist --optimize-autoloader
 
-RUN if [ ! -f .env ]; then \
-    echo "APP_NAME=Laravel" > .env && \
-    echo "APP_ENV=production" >> .env && \
-    echo "APP_KEY=" >> .env && \
-    echo "APP_DEBUG=false" >> .env && \
-    echo "APP_URL=http://localhost" >> .env && \
-    echo "" >> .env && \
-    echo "LOG_CHANNEL=stack" >> .env && \
-    echo "LOG_DEPRECATIONS_CHANNEL=null" >> .env && \
-    echo "LOG_LEVEL=debug" >> .env && \
-    echo "" >> .env && \
-    echo "DB_CONNECTION=pgsql" >> .env && \
-    echo "DB_HOST=postgis" >> .env && \
-    echo "DB_PORT=5432" >> .env && \
-    echo "DB_DATABASE=postgres" >> .env && \
-    echo "DB_USERNAME=postgres" >> .env && \
-    echo "DB_PASSWORD=clave_piola" >> .env && \
-    echo "" >> .env && \
-    echo "BROADCAST_DRIVER=log" >> .env && \
-    echo "CACHE_DRIVER=database" >> .env && \
-    echo "FILESYSTEM_DISK=local" >> .env && \
-    echo "QUEUE_CONNECTION=sync" >> .env && \
-    echo "SESSION_DRIVER=file" >> .env && \
-    echo "SESSION_LIFETIME=120" >> .env && \
-    echo "" >> .env && \
-    echo "MAIL_MAILER=smtp" >> .env && \
-    echo "MAIL_HOST=smtp.sendgrid.net" >> .env && \
-    echo "MAIL_PORT=2525" >> .env && \
-    echo "MAIL_USERNAME=apikey" >> .env && \
-    echo "MAIL_PASSWORD=" >> .env && \
-    echo "MAIL_ENCRYPTION=tls" >> .env && \
-    echo "MAIL_FROM_ADDRESS=elkinjoao2005@gmail.com" >> .env && \
-    echo "MAIL_FROM_NAME=\"Proyecto GPIS\"" >> .env; \
-    fi
-
 RUN mkdir -p /var/www/html/storage/framework/sessions && \
     mkdir -p /var/www/html/storage/framework/views && \
     mkdir -p /var/www/html/storage/framework/cache && \
@@ -109,3 +74,5 @@ RUN echo '#!/bin/sh' > /usr/local/bin/update-mail-password.sh && \
     echo '  php artisan config:clear || true' >> /usr/local/bin/update-mail-password.sh && \
     echo 'fi' >> /usr/local/bin/update-mail-password.sh && \
     chmod +x /usr/local/bin/update-mail-password.sh
+
+CMD ["php-fpm"]
