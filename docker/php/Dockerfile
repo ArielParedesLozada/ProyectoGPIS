@@ -31,8 +31,8 @@ RUN mkdir -p /var/www/html/storage/framework/sessions && \
     mkdir -p /var/www/html/storage/logs && \
     mkdir -p /var/www/html/bootstrap/cache && \
     mkdir -p /var/www/html/public/build && \
-    chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public/build && \
-    chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+    chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap /var/www/html/public/build && \
+    chmod -R 777 /var/www/html/storage /var/www/html/bootstrap
 
 
 RUN if ! grep -q "APP_KEY=base64:" .env 2>/dev/null; then \
