@@ -35,6 +35,8 @@ services:
       - .env    
     command: >
       sh -c "
+        chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap &&
+        chmod -R 777 /var/www/html/storage /var/www/html/bootstrap &&
         /usr/local/bin/init-assets.sh &&
         /usr/local/bin/update-mail-password.sh &&
         php artisan migrate --force --no-interaction --seed &&
