@@ -225,7 +225,7 @@ class AdminUserController extends Controller
         ]);
 
         $data = $request->only([
-            'cedula', 'name', 'surname', 'phone', 'address', 'gender', 'email'
+            'cedula', 'name', 'surname', 'phone', 'address', 'gender', //'email'
         ]);
 
         // Solo actualizar la contraseña si se proporciona
