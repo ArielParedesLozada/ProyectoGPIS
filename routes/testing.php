@@ -3,8 +3,11 @@
 use App\Models\Category;
 use App\Models\Publication;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 
 // Permitir rutas de testing en desarrollo (testing, local, o cuando APP_DEBUG está activo)
 // Estas rutas solo deben estar disponibles en desarrollo, nunca en producción
@@ -85,7 +88,7 @@ Route::prefix('testing')->group(function () {
     Route::patch('/moderation-case/{id}', function ($id) {
         $case = \App\Models\ModerationCase::findOrFail($id);
         $data = request()->all();
-        
+
         // Validar source si se proporciona
         if (isset($data['source'])) {
             $validSources = ['user', 'system'];
@@ -99,7 +102,7 @@ Route::prefix('testing')->group(function () {
                 ], 400);
             }
         }
-        
+
         // Validar status si se proporciona
         if (isset($data['status'])) {
             $validStatuses = ['pending', 'triage', 'in_review', 'action_taken', 'dismissed', 'appealed', 'closed'];
@@ -110,23 +113,23 @@ Route::prefix('testing')->group(function () {
                 ], 400);
             }
         }
-        
+
         $case->update($data);
         return response()->json($case);
     });
     Route::post('/moderation-case', function () {
         $data = request()->all();
-        
+
         try {
             // Validar y normalizar el source: solo permite 'user' o 'system' según el enum de la BD
             $validSources = ['user', 'system'];
             $source = $data['source'] ?? 'system';
-            
+
             // Si se proporciona 'auto', convertirlo a 'system' para testing
             if ($source === 'auto') {
                 $source = 'system';
             }
-            
+
             // Validar que el source sea válido
             if (!in_array($source, $validSources)) {
                 return response()->json([
@@ -134,18 +137,18 @@ Route::prefix('testing')->group(function () {
                     'error' => "Invalid source: '{$source}'. Valid values are: " . implode(', ', $validSources)
                 ], 400);
             }
-            
+
             // Validar que el status sea válido según el enum de la migración
             $validStatuses = ['pending', 'triage', 'in_review', 'action_taken', 'dismissed', 'appealed', 'closed'];
             $status = $data['status'] ?? 'pending';
-            
+
             if (!in_array($status, $validStatuses)) {
                 return response()->json([
                     'success' => false,
                     'error' => "Invalid status: '{$status}'. Valid values are: " . implode(', ', $validStatuses)
                 ], 400);
             }
-            
+
             // Crear el caso SIN eventos para evitar observers/events que puedan causar hang
             $case = \App\Models\ModerationCase::withoutEvents(function () use ($data, $source, $status) {
                 return \App\Models\ModerationCase::create([
@@ -158,7 +161,7 @@ Route::prefix('testing')->group(function () {
                     'resolved_at' => $data['resolved_at'] ?? null,
                 ]);
             });
-            
+
             return response()->json($case);
         } catch (\Throwable $e) {
             return response()->json([
@@ -175,27 +178,27 @@ Route::prefix('testing')->group(function () {
     Route::post('/moderation/{id}/dismiss', function ($id) {
         $case = \App\Models\ModerationCase::with('publication')->findOrFail($id);
         $notes = request('notes', 'Caso descartado por testing');
-        
+
         \Illuminate\Support\Facades\DB::beginTransaction();
-        
+
         try {
             // Verificar si la publicación está oculta antes de restaurarla
             $wasHidden = $case->publication->is_hidden;
-            
+
             // Si la publicación está oculta, restaurarla al descartar el caso
             if ($wasHidden) {
                 $publication = $case->publication;
                 $publication->is_hidden = false;
                 $publication->save();
             }
-            
+
             // Actualizar el caso
             $case->update([
                 'status' => 'dismissed',
                 'resolution_notes' => $notes,
                 'resolved_at' => now(),
             ]);
-            
+
             // Registrar la acción en el historial
             \App\Models\ModerationAction::create([
                 'moderation_case_id' => $case->id,
@@ -207,15 +210,14 @@ Route::prefix('testing')->group(function () {
                     'publication_restored' => $wasHidden,
                 ]
             ]);
-            
+
             \Illuminate\Support\Facades\DB::commit();
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Caso descartado correctamente',
                 'case' => $case->fresh(),
             ]);
-            
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\DB::rollBack();
             return response()->json([
@@ -227,22 +229,22 @@ Route::prefix('testing')->group(function () {
     Route::post('/moderation/{id}/hide-publication', function ($id) {
         $case = \App\Models\ModerationCase::with('publication')->findOrFail($id);
         $reason = request('reason', 'Ocultada por testing');
-        
+
         \Illuminate\Support\Facades\DB::beginTransaction();
-        
+
         try {
             // Ocultar la publicación
             $publication = $case->publication;
             $publication->is_hidden = true;
             $publication->save();
-            
+
             // Actualizar el caso
             $case->update([
                 'status' => 'action_taken',
                 'resolution_notes' => $reason,
                 'resolved_at' => now(),
             ]);
-            
+
             // Registrar la acción en el historial
             \App\Models\ModerationAction::create([
                 'moderation_case_id' => $case->id,
@@ -255,16 +257,15 @@ Route::prefix('testing')->group(function () {
                     'reason' => $reason,
                 ]
             ]);
-            
+
             \Illuminate\Support\Facades\DB::commit();
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Publicación ocultada correctamente',
                 'publication' => $publication->fresh(),
                 'case' => $case->fresh(),
             ]);
-            
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\DB::rollBack();
             return response()->json([
@@ -297,13 +298,13 @@ Route::prefix('testing')->group(function () {
     Route::post('/reassign-cases', function () {
         $fromModeratorId = (int) request('from_moderator_id');
         $toModeratorId = (int) request('to_moderator_id');
-        
+
         // Buscar casos (sin incluir eliminados por defecto)
         // Asegurar que assigned_moderator_id no sea null y coincida exactamente
         $cases = \App\Models\ModerationCase::where('assigned_moderator_id', $fromModeratorId)
             ->whereIn('status', ['pending', 'in_review', 'appealed'])
             ->get();
-        
+
         $reassigned = 0;
         foreach ($cases as $case) {
             $case->update([
@@ -312,7 +313,7 @@ Route::prefix('testing')->group(function () {
             ]);
             $reassigned++;
         }
-        
+
         return response()->json([
             'message' => "Reasignados {$reassigned} casos",
             'reassigned_count' => $reassigned,
@@ -331,20 +332,20 @@ Route::prefix('testing')->group(function () {
     Route::post('/login', function () {
         $email = request('email');
         $password = request('password');
-        
+
         $user = \App\Models\User::where('email', $email)->first();
-        
+
         if (!$user || !\Illuminate\Support\Facades\Hash::check($password, $user->password)) {
             return response()->json(['error' => 'Invalid credentials'], 401);
         }
-        
+
         if (!$user->is_active) {
             return response()->json(['error' => 'User is inactive'], 403);
         }
-        
+
         \Illuminate\Support\Facades\Auth::login($user);
         request()->session()->regenerate();
-        
+
         return response()->json([
             'message' => 'Login successful',
             'user' => $user,
@@ -356,5 +357,52 @@ Route::prefix('testing')->group(function () {
             '--env' => 'testing',
         ]);
         return response()->json(['message' => 'Database reset successfully']);
+    });
+
+    Route::get('verify-password-reset-token/{email}', function ($email) {
+        $record = DB::table('password_reset_tokens')
+            ->where('email', $email)
+            ->first();
+        return response()->json([
+            'email' => $record->email ?? null,
+            'token' => $record->token ?? null,
+            'created_at' => $record->created_at ?? null,
+            'exists' => $record !== null,
+        ]);
+    });
+
+    Route::post('/create-password-reset-token', function () {
+        $email = request('email');
+
+        $rawToken = Str::random(64);
+        $hashedToken = Hash::make($rawToken);
+
+        DB::table('password_reset_tokens')
+            ->updateOrInsert(
+                ['email' => $email],
+                [
+                    'token' => $hashedToken,
+                    'created_at' => now(),
+                ]
+            );
+
+        $url = url(route('password.reset', [
+            'token' => $rawToken,  // <-- TOKEN REAL
+            'email' => $email,
+        ], false));
+
+        return response()->json([
+            'url' => $url,
+            'token' => $rawToken,  // útil para debugging
+        ]);
+    });
+    Route::post('/create-custom-user', function () {
+        $data = request()->all();
+        // Si se proporciona un password, hashearlo
+        if (isset($data['password'])) {
+            $data['password'] = \Illuminate\Support\Facades\Hash::make($data['password']);
+        }
+        $userTest = User::factory()->create($data);
+        return response()->json($userTest);
     });
 });
