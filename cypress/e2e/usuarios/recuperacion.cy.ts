@@ -1,6 +1,6 @@
 /// <reference types="cypress" />
 
-describe('template spec', () => {
+describe('Pruebas de recuperacion de contraseña', () => {
   const host = "http://localhost:8000"
 
 
@@ -17,7 +17,7 @@ describe('template spec', () => {
     });
   });
 
-  xit('SIS-USU-008 - Envío del enlace de restablecimiento', () => {
+  it('SIS-USU-008 - Envío del enlace de restablecimiento', () => {
     const email = "johanatreidesi66@gmail.com"
     cy.visit(`${host}/forgot-password`);
 
@@ -36,7 +36,7 @@ describe('template spec', () => {
 
   });
 
-  xit('SIS-USU-009 - Pantalla de reset accesible', () => {
+  it('SIS-USU-009 - Pantalla de reset accesible', () => {
     const email = "johanatreidesi66@gmail.com"
     cy.visit(`${host}/forgot-password`);
 
@@ -54,7 +54,7 @@ describe('template spec', () => {
       });
   });
 
-  xit('SIS-USU-010', () => {
+  it('SIS-USU-010', () => {
     const email = "johanatreidesi66@gmail.com"
     const password = "NewPassword"
     cy.visit(`${host}/forgot-password`);
@@ -75,7 +75,7 @@ describe('template spec', () => {
       });
   })
 
-  xit('SIS-USU-011', () => {
+  it('SIS-USU-011', () => {
     const email = "johanatreidesi66@gmail.com"
     const password = "NewPassword"
     cy.visit(`${host}/forgot-password`);
